@@ -1,7 +1,26 @@
+from os.path import exists
+import yaml
+
+
+def load_configuration_files() -> dict:
+    default_config = {}
+    custom_config = {}
+
+    # load the default file
+    with open('harvest.yaml') as default_file:
+        default_config = yaml.load(default_file, Loader=yaml.FullLoader)
+
+    # load custom configurations
+    if exists('/etc/harvest.yaml'):
+        with open('/etc/harvest.yaml') as custom_file:
+            custom_config = yaml.load(custom_file, Loader=yaml.FullLoader)
+
+    return custom_config | default_config
+
 from logging import Logger
 
 
-def setup(name: str = 'harvest', log_level: str = 'debug', quiet: bool = False) -> Logger:
+def get_logger(name: str = 'harvest', log_level: str = 'debug', quiet: bool = False) -> Logger:
     """
     configures lagging for Harvest; it
     :param name: log name

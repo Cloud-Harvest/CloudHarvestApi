@@ -1,0 +1,20 @@
+# template configuration for the backend cache server
+.cache: &cache_server
+  host: localhost
+  port: 27017
+  username:     # intentionally null
+  password:     # intentionally null
+
+cache:
+  # read-only configuration
+  reader:
+    <<: *cache_server
+
+  # read/write configuration
+  writer:
+    <<: *cache_server
+
+logging:
+  level: debug
+  location: /var/log/harvest-api.log
+
