@@ -18,3 +18,5 @@ logging:
   level: debug
   location: /var/log/harvest-api.log
 
+modules:
+  - https://github.com/Cloud-Harvest/module-aws.git
