@@ -1,3 +1,4 @@
+from logging import Logger
 from os.path import exists
 import yaml
 
@@ -16,8 +17,6 @@ def load_configuration_files() -> dict:
             custom_config = yaml.load(custom_file, Loader=yaml.FullLoader)
 
     return custom_config | default_config
-
-from logging import Logger
 
 
 def get_logger(name: str = 'harvest', log_level: str = 'debug', quiet: bool = False) -> Logger:
