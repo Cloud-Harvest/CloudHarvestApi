@@ -45,7 +45,7 @@ def get_logger(name: str = 'harvest', log_level: str = 'debug', quiet: bool = Fa
     [logger.removeHandler(handler) for handler in logger.handlers]
 
     # formatting
-    log_format = Formatter()
+    log_format = Formatter(fmt='[%(asctime)s][%(levelname)s][%(thread)d][%(module)s.%(filename)s:%(lineno)d]%(message)s')
 
     # file handler
     parent_path = '/var/log'
