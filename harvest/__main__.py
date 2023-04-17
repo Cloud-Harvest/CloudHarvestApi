@@ -1,3 +1,4 @@
+from cache import HarvestCacheConnection
 from flask import Flask
 
 # load configurations and begin startup sequence
@@ -7,6 +8,14 @@ logger = startup.get_logger()
 
 
 app = Flask(__name__)
+
+# test backend connection
+cache = {}
+for node, host_configuration in api_configuration['cache'].items():
+    c = HarvestCacheConnection(node=node, **host_configuration)
+    cache[node] = c
+
+    assert c.is_connected
 
 # load modules
 from modules import ModuleLoader, ModuleRegister
