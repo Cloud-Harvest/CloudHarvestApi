@@ -4,22 +4,16 @@ from flask import Flask
 # load configurations and begin startup sequence
 import startup
 api_configuration = startup.load_configuration_files()
-logger = startup.get_logger()
+logger = startup.load_logger()
 
 
 app = Flask(__name__)
 
 # test backend connection
-cache = {}
-for node, host_configuration in api_configuration['cache'].items():
-    c = HarvestCacheConnection(node=node, **host_configuration)
-    cache[node] = c
-
-    assert c.is_connected
+cache = startup.load_cache_connections(cache_config=api_configuration['cache'])
 
 # load modules
 from modules import ModuleLoader, ModuleRegister
-
 
 # start the webserver
 app.run()
