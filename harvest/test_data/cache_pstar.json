@@ -1,0 +1,16 @@
+{
+  "platform": "test",
+  "service": "test",
+  "type": "test",
+  "account": "account",
+  "region": "region",
+  "count": 555,
+  "start_time": "2023-04-17 23:59:10.284872",
+  "end_time": "2023-04-18 00:00:00.284872",
+  "api_version":"2023.04.17-alpha",
+  "module": {
+    "name": "test",
+    "version": "2023.04.17-alpha",
+    "repo": "https://github.com/Cloud-Harvest/api.git"
+  }
+}
