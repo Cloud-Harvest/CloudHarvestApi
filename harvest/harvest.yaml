@@ -6,13 +6,25 @@
   password:     # intentionally null
 
 cache:
-  # read-only configuration
-  reader:
-    <<: *cache_server
+  hosts:
+    # read-only configuration
+    reader:
+      <<: *cache_server
 
-  # read/write configuration
-  writer:
-    <<: *cache_server
+    # read/write configuration
+    writer:
+      <<: *cache_server
+
+  indexes:
+    harvest:
+      pstar:
+        - platform
+        - service
+        - type
+        - account
+        - region
+        - records
+        - errors
 
 logging:
   level: debug
