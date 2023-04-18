@@ -1,9 +1,27 @@
 from logging import Logger
-from os.path import exists
-import yaml
+
+
+def load_cache_connections(cache_config: dict) -> dict:
+    """
+    returns a list of connection objects
+    :param cache_config: part of the harvest.yaml
+    :return: a list of nodes and their connection objects
+    """
+
+    from cache import HarvestCacheConnection
+
+    result = {}
+    for node, host_configuration in cache_config.items():
+        c = HarvestCacheConnection(node=node, **host_configuration)
+        result[node] = c
+
+    return result
 
 
 def load_configuration_files() -> dict:
+    from os.path import exists
+    import yaml
+
     default_config = {}
     custom_config = {}
 
@@ -19,7 +37,7 @@ def load_configuration_files() -> dict:
     return custom_config | default_config
 
 
-def get_logger(name: str = 'harvest', log_level: str = 'debug', quiet: bool = False) -> Logger:
+def load_logger(name: str = 'harvest', log_level: str = 'debug', quiet: bool = False) -> Logger:
     """
     configures lagging for Harvest; it
     :param name: log name
@@ -45,7 +63,7 @@ def get_logger(name: str = 'harvest', log_level: str = 'debug', quiet: bool = Fa
     [logger.removeHandler(handler) for handler in logger.handlers]
 
     # formatting
-    log_format = Formatter(fmt='[%(asctime)s][%(levelname)s][%(thread)d][%(module)s.%(filename)s:%(lineno)d]%(message)s')
+    log_format = Formatter(fmt='[%(asctime)s][%(levelname)s][%(thread)d][%(collector)s.%(filename)s:%(lineno)d]%(message)s')
 
     # file handler
     parent_path = '/var/log'
