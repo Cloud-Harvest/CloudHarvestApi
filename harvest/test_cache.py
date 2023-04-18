@@ -3,17 +3,17 @@ from cache import HarvestCacheConnection
 from startup import load_configuration_files, load_cache_connections
 
 api_configuration = load_configuration_files()
-cache_nodes = load_cache_connections(cache_config=api_configuration['cache'])
+cache_nodes = load_cache_connections(cache_config=api_configuration['cache']['hosts'])
 
 
 def test_connection():
-    assert cache_nodes[0].is_connected
+    assert cache_nodes['writer'].is_connected
 
 
 def test_add_indexes():
     indexes = api_configuration['cache']['indexes']
 
-    cache_nodes[0].add_indexes(indexes=indexes)
+    cache_nodes['writer'].add_indexes(indexes=indexes)
 
 
 def test_set_pstar():
@@ -23,3 +23,7 @@ def test_set_pstar():
         test_file = load(test_data)
 
     cache_nodes[0].set_pstar(**test_file)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    cache_nodes[0].drop_database('test')

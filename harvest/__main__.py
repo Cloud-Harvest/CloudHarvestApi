@@ -10,7 +10,7 @@ logger = startup.load_logger()
 app = Flask(__name__)
 
 # test backend connection
-cache = startup.load_cache_connections(cache_config=api_configuration['cache'])
+cache = startup.load_cache_connections(cache_config=api_configuration['cache']['hosts'])
 
 # load modules
 from modules import ModuleLoader, ModuleRegister

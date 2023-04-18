@@ -26,7 +26,7 @@ def load_configuration_files() -> dict:
     custom_config = {}
 
     # load the default file
-    with open('harvest.yaml') as default_file:
+    with open('harvest/harvest.yaml') as default_file:
         default_config = yaml.load(default_file, Loader=yaml.FullLoader)
 
     # load custom configurations
