@@ -1,11 +1,7 @@
 """
 cache.py - defines api-specific operations used for communicating with the backend cache
 """
-import pymongo.errors
-
 from pymongo import MongoClient
-from datetime import datetime
-
 from logging import getLogger
 logger = getLogger('harvest')
 
@@ -74,11 +70,10 @@ class HarvestCacheConnection(MongoClient):
         self.session = self.start_session()
         return self
 
-    def set_pstar(self, platform: str, service: str, type: str, account: str, region: str, count: int,
-                  start_time: datetime, end_time: datetime, api_version: str, module: dict,
-                  errors: list, **kwargs):
+    def set_pstar(self, **kwargs):
         """
         a PSTAR is a concept in Harvest where objects are stored on five dimensions
+        :param database: override
         :param platform: the cloud provider this database was retrieved from (ie AWS, Azure, Google)
         :param service: the provider's service (ie "RDS", "EC2")
         :param type: service's object classification (ie RDS "instance" or EC2 "event")
@@ -96,14 +91,13 @@ class HarvestCacheConnection(MongoClient):
         self.connect()
 
         # no need to replicate this logic everywhere
-        from datetime import timedelta
-        kwargs['duration'] = timedelta(kwargs['end_time'] - kwargs['start_time']).total_seconds()
+        kwargs['duration'] = (kwargs['end_time'] - kwargs['start_time']).total_seconds()
 
         try:
             from datetime import datetime
-            self['harvest']['pstar'].insert_one(**kwargs)
+            self['harvest']['pstar'].insert_one(kwargs)
 
-        except pymongo.errors.Any as ex:
+        except Exception as ex:
             logger.error(f'{self._log_prefix}: ' + ' '.join(ex.args))
 
         finally:

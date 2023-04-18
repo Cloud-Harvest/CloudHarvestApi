@@ -1,5 +1,4 @@
 import pytest
-from cache import HarvestCacheConnection
 from startup import load_configuration_files, load_cache_connections
 
 api_configuration = load_configuration_files()
@@ -19,10 +18,21 @@ def test_add_indexes():
 def test_set_pstar():
     from json import load
 
-    with open('test_data/cache_pstar.json', 'r') as test_data:
+    with open('harvest/test_data/cache_pstar.json', 'r') as test_data:
         test_file = load(test_data)
 
-    cache_nodes[0].set_pstar(**test_file)
+    from dateutil.parser import parse
+    test_file['start_time'] = parse(test_file['start_time'])
+    test_file['end_time'] = parse(test_file['end_time'])
+    cache_nodes['writer'].set_pstar(**test_file)
+
+    results = cache_nodes['writer']['test']['pstar'].find_one({"platform": "test",
+                                                               "service": "test",
+                                                               "type": "test",
+                                                               "account": "account",
+                                                               "region": "region"})
+
+    assert results
 
 
 def pytest_sessionfinish(session, exitstatus):
