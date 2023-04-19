@@ -24,16 +24,14 @@ def test_set_pstar():
     from dateutil.parser import parse
     test_file['start_time'] = parse(test_file['start_time'])
     test_file['end_time'] = parse(test_file['end_time'])
-    cache_nodes['writer'].set_pstar(**test_file)
 
-    results = cache_nodes['writer']['test']['pstar'].find_one({"platform": "test",
-                                                               "service": "test",
-                                                               "type": "test",
-                                                               "account": "account",
-                                                               "region": "region"})
+    _id = cache_nodes['writer'].set_pstar(**test_file)
 
-    assert results
+    assert _id
 
+    result = cache_nodes['writer']['harvest']['pstar'].find_one({'_id': _id}, {'_id': 0})
 
-def pytest_sessionfinish(session, exitstatus):
-    cache_nodes[0].drop_database('test')
+    assert result == test_file
+
+    # delete the test record
+    cache_nodes['writer']['harvest']['pstar'].delete_one(_id)

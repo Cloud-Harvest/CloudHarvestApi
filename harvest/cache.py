@@ -1,6 +1,7 @@
 """
 cache.py - defines api-specific operations used for communicating with the backend cache
 """
+from bson import ObjectId
 from pymongo import MongoClient
 from logging import getLogger
 logger = getLogger('harvest')
@@ -70,7 +71,7 @@ class HarvestCacheConnection(MongoClient):
         self.session = self.start_session()
         return self
 
-    def set_pstar(self, **kwargs):
+    def set_pstar(self, **kwargs) -> ObjectId:
         """
         a PSTAR is a concept in Harvest where objects are stored on five dimensions
         :param database: override
@@ -93,12 +94,13 @@ class HarvestCacheConnection(MongoClient):
         # no need to replicate this logic everywhere
         kwargs['duration'] = (kwargs['end_time'] - kwargs['start_time']).total_seconds()
 
+        _id = None
         try:
             from datetime import datetime
-            self['harvest']['pstar'].insert_one(kwargs)
+            _id = self['harvest']['pstar'].insert_one(kwargs).inserted_id
 
         except Exception as ex:
             logger.error(f'{self._log_prefix}: ' + ' '.join(ex.args))
 
         finally:
-            return self
+            return _id
