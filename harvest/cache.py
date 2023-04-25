@@ -74,6 +74,7 @@ class HarvestCacheConnection(MongoClient):
     def set_pstar(self, **kwargs) -> ObjectId:
         """
         a PSTAR is a concept in Harvest where objects are stored on five dimensions
+        [database][platform.service.type]
         :param database: override
         :param platform: the cloud provider this database was retrieved from (ie AWS, Azure, Google)
         :param service: the provider's service (ie "RDS", "EC2")
@@ -92,7 +93,8 @@ class HarvestCacheConnection(MongoClient):
         self.connect()
 
         # no need to replicate this logic everywhere
-        kwargs['duration'] = (kwargs['end_time'] - kwargs['start_time']).total_seconds()
+        from utilities import duration_in_seconds
+        kwargs['duration'] = duration_in_seconds(a=kwargs['end_time'], b=kwargs['start_time'])
 
         _id = None
         try:
