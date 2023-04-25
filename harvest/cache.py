@@ -31,7 +31,7 @@ class HarvestCacheConnection(MongoClient):
         """
 
         try:
-            self.list_databases()
+            self.server_info()
 
         except Exception as ex:
             logger.debug(f'{self._log_prefix}: ' + ' '.join(ex.args))
