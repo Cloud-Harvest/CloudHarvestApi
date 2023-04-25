@@ -5,8 +5,8 @@
   "account": "account",
   "region": "region",
   "count": 555,
-  "start_time": "2023-04-17T23:59:10.284872Z",
-  "end_time": "2023-04-18T00:00:00.284872Z",
+  "start_time": "2023-04-17T23:59:10.284000Z",
+  "end_time": "2023-04-18T00:00:00.284000Z",
   "api_version":"2023.04.17-alpha",
   "errors": [
     "pstar test record"
