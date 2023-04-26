@@ -55,3 +55,12 @@ def test_set_pstar():
 
     # delete the test record
     cache_nodes['writer']['harvest']['pstar'].delete_one({'_id': _id})
+
+
+def test_duration_in_seconds():
+    from datetime import datetime
+
+    a = datetime(year=2023, month=1, day=1, hour=23, minute=30, second=0)
+    b = datetime(year=2023, month=1, day=2, hour=0, minute=0, second=0)
+
+    assert cache_nodes['writer'].duration_in_seconds(a=a, b=b) == 1800 or 1800.0

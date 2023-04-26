@@ -1,6 +1,8 @@
 """
 cache.py - defines api-specific operations used for communicating with the backend cache
 """
+from datetime import datetime
+
 from bson import ObjectId
 from pymongo import MongoClient
 from logging import getLogger
@@ -93,8 +95,7 @@ class HarvestCacheConnection(MongoClient):
         self.connect()
 
         # no need to replicate this logic everywhere
-        from utilities import duration_in_seconds
-        kwargs['duration'] = duration_in_seconds(a=kwargs['end_time'], b=kwargs['start_time'])
+        kwargs['duration'] = self.duration_in_seconds(a=kwargs['end_time'], b=kwargs['start_time'])
 
         _id = None
         try:
@@ -106,3 +107,112 @@ class HarvestCacheConnection(MongoClient):
 
         finally:
             return _id
+
+    def write_record(self, database: str, record: dict, unique_identifier_field: str = None) -> ObjectId:
+        """
+        a record to be written to the harvest cache
+        to qualify as a valid record, it must contain a key named Harvest with the following structure
+
+        "Harvest": {
+            "Platform": str,
+            "Service": str,
+            "Type": str,
+            "Account": str,
+            "Region": str,
+            "Module": {
+                "Name": str,
+                "Version": str,
+                "Repository": str
+            },
+            "Dates": {
+                "FirstSeen": datetime.datetime,
+                "LastSeen": datetime.datetime,
+                "DeactivatedOn": datetime.datetime,
+            },
+            "Active": bool
+        }
+        :param database: the target database name
+        :param record: a dictionary object representing a single record
+        :param unique_identifier_field: update records based on this field (ie DBClusterArn)
+        :return: _id
+        """
+
+        collection_name = '.'.join((record['Harvest']['Platform'],
+                                    record['Harvest']['Service'],
+                                    record['Harvest']['Type']))
+
+        collection = self[database][collection_name]
+
+        # should be a new or existing ObjectId
+        result = None
+
+        # only write a record if there is a metadata object - otherwise kill it
+        if self.check_harvest_metadata(harvest=record['Harvest']):
+
+            # for objects with a unique identifier field, use it to retrieve existing records
+            # we need the original object to:
+            #  - get original objectId()
+            #  - accurately represent the "Dates.FirstSeen" field
+            if unique_identifier_field:
+                existing_record = collection.find_one(filter={unique_identifier_field: record[unique_identifier_field]},
+                                                      project={'_id': 1, 'Harvest': 1})
+
+                # update new record metadata with existing record's data
+                record['Harvest']['Active'] = True
+                record['Harvest']['Date']['FirstSeen'] = existing_record['Harvest']['Date']['FirstSeen']
+
+                result = collection.update_one(filter={"_id": existing_record['_id']},
+                                               update=record).upserted_id
+
+            # this object does not have a unique identifier
+            else:
+                pass
+                result = collection.insert_one(record).inserted_id
+
+        else:
+            from pprint import pprint
+            logger.warning(f'{self._log_prefix}: failed to write record to cache - missing metadata')
+            logger.debug(pprint(record))
+
+        return result
+
+
+    @staticmethod
+    def check_harvest_metadata(harvest: dict) -> bool:
+        required_fields = ('Platform',
+                           'Service',
+                           'Type',
+                           'Account',
+                           'Region',
+                           'Module.Name',
+                           'Module.Version',
+                           'Module.Repository',
+                           'Dates.FirstSeen',
+                           'Dates.LastSeen',
+                           'Dates.DeactivatedOn',
+                           'Active')
+        try:
+
+            from flatten_json import flatten
+            flat_harvest = flatten(harvest, separator='.')
+
+            for field in required_fields:
+                assert field in flat_harvest.keys()
+
+        except AssertionError as ae:
+            logger.warning('record failed harvest metadata check: ' + ' '.join(ae.args))
+            return False
+
+        else:
+            return True
+
+    @staticmethod
+    def duration_in_seconds(a: datetime, b: datetime) -> int or float:
+        """
+        a simple, testable function for retrieving the number of seconds between two dates
+        :param a: a datetime
+        :param b: another datetime
+        :return: an integer or float representing the number of seconds between two datetime objects
+        """
+
+        return abs((a - b).total_seconds())
