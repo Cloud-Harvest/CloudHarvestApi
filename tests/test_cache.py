@@ -8,7 +8,7 @@ cache_nodes = load_cache_connections(cache_config=api_configuration['cache']['ho
 
 
 def _load_test_records_json():
-    return open('harvest/test_data/test_records.json', 'r')
+    return open('tests/data/test_records.json', 'r')
 
 
 def test_connection():
@@ -25,7 +25,7 @@ def test_set_pstar():
     from json import load
 
     # load test file
-    with open('harvest/test_data/cache_pstar.json', 'r') as test_data:
+    with open('tests/data/cache_pstar.json', 'r') as test_data:
         test_file = load(test_data)
 
     # convert strings to datetime
