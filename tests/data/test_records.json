@@ -28,8 +28,11 @@
             "Region": "test_region",
             "Module": {
                 "Name": "cache",
-                "Version": "test_version",
-                "Repository": "https://github.com/Cloud-Harvest/api.git"
+                "FilterCriteria": [
+                  "unique_id"
+                ],
+                "Repository": "https://github.com/Cloud-Harvest/api.git",
+                "Version": "test_version"
             },
             "Dates": {
                 "FirstSeen": "2023-04-17T23:59:10.284000Z",

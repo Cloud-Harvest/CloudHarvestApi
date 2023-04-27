@@ -5,6 +5,7 @@ from startup import load_configuration_files, load_cache_connections
 
 api_configuration = load_configuration_files()
 cache_nodes = load_cache_connections(cache_config=api_configuration['cache']['hosts'])
+test_database = 'test'
 
 
 def _load_test_records_json():
@@ -90,11 +91,13 @@ def test_check_harvest_meta():
 
 
 def test_write_record():
-    test_database = 'test'
+    # testing changes made to LastSeen
     now = datetime.datetime(year=2023, month=4, day=26, hour=19, minute=44, second=25)
 
     from json import load
     test_json = load(_load_test_records_json())
+
+    cache = cache_nodes['writer']
 
     # here we're checking that files are written/aborted as expected
     for original_record in test_json:
@@ -103,28 +106,36 @@ def test_write_record():
             # we do this to force an update (and this will happen with every record update anyway)
             original_record['Harvest']['Dates']['LastSeen'] = now
 
-        record_result = cache_nodes['writer'].write_record(database=test_database,
-                                                           record=original_record,
-                                                           filter_criteria=['unique_id'])
+            collection = cache[test_database][cache.get_collection_name(**original_record['Harvest'])]
 
-        assert bool(record_result) is original_record['expected_state']
+            record_result = cache_nodes['writer'].write_record(database=test_database, record=original_record)
 
-        if record_result:
-            collection_name = cache_nodes['writer'].get_collection_name(**original_record['Harvest'])
-            collection = cache_nodes['writer'][test_database][collection_name]
+            assert bool(record_result) is original_record['expected_state']
 
-            new_record = collection.find_one({"_id": record_result}, {"_id": 0})
+            if record_result:
+                new_record = collection.find_one({"_id": record_result['_id']}, {"_id": 0})
 
-            from flatten_json import flatten
+                from flatten_json import flatten
 
-            new_record = flatten(new_record, separator='.')
-            original_record = flatten(original_record, separator='.')
+                new_record = flatten(new_record, separator='.')
+                original_record = flatten(original_record, separator='.')
 
-            # we expect every field except Dates.LastSeen to be the same
-            for key, value in new_record.items():
-                if key == 'Dates.LastSeen':
-                    assert value.replace(tzinfo=None) == now
+                # we expect every field except Dates.LastSeen to be the same
+                for key, value in new_record.items():
+                    if key == 'Dates.LastSeen':
+                        assert value.replace(tzinfo=None) == now
 
-                else:
-                    assert value == original_record[key]
+                    else:
+                        assert value == original_record[key]
+
+
+def test_write_records():
+    from json import load
+    test_json = load(_load_test_records_json())
+
+    cache = cache_nodes['writer']
+
+    written_records = cache.write_records(database=test_database, records=test_json)
+
+    assert len(written_records) == len([record for record in test_json if record['expected_state']])
 
