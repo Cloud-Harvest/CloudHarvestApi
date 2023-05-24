@@ -8,6 +8,7 @@ from bson import ObjectId
 from pymongo import MongoClient
 from logging import getLogger
 logger = getLogger('harvest')
+_flat_record_separator = '.'
 
 
 class HarvestCacheConnection(MongoClient):
@@ -109,6 +110,16 @@ class HarvestCacheConnection(MongoClient):
         finally:
             return _id
 
+    @staticmethod
+    def get_unique_filter(record: dict, flat_record: dict) -> dict:
+        """
+        retrieves the unique identifier defined by the module for this record
+        :param record: original record
+        :param flat_record: flattened record
+        :return: a new dict of field: fieldValue
+        """
+        return {field: flat_record.get(field) for field in record['Harvest']['Module']['FilterCriteria']}
+
     def write_record(self, database: str, record: dict) -> dict:
         """
         a record to be written to the harvest cache
@@ -141,14 +152,19 @@ class HarvestCacheConnection(MongoClient):
         # should be a new or existing ObjectId
         result = None
 
-        # only write a record if there is a metadata object - otherwise kill it
-        if self.check_harvest_metadata(harvest=record.get('Harvest')):
+        from flatten_json import flatten, unflatten_list
+        flat_record = flatten(record, separator=_flat_record_separator)
 
-            unique_filter_fields = {k: v for k, v in record.items() if k in record['Harvest']['Module']['FilterCriteria']}
+        # only write a record if there is a metadata object - otherwise kill it
+        if self.check_harvest_metadata(flat_record=flat_record):
+
             collection_name = self.get_collection_name(**record['Harvest'])
             collection = self[database][collection_name]
 
-            existing_record = collection.find_one(unique_filter_fields,
+            record['Harvest']['Module']['UniqueFieldCriteria'] = self.get_unique_filter(record=record,
+                                                                                        flat_record=flat_record)
+
+            existing_record = collection.find_one(record['Harvest']['Module']['UniqueFieldCriteria'],
                                                   {'_id': 1, 'Harvest': 1})
 
             # if there is an existing record, write data to it
@@ -166,7 +182,7 @@ class HarvestCacheConnection(MongoClient):
                 _id = collection.insert_one(record).inserted_id
 
             # return an _id and collection
-            result = {'_id': existing_record['_id'], 'collection': collection_name}
+            result = {'_id': _id, 'collection': collection_name}
 
         else:
             from pprint import pprint
@@ -187,30 +203,109 @@ class HarvestCacheConnection(MongoClient):
 
         return updated_records
 
-    # def deactivate_records(self, database: str, pstar: dict, record_ids: list) -> dict:
-    #     collection = self[database][self.get_collection_name(**pstar)]
+    def deactivate_records(self, database: str, collection_name: str, record_ids: list) -> dict:
+        collection = self[database][collection_name]
+
+        # deactivate records which were not inserted/updated in this write operation
+        records_to_deactivate = [r["_id"] for r in collection.find({"Harvest.Active": True, "_id": {"$nin": record_ids}},
+                                                                   {"_id": 1})]
+
+        update_many = collection.update_many(filter={"_id": {"$in": records_to_deactivate}},
+                                             update={"$set": {"Harvest.Active": False,
+                                                              "Harvest.Dates.DeactivatedOn": datetime.utcnow()}})
+
+        logger.debug(f'{self._log_prefix}: {database}.{collection_name}: deactivated {update_many.modified_count}')
+
+        return {
+            'deactivated_ids': records_to_deactivate,
+            'modified_count': update_many.modified_count
+        }
+
+    # def upsert(self, database: str, collection_name: str, filter_criteria: dict, record) -> ObjectId:
+    #     collection = self[database][collection_name]
     #
-    #     # deactivate records which were not inserted/updated in this write operation
-    #     collection.update_many(filter={"_id": {"$ne": record_ids}},
-    #                            update={"$set": {"Harvest.Active": False,
-    #                                             "Harvest.Dates.DeactivatedOn": datetime.utcnow()}})
+    #     _id = collection.find_one(filter=filter_criteria).get('_id')
     #
-    # def write_metadata_cache(self, database: str, record: dict, extra_fields: tuple = ()):
+    #     # record exists
+    #     if _id:
+    #         collection.update_one(filter={"_id": _id},
+    #                               update={"$set": record},
+    #                               upsert=True)
+    #
+    #     # record does not exist
+    #     else:
+    #         _id = collection.insert_one(record).inserted_id
+    #
+    #     return _id
+
+    # def write_metadata_cache(self, database: str, record: dict, extra_fields: tuple = ()) -> ObjectId:
+    #     """
+    #     the meta collection contains all records written to the Harvest
+    #     :param database: name of the database to write to (usually 'harvest')
+    #     :param record: a record to write to the database
+    #     :param extra_fields: additional fields which may be added to the meta cache (ie Tags)
+    #     :return:
+    #     """
+    #
     #     collection = self[database]['meta']
+    #     filter_criteria = self.make_filter_criteria(record=record)
     #
-    #     from flatten_json import flatten, unflatten_list
+    #     # we'll only add extra fields if they are defined
+    #     if extra_fields:
     #
-    #     flat_record = flatten(record, separator='.')
+    #         # when an extra field contains a period, we treat it as a sub-object
+    #         # therefore we flatten the record and add the values to the filter_criteria
+    #         if any(['.' in x for x in extra_fields]):
+    #             from flatten_json import flatten, unflatten_list
+    #             flat_record = flatten(record, separator=_flat_record_separator)
     #
-    #     meta = {str(k).replace('Harvest.', ''): v for k, v in flat_record.keys()
-    #             if str(k).startswith('Harvest.') or k in extra_fields}
+    #             # add the objects to the filter_criteria
+    #             meta = {x: flat_record.get(x) for x in extra_fields}
     #
-    #     collection.update_one()
-
-
+    #             # add the filter_criteria back to the Harvest object
+    #             meta['Harvest.filter_criteria'] = flatten(filter_criteria, separator=_flat_record_separator)
+    #
+    #             # return the object to its original state
+    #             meta = unflatten_list(meta, separator=_flat_record_separator)
+    #
+    #         else:
+    #             # these filter_criteria
+    #             record['Harvest']['filter_criteria'] = {x: record.get(x) for x in filter_criteria}
+    #
+    #     else:
+    #         meta = record
+    #
+    #     _id = self.upsert(database=database,
+    #                       collection_name=collection.name,
+    #                       filter_criteria=filter_criteria,
+    #                       record=meta)
+    #
+    # @staticmethod
+    # def make_filter_criteria(record: dict) -> dict:
+    #     """
+    #     converts a ['Harvest']['Module']['FilterCriteria'] to key: value pair
+    #     :param record: any record with a Harvest metadata object
+    #     :return: {} of FilterCriteria objects
+    #     """
+    #
+    #     filter_criteria = record['Harvest']['Module']['FilterCriteria']
+    #
+    #     result = {}
+    #     # for criteria in record['Harvest']['Module']['FilterCriteria']:
+    #     #     result[criteria] = result.get(criteria)
+    #
+    #     if any(['.' in f for f in filter_criteria]):
+    #         from flatten_json import flatten
+    #
+    #         flat_record = flatten(record, separator=_flat_record_separator)
+    #
+    #         record['Harvest']['FilterCriteria'] = {f: record.get(f) for f in filter_criteria}
+    #
+    #     return result
+    #
     @staticmethod
-    def check_harvest_metadata(harvest: dict) -> bool:
-        if not harvest:
+    def check_harvest_metadata(flat_record: dict) -> bool:
+        if not flat_record:
             return False
 
         required_fields = ('Platform',
@@ -227,12 +322,11 @@ class HarvestCacheConnection(MongoClient):
                            'Dates.LastSeen',
                            'Active')
 
-        from flatten_json import flatten
-        flat_harvest = flatten(harvest, separator='.')
-
         for field in required_fields:
-            if field not in flat_harvest.keys():
-                logger.warning('record failed harvest metadata check: ' + field)
+            field_name = _flat_record_separator.join(['Harvest', field])
+
+            if field_name not in flat_record.keys():
+                logger.warning('record failed harvest metadata check: ' + field_name)
                 return False
 
         return True
