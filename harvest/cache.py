@@ -120,7 +120,7 @@ class HarvestCacheConnection(MongoClient):
         """
         return {field: flat_record.get(field) for field in record['Harvest']['Module']['FilterCriteria']}
 
-    def write_record(self, database: str, record: dict) -> dict:
+    def write_record(self, database: str, record: dict, meta_extra_fields: tuple = ()) -> dict:
         """
         a record to be written to the harvest cache
         to qualify as a valid record, it must contain a key named Harvest with the following structure
@@ -146,6 +146,7 @@ class HarvestCacheConnection(MongoClient):
         }
         :param database: target database for records to be written to
         :param record: a dictionary object representing a single record
+        :param meta_extra_fields: extra fields to add to the meta collection
         :return: _id
         """
 
@@ -161,10 +162,10 @@ class HarvestCacheConnection(MongoClient):
             collection_name = self.get_collection_name(**record['Harvest'])
             collection = self[database][collection_name]
 
-            record['Harvest']['Module']['UniqueFieldCriteria'] = self.get_unique_filter(record=record,
+            record['Harvest']['Module']['UniqueFilter'] = self.get_unique_filter(record=record,
                                                                                         flat_record=flat_record)
 
-            existing_record = collection.find_one(record['Harvest']['Module']['UniqueFieldCriteria'],
+            existing_record = collection.find_one(record['Harvest']['Module']['UniqueFilter'],
                                                   {'_id': 1, 'Harvest': 1})
 
             # if there is an existing record, write data to it
@@ -183,6 +184,24 @@ class HarvestCacheConnection(MongoClient):
 
             # return an _id and collection
             result = {'_id': _id, 'collection': collection_name}
+
+            # write metadata
+
+            # the uniqueness of a given record is based on Collection and CollectionId
+            meta_filter = {"Collection": collection_name, "CollectionId": _id}
+
+            # the meta record is the metadata filter, Harvest component, and any extra fields defined by the caller
+            meta_record = {
+                **meta_filter,
+                "Harvest": record["Harvest"],
+                **{k: record.get(k) or flat_record.get(k) for k in meta_extra_fields}
+            }
+
+            meta = self[database]['meta'].update_one(filter=meta_filter,
+                                                     update={"$set": meta_record},
+                                                     upsert=True).upserted_id
+
+            result['meta_id'] = meta
 
         else:
             from pprint import pprint
@@ -210,37 +229,29 @@ class HarvestCacheConnection(MongoClient):
         records_to_deactivate = [r["_id"] for r in collection.find({"Harvest.Active": True, "_id": {"$nin": record_ids}},
                                                                    {"_id": 1})]
 
+        update_set = {"$set": {"Harvest.Active": False,
+                               "Harvest.Dates.DeactivatedOn": datetime.utcnow()}}
+
         update_many = collection.update_many(filter={"_id": {"$in": records_to_deactivate}},
-                                             update={"$set": {"Harvest.Active": False,
-                                                              "Harvest.Dates.DeactivatedOn": datetime.utcnow()}})
+                                             update=update_set)
+
+        # update the meta cache
+        collection = self[database]['meta']
+        update_meta = collection.update_many(filter={"Collection": collection_name,
+                                                     "CollectionId": {"$in": records_to_deactivate}},
+                                             update=update_set)
 
         logger.debug(f'{self._log_prefix}: {database}.{collection_name}: deactivated {update_many.modified_count}')
 
         return {
             'deactivated_ids': records_to_deactivate,
-            'modified_count': update_many.modified_count
+            'modified_count': update_many.modified_count,
+            'meta_count': update_meta.modified_count
         }
-
-    # def upsert(self, database: str, collection_name: str, filter_criteria: dict, record) -> ObjectId:
-    #     collection = self[database][collection_name]
-    #
-    #     _id = collection.find_one(filter=filter_criteria).get('_id')
-    #
-    #     # record exists
-    #     if _id:
-    #         collection.update_one(filter={"_id": _id},
-    #                               update={"$set": record},
-    #                               upsert=True)
-    #
-    #     # record does not exist
-    #     else:
-    #         _id = collection.insert_one(record).inserted_id
-    #
-    #     return _id
 
     # def write_metadata_cache(self, database: str, record: dict, extra_fields: tuple = ()) -> ObjectId:
     #     """
-    #     the meta collection contains all records written to the Harvest
+    #     the meta collection contains all records written to the Harvest backend database
     #     :param database: name of the database to write to (usually 'harvest')
     #     :param record: a record to write to the database
     #     :param extra_fields: additional fields which may be added to the meta cache (ie Tags)
@@ -252,7 +263,6 @@ class HarvestCacheConnection(MongoClient):
     #
     #     # we'll only add extra fields if they are defined
     #     if extra_fields:
-    #
     #         # when an extra field contains a period, we treat it as a sub-object
     #         # therefore we flatten the record and add the values to the filter_criteria
     #         if any(['.' in x for x in extra_fields]):
@@ -270,7 +280,7 @@ class HarvestCacheConnection(MongoClient):
     #
     #         else:
     #             # these filter_criteria
-    #             record['Harvest']['filter_criteria'] = {x: record.get(x) for x in filter_criteria}
+    #             meta = {x: record.get(x) for x in filter_criteria}
     #
     #     else:
     #         meta = record
@@ -279,30 +289,7 @@ class HarvestCacheConnection(MongoClient):
     #                       collection_name=collection.name,
     #                       filter_criteria=filter_criteria,
     #                       record=meta)
-    #
-    # @staticmethod
-    # def make_filter_criteria(record: dict) -> dict:
-    #     """
-    #     converts a ['Harvest']['Module']['FilterCriteria'] to key: value pair
-    #     :param record: any record with a Harvest metadata object
-    #     :return: {} of FilterCriteria objects
-    #     """
-    #
-    #     filter_criteria = record['Harvest']['Module']['FilterCriteria']
-    #
-    #     result = {}
-    #     # for criteria in record['Harvest']['Module']['FilterCriteria']:
-    #     #     result[criteria] = result.get(criteria)
-    #
-    #     if any(['.' in f for f in filter_criteria]):
-    #         from flatten_json import flatten
-    #
-    #         flat_record = flatten(record, separator=_flat_record_separator)
-    #
-    #         record['Harvest']['FilterCriteria'] = {f: record.get(f) for f in filter_criteria}
-    #
-    #     return result
-    #
+
     @staticmethod
     def check_harvest_metadata(flat_record: dict) -> bool:
         if not flat_record:

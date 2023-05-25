@@ -144,6 +144,11 @@ def test_write_records():
 
     assert len(written_records) == len([record for record in test_json if record['expected_state']])
 
+    for record in written_records:
+        assert tuple(record.keys()) == ('_id',
+                                        'collection',
+                                        'meta_id')
+
 
 def test_deactivate_records():
     # write test records
@@ -163,28 +168,11 @@ def test_deactivate_records():
                                                        record_ids=[i['_id'] for i in written_records])
 
     assert len(results['deactivated_ids']) == results['modified_count']
-
     assert written_records[0]["_id"] not in results['deactivated_ids']
 
-# def test_write_metadata_cache():
-#     pass
-#
-#
-# def test_upsert():
-#     pass
-#
-#
-# def test_make_filter_criteria():
-#     pass
-#
-#
-# def write_test_records():
-#     from json import load
-#     test_json = load(_load_test_records_json())
-#
-#     cache_nodes['writer'][test_database][test_get_collection_name()]
-#
-#
-# def delete_test_records():
-#     pass
+    assert tuple(results.keys()) == ('deactivated_ids',
+                                     'modified_count',
+                                     'meta_count')
 
+    # cleanup test record
+    collection.delete_many(filter={"test_record": "deactivate"})
