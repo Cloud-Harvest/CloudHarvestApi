@@ -25,6 +25,12 @@ cache:
         - region
         - records
         - errors
+      meta:
+        - [Collection, CollectionId]
+        - fields:
+            - Harvest.Module.UniqueFilter
+          unique: true
+
 
 logging:
   level: debug
