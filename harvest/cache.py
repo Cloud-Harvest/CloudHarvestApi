@@ -197,20 +197,28 @@ class HarvestCacheConnection(MongoClient):
                 **{k: record.get(k) or flat_record.get(k) for k in meta_extra_fields}
             }
 
+            # add the record based on the meta filter
             meta = self[database]['meta'].update_one(filter=meta_filter,
                                                      update={"$set": meta_record},
                                                      upsert=True).upserted_id
 
+            # include the meta record id in the results
             result['meta_id'] = meta
 
         else:
-            from pprint import pprint
+            from pprint import pformat
             logger.warning(f'{self._log_prefix}: failed to write record to cache - missing metadata')
-            logger.debug(pprint(record))
+            logger.debug(pformat(record))
 
         return result
 
     def write_records(self, database: str, records: list) -> list:
+        """
+        top-level co
+        :param database:
+        :param records:
+        :return:
+        """
         from datetime import datetime
 
         # gather record _ids by inserting/updating records
@@ -248,47 +256,6 @@ class HarvestCacheConnection(MongoClient):
             'modified_count': update_many.modified_count,
             'meta_count': update_meta.modified_count
         }
-
-    # def write_metadata_cache(self, database: str, record: dict, extra_fields: tuple = ()) -> ObjectId:
-    #     """
-    #     the meta collection contains all records written to the Harvest backend database
-    #     :param database: name of the database to write to (usually 'harvest')
-    #     :param record: a record to write to the database
-    #     :param extra_fields: additional fields which may be added to the meta cache (ie Tags)
-    #     :return:
-    #     """
-    #
-    #     collection = self[database]['meta']
-    #     filter_criteria = self.make_filter_criteria(record=record)
-    #
-    #     # we'll only add extra fields if they are defined
-    #     if extra_fields:
-    #         # when an extra field contains a period, we treat it as a sub-object
-    #         # therefore we flatten the record and add the values to the filter_criteria
-    #         if any(['.' in x for x in extra_fields]):
-    #             from flatten_json import flatten, unflatten_list
-    #             flat_record = flatten(record, separator=_flat_record_separator)
-    #
-    #             # add the objects to the filter_criteria
-    #             meta = {x: flat_record.get(x) for x in extra_fields}
-    #
-    #             # add the filter_criteria back to the Harvest object
-    #             meta['Harvest.filter_criteria'] = flatten(filter_criteria, separator=_flat_record_separator)
-    #
-    #             # return the object to its original state
-    #             meta = unflatten_list(meta, separator=_flat_record_separator)
-    #
-    #         else:
-    #             # these filter_criteria
-    #             meta = {x: record.get(x) for x in filter_criteria}
-    #
-    #     else:
-    #         meta = record
-    #
-    #     _id = self.upsert(database=database,
-    #                       collection_name=collection.name,
-    #                       filter_criteria=filter_criteria,
-    #                       record=meta)
 
     @staticmethod
     def check_harvest_metadata(flat_record: dict) -> bool:
