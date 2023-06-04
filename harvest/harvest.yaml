@@ -27,10 +27,11 @@ cache:
         - errors
       meta:
         - [Collection, CollectionId]
-        - fields:
-            - Harvest.Module.UniqueFilter
-          unique: true
-
+        - keys:
+            - field: Harvest.Module.UniqueFilter
+              sort: 1
+          options:
+            unique: true
 
 logging:
   level: debug

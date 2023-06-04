@@ -3,7 +3,6 @@ cache.py - defines api-specific operations used for communicating with the backe
 """
 from datetime import datetime
 
-import pymongo.collection
 from bson import ObjectId
 from pymongo import MongoClient
 from logging import getLogger
@@ -27,7 +26,135 @@ class HarvestCacheConnection(MongoClient):
 
         self._log_prefix = f'[{self.id}][{self.node}][{self.HOST}:{self.PORT}]'
 
-    @property
+    def add_indexes(self, indexes: dict):
+        """
+        create an index in the backend cache
+        :param indexes: a dictionary of the {database: {collection: [fielda, fieldb]}} construct
+        :return:
+        """
+        # verify connection
+        self.connect()
+
+        # identify databases
+        for database in indexes.keys():
+            # identify collections
+            for collection in indexes[database].keys():
+                # identify indexes
+                for index in indexes[database][collection]:
+                    if isinstance(index, (str or list)):
+                        self[database][collection].create_index(keys=index)
+                        logger.debug(f'{self._log_prefix}: added index: {database}.{collection}.{str(index)}')
+
+                    elif isinstance(index, dict):
+                        # pymongo is very picky and demands a list[tuple())
+                        keys = [(i['field'], i.get('sort')) for i in index.get('keys', [])]
+
+                        self[database][collection].create_index(keys=keys, **index['options'])
+
+                        logger.debug(f'{self._log_prefix}: added index: {database}.{collection}.{str(index)}')
+
+                    else:
+                        logger.error(f'unexpected type for index `{index}`: {str(type(index))}')
+
+    @staticmethod
+    def check_harvest_metadata(flat_record: dict) -> bool:
+        if not flat_record:
+            return False
+
+        required_fields = ('Platform',
+                           'Service',
+                           'Type',
+                           'Account',
+                           'Region',
+                           'Module.FilterCriteria.0',       # FilterCriteria requires at least one value, so .0 is expected
+                           'Module.Name',
+                           'Module.Repository',
+                           'Module.Version',
+                           'Dates.DeactivatedOn',
+                           'Dates.FirstSeen',
+                           'Dates.LastSeen',
+                           'Active')
+
+        for field in required_fields:
+            field_name = _flat_record_separator.join(['Harvest', field])
+
+            if field_name not in flat_record.keys():
+                logger.warning('record failed harvest metadata check: ' + field_name)
+                return False
+
+        return True
+
+    def connect(self):
+        """
+        creates a new session if one is needed
+        :return:
+        """
+        # already connected; nothing else to do
+        if self.is_connected:
+            return self
+
+        self.session = self.start_session()
+        return self
+
+    def deactivate_records(self, database: str, collection_name: str, record_ids: list) -> dict:
+        collection = self[database][collection_name]
+
+        # deactivate records which were not inserted/updated in this write operation
+        records_to_deactivate = [r["_id"] for r in collection.find({"Harvest.Active": True, "_id": {"$nin": record_ids}},
+                                                                   {"_id": 1})]
+
+        update_set = {"$set": {"Harvest.Active": False,
+                               "Harvest.Dates.DeactivatedOn": datetime.utcnow()}}
+
+        update_many = collection.update_many(filter={"_id": {"$in": records_to_deactivate}},
+                                             update=update_set)
+
+        # update the meta cache
+        collection = self[database]['meta']
+        update_meta = collection.update_many(filter={"Collection": collection_name,
+                                                     "CollectionId": {"$in": records_to_deactivate}},
+                                             update=update_set)
+
+        logger.debug(f'{self._log_prefix}: {database}.{collection_name}: deactivated {update_many.modified_count}')
+
+        return {
+            'deactivated_ids': records_to_deactivate,
+            'modified_count': update_many.modified_count,
+            'meta_count': update_meta.modified_count
+        }
+
+    @staticmethod
+    def duration_in_seconds(a: datetime, b: datetime) -> int or float:
+        """
+        a simple, testable function for retrieving the number of seconds between two dates
+        :param a: a datetime
+        :param b: another datetime
+        :return: an integer or float representing the number of seconds between two datetime objects
+        """
+
+        return abs((a - b).total_seconds())
+
+    @staticmethod
+    def get_collection_name(**harvest_metadata) -> str:
+        """
+        returns the collection name used in a pstar record write based on the Harvest metadata key
+        :param harvest_metadata: the "Harvest": {} key generated by a pstar record write
+        :return: str
+        """
+        return '.'.join((harvest_metadata['Platform'],
+                         harvest_metadata['Service'],
+                         harvest_metadata['Type']))
+
+    @staticmethod
+    def get_unique_filter(record: dict, flat_record: dict) -> dict:
+        """
+        retrieves the unique identifier defined by the module for this record
+        :param record: original record
+        :param flat_record: flattened record
+        :return: a new dict of field: fieldValue
+        """
+        return {field: flat_record.get(field) for field in record['Harvest']['Module']['FilterCriteria']}
+
     def is_connected(self) -> bool:
         """
         check if the connect is active
@@ -44,36 +171,6 @@ class HarvestCacheConnection(MongoClient):
         else:
             logger.debug(f'{self._log_prefix}: successful connection')
             return True
-
-    def add_indexes(self, indexes: dict):
-        """
-        create an index in the backend cache
-        :param indexes: a dictionary of the {database: {collection: [fielda, fieldb]}} construct
-        :return:
-        """
-        # verify connection
-        self.connect()
-
-        # identify databases
-        for database in indexes.keys():
-            # identify collections
-            for collection in indexes[database].keys():
-                # identify indexes
-                for index in indexes[database][collection]:
-                    self[database][collection].create_index(keys=index)
-                    logger.debug(f'{self._log_prefix}: added index: {database}.{collection}.{str(index)}')
-
-    def connect(self):
-        """
-        creates a new session if one is needed
-        :return:
-        """
-        # already connected; nothing else to do
-        if self.is_connected:
-            return self
-
-        self.session = self.start_session()
-        return self
 
     def set_pstar(self, **kwargs) -> ObjectId:
         """
@@ -110,16 +207,6 @@ class HarvestCacheConnection(MongoClient):
         finally:
             return _id
 
-    @staticmethod
-    def get_unique_filter(record: dict, flat_record: dict) -> dict:
-        """
-        retrieves the unique identifier defined by the module for this record
-        :param record: original record
-        :param flat_record: flattened record
-        :return: a new dict of field: fieldValue
-        """
-        return {field: flat_record.get(field) for field in record['Harvest']['Module']['FilterCriteria']}
-
     def write_record(self, database: str, record: dict, meta_extra_fields: tuple = ()) -> dict:
         """
         a record to be written to the harvest cache
@@ -153,7 +240,7 @@ class HarvestCacheConnection(MongoClient):
         # should be a new or existing ObjectId
         result = None
 
-        from flatten_json import flatten, unflatten_list
+        from flatten_json import flatten
         flat_record = flatten(record, separator=_flat_record_separator)
 
         # only write a record if there is a metadata object - otherwise kill it
@@ -219,7 +306,6 @@ class HarvestCacheConnection(MongoClient):
         :param records:
         :return:
         """
-        from datetime import datetime
 
         # gather record _ids by inserting/updating records
         updated_records = []
@@ -230,79 +316,3 @@ class HarvestCacheConnection(MongoClient):
 
         return updated_records
 
-    def deactivate_records(self, database: str, collection_name: str, record_ids: list) -> dict:
-        collection = self[database][collection_name]
-
-        # deactivate records which were not inserted/updated in this write operation
-        records_to_deactivate = [r["_id"] for r in collection.find({"Harvest.Active": True, "_id": {"$nin": record_ids}},
-                                                                   {"_id": 1})]
-
-        update_set = {"$set": {"Harvest.Active": False,
-                               "Harvest.Dates.DeactivatedOn": datetime.utcnow()}}
-
-        update_many = collection.update_many(filter={"_id": {"$in": records_to_deactivate}},
-                                             update=update_set)
-
-        # update the meta cache
-        collection = self[database]['meta']
-        update_meta = collection.update_many(filter={"Collection": collection_name,
-                                                     "CollectionId": {"$in": records_to_deactivate}},
-                                             update=update_set)
-
-        logger.debug(f'{self._log_prefix}: {database}.{collection_name}: deactivated {update_many.modified_count}')
-
-        return {
-            'deactivated_ids': records_to_deactivate,
-            'modified_count': update_many.modified_count,
-            'meta_count': update_meta.modified_count
-        }
-
-    @staticmethod
-    def check_harvest_metadata(flat_record: dict) -> bool:
-        if not flat_record:
-            return False
-
-        required_fields = ('Platform',
-                           'Service',
-                           'Type',
-                           'Account',
-                           'Region',
-                           'Module.FilterCriteria.0',       # FilterCriteria requires at least one value, so .0 is expected
-                           'Module.Name',
-                           'Module.Repository',
-                           'Module.Version',
-                           'Dates.DeactivatedOn',
-                           'Dates.FirstSeen',
-                           'Dates.LastSeen',
-                           'Active')
-
-        for field in required_fields:
-            field_name = _flat_record_separator.join(['Harvest', field])
-
-            if field_name not in flat_record.keys():
-                logger.warning('record failed harvest metadata check: ' + field_name)
-                return False
-
-        return True
-
-    @staticmethod
-    def duration_in_seconds(a: datetime, b: datetime) -> int or float:
-        """
-        a simple, testable function for retrieving the number of seconds between two dates
-        :param a: a datetime
-        :param b: another datetime
-        :return: an integer or float representing the number of seconds between two datetime objects
-        """
-
-        return abs((a - b).total_seconds())
-
-    @staticmethod
-    def get_collection_name(**harvest_metadata) -> str:
-        """
-        returns the collection name used in a pstar record write based on the Harvest metadata key
-        :param harvest_metadata: the "Harvest": {} key generated by a pstar record write
-        :return: str
-        """
-        return '.'.join((harvest_metadata['Platform'],
-                         harvest_metadata['Service'],
-                         harvest_metadata['Type']))
