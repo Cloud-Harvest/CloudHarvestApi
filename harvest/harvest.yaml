@@ -15,23 +15,35 @@ cache:
     writer:
       <<: *cache_server
 
+  # base backend database indexes
   indexes:
-    harvest:
+    harvest:  &harvest_indexes
       pstar:
-        - platform
-        - service
-        - type
-        - account
-        - region
-        - records
-        - errors
+        - Platform
+        - Service
+        - Type
+        - Account
+        - Region
+        - Records
+        - Errors
+        - keys:
+            - field: Platform
+            - field: Service
+            - field: Type
+            - field: Account
+            - field: Region
+          options:
+            name: unique_pstar_idx
+            comment: unique identifier for pstar records
+            unique: true
       meta:
         - [Collection, CollectionId]
         - keys:
             - field: Harvest.Module.UniqueFilter
-              sort: 1
           options:
             unique: true
+    test:
+      <<: *harvest_indexes
 
 logging:
   level: debug
