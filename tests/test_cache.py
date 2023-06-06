@@ -31,17 +31,17 @@ def test_set_pstar():
 
     # convert strings to datetime
     from dateutil.parser import parse
-    test_file['start_time'] = parse(test_file['start_time'])
-    test_file['end_time'] = parse(test_file['end_time'])
+    test_file['StartTime'] = parse(test_file['StartTime'])
+    test_file['EndTime'] = parse(test_file['EndTime'])
 
     # write the pstar, returning the _id
-    _id = cache_nodes['writer'].set_pstar(**test_file)
+    _id = cache_nodes['writer'].set_pstar(database=test_database, **test_file)
 
     # verify we actually wrote a record
     assert _id
 
     # retrieve the record written as part of the test
-    result = cache_nodes['writer']['harvest']['pstar'].find_one({'_id': _id}, {'_id': 0})
+    result = cache_nodes['writer'][test_database]['pstar'].find_one({'_id': _id}, {'_id': 0})
 
     convert_result = {}
     from datetime import datetime, timezone
@@ -61,7 +61,7 @@ def test_set_pstar():
     assert convert_result == test_file
 
     # delete the test record
-    cache_nodes['writer']['harvest']['pstar'].delete_one({'_id': _id})
+    cache_nodes['writer'][test_database]['pstar'].delete_one({'_id': _id})
 
 
 def test_duration_in_seconds():

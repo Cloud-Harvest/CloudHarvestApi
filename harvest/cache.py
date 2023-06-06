@@ -172,34 +172,34 @@ class HarvestCacheConnection(MongoClient):
             logger.debug(f'{self._log_prefix}: successful connection')
             return True
 
-    def set_pstar(self, **kwargs) -> ObjectId:
+    def set_pstar(self, database: str = 'harvest', **kwargs) -> ObjectId:
         """
         a PSTAR is a concept in Harvest where objects are stored on five dimensions
         [database][platform.service.type]
         :param database: override
-        :param platform: the cloud provider this database was retrieved from (ie AWS, Azure, Google)
-        :param service: the provider's service (ie "RDS", "EC2")
-        :param type: service's object classification (ie RDS "instance" or EC2 "event")
-        :param account: a unique identifier indicating the account or environment level for this service
-        :param region: the geographic region name for the objects retrieved from the underlying API call
-        :param count: number of records retrieved in the data collection job
-        :param start_time: when the data collection job was started
-        :param end_time: when the data collection job completed
-        :param api_version: version of this software
-        :param module: metadata of the collector used to collect the data
-        :param errors: provides and error messages
+        :param Platform: the cloud provider this database was retrieved from (ie AWS, Azure, Google)
+        :param Service: the provider's service (ie "RDS", "EC2")
+        :param Type: service's object classification (ie RDS "instance" or EC2 "event")
+        :param Account: a unique identifier indicating the account or environment level for this service
+        :param Region: the geographic region name for the objects retrieved from the underlying API call
+        :param Count: number of records retrieved in the data collection job
+        :param StartTime: when the data collection job was started
+        :param EndTime: when the data collection job completed
+        :param ApiVersion: version of this software
+        :param Module: metadata of the collector used to collect the data
+        :param Errors: provides and error messages
         :return:
         """
 
         self.connect()
 
         # no need to replicate this logic everywhere
-        kwargs['duration'] = self.duration_in_seconds(a=kwargs['end_time'], b=kwargs['start_time'])
+        kwargs['duration'] = self.duration_in_seconds(a=kwargs['EndTime'], b=kwargs['StartTime'])
 
         _id = None
         try:
             from datetime import datetime
-            _id = self['harvest']['pstar'].insert_one(kwargs).inserted_id
+            _id = self[database]['pstar'].insert_one(kwargs).inserted_id
 
         except Exception as ex:
             logger.error(f'{self._log_prefix}: ' + ' '.join(ex.args))
