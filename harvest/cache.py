@@ -47,7 +47,7 @@ class HarvestCacheConnection(MongoClient):
 
                     elif isinstance(index, dict):
                         # pymongo is very picky and demands a list[tuple())
-                        keys = [(i['field'], i.get('sort')) for i in index.get('keys', [])]
+                        keys = [(i['field'], i.get('sort', 1)) for i in index.get('keys', [])]
 
                         self[database][collection].create_index(keys=keys, **index['options'])
 
@@ -199,7 +199,14 @@ class HarvestCacheConnection(MongoClient):
         _id = None
         try:
             from datetime import datetime
-            _id = self[database]['pstar'].insert_one(kwargs).inserted_id
+            _id = self[database]['pstar'].find_one_and_update(filter={k: kwargs.get(k) for k in ['Platform',
+                                                                                                 'Service',
+                                                                                                 'Type',
+                                                                                                 'Account',
+                                                                                                 'Region']},
+                                                              projection={'_id': 1},
+                                                              update={"$set": kwargs},
+                                                              upsert=True).get('_id')
 
         except Exception as ex:
             logger.error(f'{self._log_prefix}: ' + ' '.join(ex.args))
@@ -250,7 +257,7 @@ class HarvestCacheConnection(MongoClient):
             collection = self[database][collection_name]
 
             record['Harvest']['Module']['UniqueFilter'] = self.get_unique_filter(record=record,
-                                                                                        flat_record=flat_record)
+                                                                                 flat_record=flat_record)
 
             existing_record = collection.find_one(record['Harvest']['Module']['UniqueFilter'],
                                                   {'_id': 1, 'Harvest': 1})
