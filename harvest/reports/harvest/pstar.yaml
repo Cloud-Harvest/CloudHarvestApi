@@ -1,0 +1,27 @@
+headers:
+  - Platform
+  - Service
+  - Type
+  - Account
+  - Region
+  - Count
+  - StartTime
+  - EndTime
+  - Errors
+
+steps:
+  - step: cache
+    collection: pstar
+    pipeline: [
+      "$project": {
+        "Platform": 1,
+        "Service": 1,
+        "Type": 1,
+        "Account": 1,
+        "Region": 1,
+        "Count": 1,
+        "StartTime": 1,
+        "EndTime": 1,
+        "Errors": 1
+      }
+    ]
