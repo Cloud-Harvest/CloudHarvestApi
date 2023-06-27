@@ -1,0 +1,25 @@
+headers:
+  - Platform
+  - Service
+  - Type
+  - Account
+  - Region
+  - $regex: ^Tags.*
+
+stages:
+  - name: get meta collection
+    collection: meta
+    pipeline: [
+      "$project": {
+        "Active": "$Harvest.Active",
+        "Platform": "$Harvest.Platform",
+        "Service": "$Harvest.Service",
+        "Type": "$Harvest.Type",
+        "Account": "$Harvest.Account",
+        "Region": "$Harvest.Region",
+        "Collection": 1,
+        "CollectionId": 1,
+        "UniqueFilter": "$Harvest.Module.FilterCriteria",
+        "LastSeen": "$Harvest.Dates.LastSeen"
+      }
+    ]
