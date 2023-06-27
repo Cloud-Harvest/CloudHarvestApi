@@ -1,3 +1,7 @@
+description: |
+  This report returns information from the `meta` collection where all objects across all platforms is stored. The meta
+  collection is used to find an object based on its platform, collection, collectio id.
+
 headers:
   - Platform
   - Service
@@ -6,8 +10,9 @@ headers:
   - Region
   - $regex: ^Tags.*
 
-stages:
-  - name: get meta collection
+steps:
+  - step: cache
+    name: get meta collection
     collection: meta
     pipeline: [
       "$project": {
