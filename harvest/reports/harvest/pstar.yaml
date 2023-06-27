@@ -10,6 +10,9 @@ headers:
   - Errors
 
 steps:
+  - step: config
+    "skip-freshness": True
+
   - step: cache
     collection: pstar
     pipeline: [
