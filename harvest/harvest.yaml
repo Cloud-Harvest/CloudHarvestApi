@@ -15,7 +15,7 @@ cache:
     writer:
       <<: *cache_server
 
-  # base backend database indexes
+  # base.py backend database indexes
   indexes:
     harvest:  &harvest_indexes
       pstar:
