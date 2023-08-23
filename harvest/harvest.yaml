@@ -49,5 +49,10 @@ logging:
   level: debug
   location: /var/log/harvest-api.log
 
+# retrieves harvest modules from remote git repositories
 modules:
-  - https://github.com/Cloud-Harvest/module-aws.git
+  path: ./harvest/.modules
+  repos:
+    - source: git@github.com:Cloud-Harvest/module-aws.git
+      label: main
+#    - https://github.com/Cloud-Harvest/module-aws.git
