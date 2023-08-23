@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # Harvest-specific
-harvest/modules
+harvest/.modules
