@@ -19,7 +19,7 @@ def clone_repositories(repos: list, path: str) -> dict:
 
     # create module_path if it exists
     from pathlib import Path
-    p = Path(path).expanduser()
+    p = Path(path).expanduser().absolute()
     p.mkdir(parents=True, exist_ok=True)
 
     # clone repositories
@@ -28,6 +28,10 @@ def clone_repositories(repos: list, path: str) -> dict:
         module_name = [str(s).replace('.git', '')
                        for s in repo["source"].split('/')
                        if '.git' in s][0]
+
+        if p.exists():
+            logger.info(f'clone: {p.joinpath(module_name)} already exists')
+            continue
 
         logger.debug(f'clone: {repo["source"]}')
 
@@ -39,8 +43,7 @@ def clone_repositories(repos: list, path: str) -> dict:
         if repo.get('label'):
             args.append(f'--branch={repo["label"]}')
 
-        from os.path import join
-        module_destination = join(path, module_name)
+        module_destination = p.joinpath(module_name)
 
         r = run(args=args + [repo["source"], module_destination])
 
