@@ -20,26 +20,6 @@ class BaseDataCollectionStatus:
     terminating = 'terminating'     # the thread was ordered to stop and is currently attempting to shut down
 
 
-class DataCollectionModules:
-    """
-    A static class containing all data collection modules loaded into Harvest
-    """
-    modules = {}
-
-    @staticmethod
-    def add(collection_module_name: str, class_object: object):
-        from importlib import import_module
-
-        logger.debug(f'add data collection module {collection_module_name}')
-
-        DataCollectionModules.modules[collection_module_name] = class_object
-
-    @staticmethod
-    def remove(collection_module_name: str):
-        if DataCollectionModules.modules.get(collection_module_name):
-            DataCollectionModules.modules.pop(collection_module_name)
-
-
 class BaseDataCollectionStep:
     """
     BaseDataCollectionSteps contain the basic structure for running a form of data retrieval. The underlying collection
@@ -70,8 +50,3 @@ class BaseDataCollector:
             step.initial_data = last_step_result
 
             last_step_result = step.run()
-
-
-def get_collection_tasks(data_collection_tasks: list) -> tuple:
-    for task in data_collection_tasks:
-        yield DataCollectionModules.modules.get(task['step'])(**task)

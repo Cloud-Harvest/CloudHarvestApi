@@ -13,7 +13,8 @@ app = Flask(__name__)
 cache = startup.load_cache_connections(cache_config=api_configuration['cache']['hosts'])
 
 # load modules
-from modules import ModuleLoader, ModuleRegister
+from plugins import PluginRegistry
+plugin_registry = PluginRegistry(**api_configuration['modules']).initialize_repositories()
 
 # start the webserver
 app.run()
@@ -25,10 +26,23 @@ def default() -> str:
 
 
 @app.route("/reports/run")
-def reports_run(name: str, matches: tuple = (), add: tuple = (), exclude: tuple = (), limit: int = None) -> dict:
+async def reports_run(name: str, match: list = None, add: list = None, limit: int = None, order: list = None, **kwargs) -> dict:
+    """
+    execute a defined report and return the results
+    :param name: the report to be executed
+    :param match: matching logic
+    :param add: appends extra fields to a report output
+    :param limit: only return this many records
+    :param order: sort results by these fields
+    :return:
+    """
+    from reporting import Report
+    with Report(**kwargs) as report:
+        report.build()
+
     return {}
 
 
 @app.route("/reports/list")
-def reports_list() -> dict:
+async def reports_list() -> dict:
     return {}
