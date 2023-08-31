@@ -51,8 +51,8 @@ logging:
 
 # retrieves harvest modules from remote git repositories
 modules:
-  path: ./harvest/.modules
+  path: ./harvest/.plugins
   repos:
-    - source: git@github.com:Cloud-Harvest/module-aws.git
+    - source: git@github.com:Cloud-Harvest/plugin-aws.git
       label: main
 #    - https://github.com/Cloud-Harvest/module-aws.git
