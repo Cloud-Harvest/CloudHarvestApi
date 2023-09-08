@@ -11,14 +11,15 @@ logger = getLogger('harvest')
 class PluginRegistry:
     path = None
     plugins = []
+    tasks = {}
 
     def __init__(self, path: str, repos: List[Dict[str, str]]):
-
         # create module_path if it does not exist
         from pathlib import Path
         p = Path(path).expanduser().absolute()
         p.mkdir(parents=True, exist_ok=True)
 
+        # set the path to the global Plugin registry
         PluginRegistry.path = str(p)
         self.repos = repos
 
@@ -45,8 +46,6 @@ class Module:
 
 class Plugin:
     def __init__(self, source: str, label: str = None):
-        from os.path import abspath, expanduser
-
         self._source = source
         self._label = label
 
@@ -72,48 +71,53 @@ class Plugin:
         if self._label:
             args.append(f'--branch={self._label}')
 
-        from tempfile import TemporaryDirectory
-        with TemporaryDirectory() as td:
-            logger.debug(f'clone: {self._source} -> {td}')
+        self.name = self._source.split('/')[-1].replace('.git', '')
+        self._destination = join(PluginRegistry.path, self.name)
 
-            r = run(args=args + [self._source, td])
+        logger.debug(f'clone: {self._source} -> {self._destination}')
+
+        if exists(self._destination):
+            logger.debug(f'{self.name}: -> {self._destination}')
+
+        else:
+            logger.debug(f'{self.name}: -> {self._destination}')
+            r = run(args=args + [self._source, self._destination])
 
             self.status = r.returncode
 
             if r.returncode == 0:
                 self.message = 'OK'
-                logger.debug(f'clone: OK: {self._source} -> {td}')
+                logger.debug(f'clone: OK: {self._source} -> {self._destination}')
 
             else:
                 raise PluginImportException('error when attempting to retrieve {self._source}')
 
-            # check for a harvest plugin meta.yaml file
-            # contains keys: name, author, url, and version
-            meta_path = join(td, 'meta.yaml')
+        # check for a harvest plugin meta.yaml file
+        # contains keys: name, author, url, and version
+        meta_path = join(self._destination, 'meta.yaml')
 
-            if exists(meta_path):
-                from yaml import safe_load
-                with open(meta_path) as plugin_meta_file:
-                    plugin_meta = safe_load(plugin_meta_file)
+        if exists(meta_path):
+            from yaml import safe_load
+            with open(meta_path) as plugin_meta_file:
+                plugin_meta = safe_load(plugin_meta_file)
 
-                    metadata_required_fields = ('name', 'author', 'url', 'version')
+                metadata_required_fields = ('name', 'author', 'url', 'version')
 
-                    if not all(s in plugin_meta.keys() for s in metadata_required_fields):
-                        raise PluginImportException('plugin metadata must contain all of the following fields:'
-                                                    f' {str(metadata_required_fields)}')
+                if not all(s in plugin_meta.keys() for s in metadata_required_fields):
+                    raise PluginImportException('plugin metadata must contain all of the following fields:'
+                                                f' {str(metadata_required_fields)}')
 
-                    [setattr(self, key, value)
-                     for key, value in plugin_meta.items()]
+                [setattr(self, key, value)
+                 for key, value in plugin_meta.items()]
 
-            else:
-                raise PluginImportException(f'clone: {self._source}: plugins must contain a meta.yaml'
-                                            f' file in the root repository directory')
+        else:
+            raise PluginImportException(f'clone: {self._source}: plugins must contain a meta.yaml'
+                                        f' file in the root repository directory')
 
-            from shutil import copytree, ignore_patterns
-            from os.path import sep
-            self._destination = join(PluginRegistry.path, self.name)
-            logger.debug(f'{self.name}: {td} -> {self._destination}')
-            copytree(src=td, dst=self._destination, dirs_exist_ok=True, ignore=ignore_patterns(f'.git*'))
+        # update the system path with the plugin path (if it is not already present)
+        import sys
+        if self._destination not in sys.path:
+            sys.path.append(self._destination)
 
         return self
 
@@ -124,16 +128,20 @@ class Plugin:
         # originally based on
         # https://gist.github.com/dorneanu/cce1cd6711969d581873a88e0257e312
 
-        for filename in listdir(self._destination):
-            if filename.endswith('.py') and not filename.startswith('.') and not filename.startswith('__'):
-                f = join(self._destination, filename)
+        try:
+            for filename in listdir(self._destination):
+                if filename.endswith('.py') and not filename.startswith('.') and not filename.startswith('__'):
+                    f = join(self._destination, filename)
 
-                name = filename[0:-3]
-                spec = util.spec_from_file_location(name, f)
-                module = util.module_from_spec(spec)
-                spec.loader.exec_module(module)
+                    name = filename[0:-3]
+                    spec = util.spec_from_file_location(name, f)
+                    module = util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
 
-                self.modules.append(Module(path=join(self._destination, filename), module=module))
+                    self.modules.append(Module(path=join(self._destination, filename), module=module))
+
+        except ModuleNotFoundError as ex:
+            raise PluginImportException(*ex.args)
 
         PluginRegistry.loaded_plugins = self
 
