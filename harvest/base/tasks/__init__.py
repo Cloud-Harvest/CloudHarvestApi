@@ -1,13 +1,13 @@
 from base.exceptions import BaseTaskException
 from typing import List
 from logging import getLogger
+from plugins import PluginRegistry
 
 
 logger = getLogger('harvest')
 
 
 class BaseTask:
-    plugins = []
 
     def __init__(self, name: str, **kwargs):
         self.name = name
@@ -18,7 +18,7 @@ class BaseTask:
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.plugins.append(cls)
+        PluginRegistry.tasks[cls.__name__] = cls
 
 
 class BaseTaskStatus:
