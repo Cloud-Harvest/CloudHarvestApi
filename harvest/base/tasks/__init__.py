@@ -1,7 +1,7 @@
 from base.exceptions import BaseTaskException
 from typing import List
 from logging import getLogger
-from plugins import PluginRegistry
+from plugins import initialize_object
 
 
 logger = getLogger('harvest')
@@ -17,8 +17,9 @@ class BaseTask:
         self.data = None
 
     def __init_subclass__(cls, **kwargs):
+        from plugins import PluginRegistry
         super().__init_subclass__(**kwargs)
-        PluginRegistry.tasks[cls.__name__] = cls
+        PluginRegistry.objects[cls.__name__] = cls
 
 
 class BaseTaskStatus:
@@ -33,12 +34,18 @@ class BaseTaskStatus:
 
 
 class BaseTaskChain(List[BaseTask]):
-    def __init__(self, name: str):
+    def __init__(self, name: str, tasks: List[dict]):
         super().__init__()
 
-        self.data = None
+        self.name = name
+        self._vars = {}
+
         self.position = 0
+
         self.status = BaseTaskStatus.initialized
+
+        from plugins import initialize_objects
+        self.extend(initialize_objects(list_dict=tasks))
 
     def __enter__(self):
         return self
