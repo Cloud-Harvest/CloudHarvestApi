@@ -1,5 +1,11 @@
+from plugins import PluginRegistry
+from base.tasks import BaseTaskChain
+from logging import getLogger
 
-class Report:
+logger = getLogger('harvest')
+
+
+class Report(BaseTaskChain):
     def __init__(self, report_configuration: dict, match: tuple = (), add: tuple = (), limit: int = None, order: tuple = (), **kwargs):
         self.report_configuration = report_configuration
         self.add = add
@@ -7,7 +13,7 @@ class Report:
         self.limit = limit
         self.order = order
 
-        self.results = None
+        super().__init__(name=report_configuration['name'])
 
     def __enter__(self):
         return self
@@ -16,12 +22,8 @@ class Report:
         return None
 
     def build(self) -> dict:
-        from registry import Registry
-
         results = []
 
-        for task_name, task_configuration in self.report_configuration.items():
-            task_class = Registry.get_module(task_name)(**task_configuration)
 
         return {
             "meta": {
@@ -32,4 +34,6 @@ class Report:
             "results": None,
         }
 
+
 class ReportStatusCodes:
+    pass
