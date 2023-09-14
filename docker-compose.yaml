@@ -1,0 +1,10 @@
+# version:
+
+services:
+  api:
+    image: cloud-harvest-api
+    working_dir: /src
+    ports:
+      - "80:80"
+    expose:
+      - "80"
