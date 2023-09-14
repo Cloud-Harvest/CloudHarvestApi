@@ -5,6 +5,10 @@
   username:     # intentionally null
   password:     # intentionally null
 
+api:
+  host: 0.0.0.0
+  port: 80
+
 cache:
   hosts:
     # read-only configuration

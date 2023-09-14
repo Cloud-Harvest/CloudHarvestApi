@@ -17,7 +17,7 @@ from plugins import PluginRegistry
 plugin_registry = PluginRegistry(**api_configuration['modules']).initialize_repositories()
 
 # start the webserver
-app.run()
+app.run(**api_configuration.get('api', {}))
 
 
 @app.route("/")
