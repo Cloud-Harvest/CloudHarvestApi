@@ -3,3 +3,4 @@ pandas
 flatten_json
 pymongo
 pytest
+pyyaml
