@@ -4,7 +4,7 @@ from flask import Flask
 # load configurations and begin startup sequence
 import startup
 api_configuration = startup.load_configuration_files()
-logger = startup.load_logger()
+logger = startup.load_logger(**api_configuration.get('logging', {}))
 
 
 app = Flask(__name__)
