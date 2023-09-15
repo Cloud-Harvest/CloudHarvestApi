@@ -3,8 +3,15 @@
 services:
   api:
     image: cloud-harvest-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+      ssh:
+        - default
     working_dir: /src
     ports:
       - "80:80"
+    volumes:
+      - "~/.ssh:/root/.ssh"
     expose:
       - "80"
