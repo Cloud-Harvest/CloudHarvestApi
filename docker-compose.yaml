@@ -13,5 +13,6 @@ services:
       - "80:80"
     volumes:
       - "~/.ssh:/root/.ssh"
+      - "./.harvest:/etc/harvest.d"
     expose:
       - "80"
