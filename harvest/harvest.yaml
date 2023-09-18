@@ -51,11 +51,11 @@ cache:
 
 logging:
   level: debug
-  location: /var/log/harvest-api.log
+  location: ./.harvest/api/logs/
 
 # retrieves harvest modules from remote git repositories
 modules:
-  path: ./harvest/.plugins
+  path: ./.harvest/api/plugins
   repos:
     - source: git@github.com:Cloud-Harvest/plugin-aws.git
       label: main
