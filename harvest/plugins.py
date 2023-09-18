@@ -33,6 +33,8 @@ class PluginRegistry:
 
         for plugin in plugins:
             plugin.clone()
+            plugin.install_python_requirements()
+            plugin.run_setup_bash()
             plugin.load()
 
         return self
@@ -120,6 +122,34 @@ class Plugin:
             sys.path.append(self._destination)
 
         return self
+
+    def install_python_requirements(self):
+        from os.path import exists, join
+        requirements = join(self._destination, 'requirements.txt')
+
+        if exists(requirements):
+            logger.info(f'{self.name}: install python packages')
+            process = run(args=['pip', 'install', '-r', requirements])
+
+            if process.returncode != 0:
+                raise PluginImportException(f'{self.name}: errors while install python packages')
+
+        else:
+            logger.debug(f'{self.name}: no python requirements found')
+
+    def run_setup_bash(self):
+        from os.path import exists, join
+        setup_bash = join(self._destination, 'setup.sh')
+
+        if exists(setup_bash):
+            logger.info(f'{self.name}: run setup.sh')
+            process = run(args=['bash', '-c', setup_bash])
+
+            if process.returncode != 0:
+                raise PluginImportException(f'{self.name}: errors while running setup.sh')
+
+        else:
+            logger.debug(f'{self.name}: no setup.sh found')
 
     def load(self):
         from os import listdir
