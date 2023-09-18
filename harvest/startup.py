@@ -19,6 +19,7 @@ def load_cache_connections(cache_config: dict) -> dict:
 
 
 def load_configuration_files() -> dict:
+    from os import environ
     from os.path import exists
     import yaml
 
@@ -29,18 +30,24 @@ def load_configuration_files() -> dict:
     with open('harvest/harvest.yaml') as default_file:
         default_config = yaml.load(default_file, Loader=yaml.FullLoader)
 
+    # prioritize user's directive, home directory, then the expected /etc/harvest.d/api (when mounted by docker-compose)
+    custom_config_path = _find_first_valid_path(environ.get('HARVEST_API_CONFIG'),
+                                                '~/.harvest/api/harvest.yaml',
+                                                '/etc/harvest.d/api/harvest.yaml')
     # load custom configurations
-    if exists('/etc/harvest.yaml'):
-        with open('/etc/harvest.yaml') as custom_file:
+    if custom_config_path:
+        with open(custom_config_path) as custom_file:
             custom_config = yaml.load(custom_file, Loader=yaml.FullLoader)
 
     return custom_config | default_config
 
 
-def load_logger(name: str = 'harvest', log_level: str = 'debug', quiet: bool = False) -> Logger:
+def load_logger(location: str, name: str = 'harvest', log_level: str = 'debug', quiet: bool = False,
+                **kwargs) -> Logger:
     """
-    configures lagging for Harvest; it
-    :param name: log name
+    configures lagging for Harvest
+    :param name: internal log names
+    :param location: where log files should be stored
     :param log_level: sets the file and stream log levels
     :param quiet: hides stream output
     :return:
@@ -66,12 +73,16 @@ def load_logger(name: str = 'harvest', log_level: str = 'debug', quiet: bool = F
     log_format = Formatter(fmt='[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)d] %(message)s')
 
     # file handler
-    parent_path = '/var/log'
     from pathlib import Path
-    Path(parent_path).mkdir(parents=True, exist_ok=True)
+    from os.path import expanduser
+    _location = expanduser(location)
 
+    # make the destination log directory if it does not already exist
+    Path(_location).mkdir(parents=True, exist_ok=True)
+
+    # configure the file handler
     from os.path import join
-    fh = RotatingFileHandler(join(parent_path, 'harvest.api.log'), maxBytes=10000000, backupCount=5)
+    fh = RotatingFileHandler(join(_location, 'harvest.api.log'), maxBytes=10000000, backupCount=5)
     fh.setFormatter(fmt=log_format)
     fh.setLevel(log_level_attribute)
 
@@ -89,3 +100,22 @@ def load_logger(name: str = 'harvest', log_level: str = 'debug', quiet: bool = F
     logger.debug('logging: enabled')
 
     return logger
+
+
+def _find_first_valid_path(*args) -> str or None:
+    """
+    returns the first path that exists given a list of paths
+    performs os.path.expanduser() on each path
+    """
+
+    from os.path import expanduser, exists
+    from os import PathLike
+
+    for a in args:
+        # expanduser() only expects str or PathLike
+        if isinstance(a, (str, PathLike)):
+            _a = expanduser(a)
+            if exists(_a):
+                return _a
+
+    return None
