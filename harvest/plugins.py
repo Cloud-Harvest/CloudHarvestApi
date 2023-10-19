@@ -138,12 +138,15 @@ class Plugin:
             logger.debug(f'{self.name}: no python requirements found')
 
     def run_setup_bash(self):
-        from os.path import exists, join
-        setup_bash = join(self._destination, 'setup.sh')
+        from platform import platform
+        os_filename = 'setup.bat' if 'windows' in platform().lower() else 'setup.sh'
 
-        if exists(setup_bash):
-            logger.info(f'{self.name}: run setup.sh')
-            process = run(args=['bash', '-c', setup_bash])
+        from os.path import exists, join
+        setup_file = join(self._destination, os_filename)
+
+        if exists(setup_file):
+            logger.info(f'{self.name}: run {os_filename}')
+            process = run(args=[setup_file])
 
             if process.returncode != 0:
                 raise PluginImportException(f'{self.name}: errors while running setup.sh')
