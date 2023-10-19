@@ -15,7 +15,7 @@ def test_get_logger(log_level: str, quiet: bool, expected_level: int, expected_h
 
     test_log_name = f'harvest-{log_level}-{str(quiet)}'
 
-    logger = startup.load_logger(name=test_log_name, log_level=log_level, quiet=quiet)
+    logger = startup.load_logger(location='.harvest/api/logs/', name=test_log_name, log_level=log_level, quiet=quiet)
 
     # assert we got a Logger class back
     assert isinstance(logger, Logger)
@@ -38,5 +38,5 @@ def test_load_configuration_files():
 
     assert isinstance(result, dict)
 
-    for key in ('cache', 'logging'):
+    for key in ('api', 'cache', 'logging', 'modules', 'version'):
         assert key in result.keys()

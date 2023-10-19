@@ -52,8 +52,8 @@ def load_logger(location: str, name: str = 'harvest', log_level: str = 'debug', 
                 **kwargs) -> Logger:
     """
     configures lagging for Harvest
-    :param name: internal log names
     :param location: where log files should be stored
+    :param name: internal log names
     :param log_level: sets the file and stream log levels
     :param quiet: hides stream output
     :return:

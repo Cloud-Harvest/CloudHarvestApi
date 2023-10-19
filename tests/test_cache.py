@@ -5,7 +5,6 @@ from startup import load_configuration_files, load_cache_connections
 
 api_configuration = load_configuration_files()
 cache_nodes = load_cache_connections(cache_config=api_configuration['cache']['hosts'])
-test_database = 'test'
 
 
 def _load_test_records_json():
@@ -35,13 +34,13 @@ def test_set_pstar():
     test_file['EndTime'] = parse(test_file['EndTime'])
 
     # write the pstar, returning the _id
-    _id = cache_nodes['writer'].set_pstar(database=test_database, **test_file)
+    _id = cache_nodes['writer'].set_pstar(**test_file)
 
     # verify we actually wrote a record
     assert _id
 
     # retrieve the record written as part of the test
-    result = cache_nodes['writer'][test_database]['pstar'].find_one({'_id': _id}, {'_id': 0})
+    result = cache_nodes['writer']['harvest']['pstar'].find_one({'_id': _id}, {'_id': 0})
 
     convert_result = {}
     from datetime import datetime, timezone
@@ -59,9 +58,6 @@ def test_set_pstar():
 
     # results minus the 'duration' field
     assert convert_result == test_file
-
-    # delete the test record
-    cache_nodes['writer'][test_database]['pstar'].delete_one({'_id': _id})
 
 
 def test_duration_in_seconds():
@@ -111,9 +107,9 @@ def test_write_record():
             # we do this to force an update (and this will happen with every record update anyway)
             original_record['Harvest']['Dates']['LastSeen'] = now
 
-            collection = cache[test_database][cache.get_collection_name(**original_record['Harvest'])]
+            collection = cache['harvest'][cache.get_collection_name(**original_record['Harvest'])]
 
-            record_result = cache_nodes['writer'].write_record(database=test_database, record=original_record)
+            record_result = cache_nodes['writer'].write_record(record=original_record)
 
             assert bool(record_result) is original_record['expected_state']
 
@@ -140,7 +136,7 @@ def test_write_records():
 
     cache = cache_nodes['writer']
 
-    written_records = cache.write_records(database=test_database, records=test_json)
+    written_records = cache.write_records(records=test_json)
 
     assert len(written_records) == len([record for record in test_json if record['expected_state']])
 
@@ -156,15 +152,13 @@ def test_deactivate_records():
     from json import load
     test_json = load(_load_test_records_json())
 
-    written_records = cache_nodes['writer'].write_records(database=test_database,
-                                                          records=test_json)
+    written_records = cache_nodes['writer'].write_records(records=test_json)
 
-    collection = cache_nodes['writer'][test_database][written_records[0]['collection']]
+    collection = cache_nodes['writer']['harvest'][written_records[0]['collection']]
 
     collection.insert_one({'test_record': 'deactivate', 'Harvest': {'Active': True}})
 
-    results = cache_nodes['writer'].deactivate_records(database=test_database,
-                                                       collection_name=written_records[0]['collection'],
+    results = cache_nodes['writer'].deactivate_records(collection_name=written_records[0]['collection'],
                                                        record_ids=[i['_id'] for i in written_records])
 
     assert len(results['deactivated_ids']) == results['modified_count']
@@ -173,6 +167,3 @@ def test_deactivate_records():
     assert tuple(results.keys()) == ('deactivated_ids',
                                      'modified_count',
                                      'meta_count')
-
-    # cleanup test record
-    collection.delete_many(filter={"test_record": "deactivate"})

@@ -1,11 +1,11 @@
 """
 cache.py - defines api-specific operations used for communicating with the backend cache
 """
-from datetime import datetime
 
 from bson import ObjectId
-from pymongo import MongoClient
+from datetime import datetime, timezone
 from logging import getLogger
+from pymongo import MongoClient
 logger = getLogger('harvest')
 _flat_record_separator = '.'
 
@@ -38,18 +38,18 @@ class HarvestCacheConnection(MongoClient):
         # identify databases
         for database in indexes.keys():
             # identify collections
-            for collection in indexes[database].keys():
+            for collection in indexes['harvest'].keys():
                 # identify indexes
-                for index in indexes[database][collection]:
+                for index in indexes['harvest'][collection]:
                     if isinstance(index, (str or list)):
-                        self[database][collection].create_index(keys=index)
+                        self['harvest'][collection].create_index(keys=index)
                         logger.debug(f'{self._log_prefix}: added index: {database}.{collection}.{str(index)}')
 
                     elif isinstance(index, dict):
                         # pymongo is very picky and demands a list[tuple())
                         keys = [(i['field'], i.get('sort', 1)) for i in index.get('keys', [])]
 
-                        self[database][collection].create_index(keys=keys, **index['options'])
+                        self['harvest'][collection].create_index(keys=keys, **index['options'])
 
                         logger.debug(f'{self._log_prefix}: added index: {database}.{collection}.{str(index)}')
 
@@ -96,26 +96,26 @@ class HarvestCacheConnection(MongoClient):
         self.session = self.start_session()
         return self
 
-    def deactivate_records(self, database: str, collection_name: str, record_ids: list) -> dict:
-        collection = self[database][collection_name]
+    def deactivate_records(self, collection_name: str, record_ids: list) -> dict:
+        collection = self['harvest'][collection_name]
 
         # deactivate records which were not inserted/updated in this write operation
         records_to_deactivate = [r["_id"] for r in collection.find({"Harvest.Active": True, "_id": {"$nin": record_ids}},
                                                                    {"_id": 1})]
 
         update_set = {"$set": {"Harvest.Active": False,
-                               "Harvest.Dates.DeactivatedOn": datetime.utcnow()}}
+                               "Harvest.Dates.DeactivatedOn": datetime.now(tz=timezone.utc)}}
 
         update_many = collection.update_many(filter={"_id": {"$in": records_to_deactivate}},
                                              update=update_set)
 
         # update the meta cache
-        collection = self[database]['meta']
+        collection = self['harvest']['meta']
         update_meta = collection.update_many(filter={"Collection": collection_name,
                                                      "CollectionId": {"$in": records_to_deactivate}},
                                              update=update_set)
 
-        logger.debug(f'{self._log_prefix}: {database}.{collection_name}: deactivated {update_many.modified_count}')
+        logger.debug(f'{self._log_prefix}: harvest.{collection_name}: deactivated {update_many.modified_count}')
 
         return {
             'deactivated_ids': records_to_deactivate,
@@ -172,11 +172,10 @@ class HarvestCacheConnection(MongoClient):
             logger.debug(f'{self._log_prefix}: successful connection')
             return True
 
-    def set_pstar(self, database: str = 'harvest', **kwargs) -> ObjectId:
+    def set_pstar(self, **kwargs) -> ObjectId:
         """
         a PSTAR is a concept in Harvest where objects are stored on five dimensions
-        [database][platform.service.type]
-        :param database: override
+        ['harvest'][platform.service.type]
         :param Platform: the cloud provider this database was retrieved from (ie AWS, Azure, Google)
         :param Service: the provider's service (ie "RDS", "EC2")
         :param Type: service's object classification (ie RDS "instance" or EC2 "event")
@@ -199,14 +198,14 @@ class HarvestCacheConnection(MongoClient):
         _id = None
         try:
             from datetime import datetime
-            _id = self[database]['pstar'].find_one_and_update(filter={k: kwargs.get(k) for k in ['Platform',
-                                                                                                 'Service',
-                                                                                                 'Type',
-                                                                                                 'Account',
-                                                                                                 'Region']},
-                                                              projection={'_id': 1},
-                                                              update={"$set": kwargs},
-                                                              upsert=True).get('_id')
+            _id = self['harvest']['pstar'].find_one_and_update(filter={k: kwargs.get(k) for k in ['Platform',
+                                                                                                  'Service',
+                                                                                                  'Type',
+                                                                                                  'Account',
+                                                                                                  'Region']},
+                                                               projection={'_id': 1},
+                                                               update={"$set": kwargs},
+                                                               upsert=True).get('_id')
 
         except Exception as ex:
             logger.error(f'{self._log_prefix}: ' + ' '.join(ex.args))
@@ -214,7 +213,7 @@ class HarvestCacheConnection(MongoClient):
         finally:
             return _id
 
-    def write_record(self, database: str, record: dict, meta_extra_fields: tuple = ()) -> dict:
+    def write_record(self, record: dict, meta_extra_fields: tuple = ()) -> dict:
         """
         a record to be written to the harvest cache
         to qualify as a valid record, it must contain a key named Harvest with the following structure
@@ -238,7 +237,6 @@ class HarvestCacheConnection(MongoClient):
             },
             "Active": bool
         }
-        :param database: target database for records to be written to
         :param record: a dictionary object representing a single record
         :param meta_extra_fields: extra fields to add to the meta collection
         :return: _id
@@ -254,7 +252,7 @@ class HarvestCacheConnection(MongoClient):
         if self.check_harvest_metadata(flat_record=flat_record):
 
             collection_name = self.get_collection_name(**record['Harvest'])
-            collection = self[database][collection_name]
+            collection = self['harvest'][collection_name]
 
             record['Harvest']['Module']['UniqueFilter'] = self.get_unique_filter(record=record,
                                                                                  flat_record=flat_record)
@@ -292,9 +290,9 @@ class HarvestCacheConnection(MongoClient):
             }
 
             # add the record based on the meta filter
-            meta = self[database]['meta'].update_one(filter=meta_filter,
-                                                     update={"$set": meta_record},
-                                                     upsert=True).upserted_id
+            meta = self['harvest']['meta'].update_one(filter=meta_filter,
+                                                      update={"$set": meta_record},
+                                                      upsert=True).upserted_id
 
             # include the meta record id in the results
             result['meta_id'] = meta
@@ -306,10 +304,9 @@ class HarvestCacheConnection(MongoClient):
 
         return result
 
-    def write_records(self, database: str, records: list) -> list:
+    def write_records(self, records: list) -> list:
         """
         top-level co
-        :param database:
         :param records:
         :return:
         """
@@ -317,7 +314,7 @@ class HarvestCacheConnection(MongoClient):
         # gather record _ids by inserting/updating records
         updated_records = []
         for record in records:
-            write_attempt = self.write_record(database=database, record=record)
+            write_attempt = self.write_record(record=record)
             if write_attempt:
                 updated_records.append(write_attempt)
 
