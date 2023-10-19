@@ -1,4 +1,4 @@
-from cache import HarvestCacheConnection
+from cache.connection import HarvestCacheConnection
 from flask import Flask
 
 # load configurations and begin startup sequence
@@ -17,7 +17,8 @@ from plugins import PluginRegistry
 plugin_registry = PluginRegistry(**api_configuration['modules']).initialize_repositories()
 
 # begin heartbeat thread
-from cache import HarvestCacheHeartBeatThread
+from cache.heartbeat import HarvestCacheHeartBeatThread
+
 HarvestCacheHeartBeatThread(writer=cache['writer'], version=api_configuration['version'])
 
 # start the webserver

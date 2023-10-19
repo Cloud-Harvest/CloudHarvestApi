@@ -16,9 +16,10 @@ def test_connection():
 
 
 def test_add_indexes():
+    from cache.data import add_indexes
     indexes = api_configuration['cache']['indexes']
 
-    cache_nodes['writer'].add_indexes(indexes=indexes)
+    add_indexes(client_writer=cache_nodes['writer'], indexes=indexes)
 
 
 def test_set_pstar():
@@ -34,7 +35,8 @@ def test_set_pstar():
     test_file['EndTime'] = parse(test_file['EndTime'])
 
     # write the pstar, returning the _id
-    _id = cache_nodes['writer'].set_pstar(**test_file)
+    from cache.data import set_pstar
+    _id = set_pstar(client_writer=cache_nodes['writer'], **test_file)
 
     # verify we actually wrote a record
     assert _id
@@ -62,24 +64,27 @@ def test_set_pstar():
 
 def test_duration_in_seconds():
     from datetime import datetime
+    from cache.data import duration_in_seconds
 
     a = datetime(year=2023, month=1, day=1, hour=23, minute=30, second=0)
     b = datetime(year=2023, month=1, day=2, hour=0, minute=0, second=0)
 
-    assert cache_nodes['writer'].duration_in_seconds(a=a, b=b) == 1800 or 1800.0
+    assert duration_in_seconds(a=a, b=b) == 1800 or 1800.0
 
 
 def test_get_collection_name():
     from json import load
     test_json = load(_load_test_records_json())
 
+    from cache.data import get_collection_name
     for record in test_json:
         if record.get('Harvest'):
-            assert cache_nodes['writer'].get_collection_name(**record['Harvest']) == 'test_platform.test_service.test_type'
+            assert get_collection_name(client_writer=cache_nodes['writer'],
+                                       **record['Harvest']) == 'test_platform.test_service.test_type'
 
 
 def test_check_harvest_meta():
-    from cache import _flat_record_separator
+    from cache.data import _flat_record_separator, check_harvest_metadata
     from json import load
     test_json = load(_load_test_records_json())
 
@@ -88,7 +93,7 @@ def test_check_harvest_meta():
     for record in test_json:
         flat_record = flatten(record, separator=_flat_record_separator)
 
-        assert cache_nodes['writer'].check_harvest_metadata(flat_record=flat_record) == record['expected_state']
+        assert check_harvest_metadata(flat_record=flat_record) == record['expected_state']
 
 
 def test_write_record():
@@ -98,8 +103,7 @@ def test_write_record():
     from json import load
     test_json = load(_load_test_records_json())
 
-    cache = cache_nodes['writer']
-
+    from cache.data import get_collection_name, write_record
     # here we're checking that files are written/aborted as expected
     for original_record in test_json:
         if original_record.get('Harvest'):
@@ -107,9 +111,10 @@ def test_write_record():
             # we do this to force an update (and this will happen with every record update anyway)
             original_record['Harvest']['Dates']['LastSeen'] = now
 
-            collection = cache['harvest'][cache.get_collection_name(**original_record['Harvest'])]
+            collection_name = get_collection_name(**original_record['Harvest'])
+            collection = cache_nodes['reader']['harvest'][collection_name]
 
-            record_result = cache_nodes['writer'].write_record(record=original_record)
+            record_result = write_record(client_writer=cache_nodes['writer'], record=original_record)
 
             assert bool(record_result) is original_record['expected_state']
 
@@ -134,9 +139,8 @@ def test_write_records():
     from json import load
     test_json = load(_load_test_records_json())
 
-    cache = cache_nodes['writer']
-
-    written_records = cache.write_records(records=test_json)
+    from cache.data import write_records
+    written_records = write_records(client_writer=cache_nodes['writer'], records=test_json)
 
     assert len(written_records) == len([record for record in test_json if record['expected_state']])
 
@@ -148,18 +152,19 @@ def test_write_records():
 
 def test_deactivate_records():
     # write test records
-
+    from cache.data import deactivate_records, write_records
     from json import load
     test_json = load(_load_test_records_json())
 
-    written_records = cache_nodes['writer'].write_records(records=test_json)
+    written_records = write_records(client_writer=cache_nodes['writer'], records=test_json)
 
     collection = cache_nodes['writer']['harvest'][written_records[0]['collection']]
 
     collection.insert_one({'test_record': 'deactivate', 'Harvest': {'Active': True}})
 
-    results = cache_nodes['writer'].deactivate_records(collection_name=written_records[0]['collection'],
-                                                       record_ids=[i['_id'] for i in written_records])
+    results = deactivate_records(client_writer=cache_nodes['writer'],
+                                 collection_name=written_records[0]['collection'],
+                                 record_ids=[i['_id'] for i in written_records])
 
     assert len(results['deactivated_ids']) == results['modified_count']
     assert written_records[0]["_id"] not in results['deactivated_ids']

@@ -8,7 +8,7 @@ def load_cache_connections(cache_config: dict) -> dict:
     :return: a list of nodes and their connection objects
     """
 
-    from cache import HarvestCacheConnection
+    from cache.connection import HarvestCacheConnection
 
     result = {}
     for node, host_configuration in cache_config.items():
