@@ -1,4 +1,5 @@
 Flask
+Authlib
 pandas
 flatten_json
 pymongo
