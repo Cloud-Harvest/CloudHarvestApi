@@ -16,9 +16,12 @@ cache = startup.load_cache_connections(cache_config=api_configuration['cache']['
 from plugins import PluginRegistry
 plugin_registry = PluginRegistry(**api_configuration['modules']).initialize_repositories()
 
+# begin heartbeat thread
+from cache import HarvestCacheHeartBeatThread
+HarvestCacheHeartBeatThread(writer=cache['writer'], version=api_configuration['version'])
+
 # start the webserver
 app.run(**api_configuration.get('api', {}))
-
 
 @app.route("/")
 def default() -> str:

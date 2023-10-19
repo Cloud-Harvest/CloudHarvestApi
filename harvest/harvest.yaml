@@ -22,6 +22,9 @@ cache:
   # base.py backend database indexes
   indexes:
     harvest:  &harvest_indexes
+      api_nodes:
+        - hostname
+        - end
       pstar:
         - Platform
         - Service
