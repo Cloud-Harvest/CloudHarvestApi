@@ -39,6 +39,12 @@ def load_configuration_files() -> dict:
         with open(custom_config_path) as custom_file:
             custom_config = yaml.load(custom_file, Loader=yaml.FullLoader)
 
+    # load version file
+    with open('version') as version_file:
+        version = version_file.read().strip()
+
+        custom_config['version'] = version
+
     return custom_config | default_config
 
 
