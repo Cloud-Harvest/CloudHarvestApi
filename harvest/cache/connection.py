@@ -13,8 +13,11 @@ class HarvestCacheConnection(MongoClient):
         """
         super().__init__(**kwargs)
 
-        from uuid import uuid4
-        self.id = str(uuid4())
+        import string
+        import random
+
+        # generate a short, human-readable string identifying this cache connection
+        self.id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
         self.node = node
         self.session = None
 
