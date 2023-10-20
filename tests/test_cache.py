@@ -1,10 +1,11 @@
 import datetime
 
 import pytest
-from startup import load_configuration_files, load_cache_connections
+from startup import load_configuration_files, load_cache_connections, load_logger
 
 api_configuration = load_configuration_files()
 cache_nodes = load_cache_connections(cache_config=api_configuration['cache']['hosts'])
+logger = load_logger(**api_configuration['logging'])
 
 
 def _load_test_records_json():
