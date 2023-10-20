@@ -1,4 +1,7 @@
 from cache.connection import HarvestCacheConnection
+from logging import getLogger
+
+logger = getLogger('harvest')
 
 
 class HarvestCacheHeartBeatThread:
@@ -14,23 +17,32 @@ class HarvestCacheHeartBeatThread:
     def _run(self):
         import platform
         from socket import getfqdn
-        from time import sleep
         from datetime import datetime, timezone
 
         start_datetime = datetime.now(tz=timezone.utc)
 
         while True:
-            self._writer.connect()
+            message = 'OK'
 
-            self._writer['harvest']['api_nodes'].update_one(filter={"hostname": getfqdn()},
-                                                            upsert=True,
-                                                            update={"$set": {"hostname": getfqdn(),
-                                                                             "os": platform.system(),
-                                                                             "version": self._version,
-                                                                             "start": start_datetime,
-                                                                             "last": datetime.now(tz=timezone.utc)
-                                                                             }
-                                                                    }
-                                                            )
+            try:
+                self._writer.connect()
 
-            sleep(1)
+                self._writer['harvest']['api_nodes'].update_one(filter={"hostname": getfqdn()},
+                                                                upsert=True,
+                                                                update={"$set": {"hostname": getfqdn(),
+                                                                                 "os": platform.system(),
+                                                                                 "version": self._version,
+                                                                                 "start": start_datetime,
+                                                                                 "last": datetime.now(tz=timezone.utc)
+                                                                                 }
+                                                                        }
+                                                                )
+
+            except Exception as ex:
+                message = ' '.join(ex.args)
+
+            finally:
+                from time import sleep
+
+                logger.debug(f'{self._writer.log_prefix}: api heartbeat: {message}')
+                sleep(5)
