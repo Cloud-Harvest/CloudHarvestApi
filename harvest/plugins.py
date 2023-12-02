@@ -92,7 +92,7 @@ class Plugin:
                 logger.debug(f'clone: OK: {self._source} -> {self._destination}')
 
             else:
-                raise PluginImportException('error when attempting to retrieve {self._source}')
+                raise PluginImportException(f'error when attempting to retrieve {self._source}')
 
         # check for a harvest plugin meta.yaml file
         # contains keys: name, author, url, and version
