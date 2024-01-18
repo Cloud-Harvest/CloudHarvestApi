@@ -1,7 +1,7 @@
 import datetime
 
 import pytest
-from startup import load_configuration_files, load_cache_connections, load_logger
+from configuration import load_configuration_files, load_cache_connections, load_logger
 
 api_configuration = load_configuration_files()
 cache_nodes = load_cache_connections(cache_config=api_configuration['cache']['hosts'])

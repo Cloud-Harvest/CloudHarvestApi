@@ -1,29 +1,17 @@
 from logging import Logger
 
 
-def load_cache_connections(cache_config: dict) -> dict:
-    """
-    returns a list of connection objects
-    :param cache_config: part of the harvest.yaml
-    :return: a list of nodes and their connection objects
-    """
-
-    from cache.connection import HarvestCacheConnection
-
-    result = {}
-    for node, host_configuration in cache_config.items():
-        c = HarvestCacheConnection(node=node, **host_configuration)
-        result[node] = c
-
-    return result
+class HarvestConfiguration:
+    @staticmethod
+    def load(new_config: dict):
+        for k, v in new_config.items():
+            setattr(HarvestConfiguration, k, v)
 
 
 def load_configuration_files() -> dict:
     from os import environ
-    from os.path import exists
     import yaml
 
-    default_config = {}
     custom_config = {}
 
     # load the default file
@@ -108,6 +96,21 @@ def load_logger(location: str, name: str = 'harvest', log_level: str = 'debug', 
     return logger
 
 
+def load_reports(search_path: str = './**/reports/**/*.yaml') -> dict:
+    def load_report(path: str) -> dict:
+        from yaml import load, FullLoader
+        with open(path, 'r') as stream:
+            return load(stream, Loader=FullLoader)
+
+    from glob import glob
+    from os.path import sep
+
+    results = {'.'.join(file.split(sep)[-2:])[0:-5]: load_report(path=file)
+               for file in glob(search_path, recursive=True)}
+
+    return results
+
+
 def _find_first_valid_path(*args) -> str or None:
     """
     returns the first path that exists given a list of paths
@@ -125,3 +128,10 @@ def _find_first_valid_path(*args) -> str or None:
                 return _a
 
     return None
+
+
+if __name__ == '__main__':
+    reports = load_reports()
+
+    from pprint import pprint
+    pprint(reports)

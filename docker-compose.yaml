@@ -8,11 +8,12 @@ services:
       dockerfile: Dockerfile
       ssh:
         - default
-    working_dir: /src
     ports:
-      - "80:80"
+      - "8000:8000"
+    stop_signal: SIGINT
     volumes:
       - "~/.ssh:/root/.ssh"
       - "./.harvest:/etc/harvest.d"
+    working_dir: /src
     expose:
-      - "80"
+      - "8000"

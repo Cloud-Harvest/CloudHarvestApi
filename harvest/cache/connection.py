@@ -5,7 +5,7 @@ logger = getLogger('harvest')
 
 
 class HarvestCacheConnection(MongoClient):
-    def __init__(self, node: str, **kwargs):
+    def __init__(self, **kwargs):
         """
         creates a connection to the Mongo backend
         :param node: an ambiguous name for a database endpoint
@@ -18,10 +18,9 @@ class HarvestCacheConnection(MongoClient):
 
         # generate a short, human-readable string identifying this cache connection
         self.id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
-        self.node = node
         self.session = None
 
-        self.log_prefix = f'[{self.id}][{self.node}][{self.HOST}:{self.PORT}]'
+        self.log_prefix = f'[{self.id}][{self.HOST}:{self.PORT}]'
 
     def connect(self):
         """

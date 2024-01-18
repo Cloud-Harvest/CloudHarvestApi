@@ -1,16 +1,16 @@
 from cache.connection import HarvestCacheConnection
-from flask import Flask
+from flask import Flask, jsonify, Response
 
 # load configurations and begin startup sequence
-import startup
-api_configuration = startup.load_configuration_files()
-logger = startup.load_logger(**api_configuration.get('logging', {}))
+import configuration
+api_configuration = configuration.load_configuration_files()
+logger = configuration.load_logger(**api_configuration.get('logging', {}))
 
-
-app = Flask(__name__)
+reports = configuration.load_reports()
 
 # test backend connection
-cache = startup.load_cache_connections(cache_config=api_configuration['cache']['hosts'])
+from cache.connection import HarvestCacheConnection
+cache = HarvestCacheConnection(**api_configuration['cache']['connection'])
 
 # load modules
 from plugins import PluginRegistry
@@ -18,11 +18,13 @@ plugin_registry = PluginRegistry(**api_configuration['modules']).initialize_repo
 
 # begin heartbeat thread
 from cache.heartbeat import HarvestCacheHeartBeatThread
+HarvestCacheHeartBeatThread(cache=cache, version=api_configuration['version'])
 
-HarvestCacheHeartBeatThread(writer=cache['writer'], version=api_configuration['version'])
+app = Flask(__name__)
 
 # start the webserver
 app.run(**api_configuration.get('api', {}))
+
 
 @app.route("/")
 def default() -> str:
@@ -30,7 +32,7 @@ def default() -> str:
 
 
 @app.route("/reports/run")
-async def reports_run(name: str, match: list = None, add: list = None, limit: int = None, order: list = None, **kwargs) -> dict:
+async def reports_run(name: str, match: list = None, add: list = None, limit: int = None, order: list = None, **kwargs) -> Response:
     """
     execute a defined report and return the results
     :param name: the report to be executed
@@ -44,9 +46,14 @@ async def reports_run(name: str, match: list = None, add: list = None, limit: in
     with Report(**kwargs) as report:
         report.build()
 
-    return {}
+    return jsonify({})
 
 
-@app.route("/reports/list")
-async def reports_list() -> dict:
-    return {}
+@app.route("/reports/list", methods=['GET'])
+async def reports_list() -> Response:
+    return jsonify(list(reports.keys()))
+
+
+@app.errorhandler(404)
+def not_found():
+    return "404 - not found"

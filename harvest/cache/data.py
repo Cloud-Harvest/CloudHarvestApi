@@ -50,7 +50,7 @@ def set_pstar(client_writer: HarvestCacheConnection, **kwargs) -> ObjectId:
         return _id
 
 
-def write_record(client_writer: HarvestCacheConnection, record: dict, meta_extra_fields: tuple = ()) -> dict:
+def write_record(record: dict, meta_extra_fields: tuple = ()) -> tuple:
     """
     a record to be written to the harvest cache
     to qualify as a valid record, it must contain a key named Harvest with the following structure
@@ -68,95 +68,68 @@ def write_record(client_writer: HarvestCacheConnection, record: dict, meta_extra
             "FilterCriteria": list
         },
         "Dates": {
-            "FirstSeen": datetime.datetime,
             "LastSeen": datetime.datetime,
             "DeactivatedOn": datetime.datetime,
         },
         "Active": bool
     }
-    :param client_writer: a HarvestCacheConnection writer configuration
     :param record: a dictionary object representing a single record
     :param meta_extra_fields: extra fields to add to the meta collection
     :return: _id
     """
-
-    # should be a new or existing ObjectId
-    result = None
-
+    from pymongo import ReplaceOne
     from flatten_json import flatten
     flat_record = flatten(record, separator=_flat_record_separator)
 
-    # only write a record if there is a metadata object - otherwise kill it
-    if check_harvest_metadata(flat_record=flat_record):
-
-        collection_name = get_collection_name(**record['Harvest'])
-        collection = client_writer['harvest'][collection_name]
-
-        record['Harvest']['Module']['UniqueFilter'] = get_unique_filter(record=record, flat_record=flat_record)
-
-        existing_record = collection.find_one(record['Harvest']['Module']['UniqueFilter'],
-                                              {'_id': 1, 'Harvest': 1})
-
-        # if there is an existing record, write data to it
-        if existing_record:
-            _id = existing_record['_id']
-            # update new record metadata with existing record's data
-            record['Harvest']['Active'] = True
-            record['Harvest']['Dates']['FirstSeen'] = existing_record['Harvest']['Dates']['FirstSeen']
-
-            collection.update_one(filter={"_id": existing_record['_id']},
-                                  update={"$set": record})
-
-        # no record exists
-        else:
-            _id = collection.insert_one(record).inserted_id
-
-        # return an _id and collection
-        result = {'_id': _id, 'collection': collection_name}
-
-        # write metadata
-
-        # the uniqueness of a given record is based on Collection and CollectionId
-        meta_filter = {"Collection": collection_name, "CollectionId": _id}
-
-        # the meta record is the metadata filter, Harvest component, and any extra fields defined by the caller
-        meta_record = {
-            **meta_filter,
-            "Harvest": record["Harvest"],
-            **{k: record.get(k) or flat_record.get(k) for k in meta_extra_fields}
+    replace_filter = {
+        'Harvest': {
+            'Module': {
+                'UniqueFilter': record['Harvest']['Module']['UniqueFilter']
+            }
         }
+    }
 
-        # add the record based on the meta filter
-        meta = client_writer['harvest']['meta'].update_one(filter=meta_filter,
-                                                           update={"$set": meta_record},
-                                                           upsert=True).upserted_id
+    collection = get_collection_name(**record['Harvest'])
 
-        # include the meta record id in the results
-        result['meta_id'] = meta
+    replace_resource = ReplaceOne(filter=replace_filter,
+                                  replacement=record,
+                                  upsert=True)
 
-    else:
-        from pprint import pformat
-        logger.warning(f'{client_writer.log_prefix}: failed to write record to cache - missing metadata')
-        logger.debug(pformat(record))
+    replace_meta = ReplaceOne(filter=replace_filter,
+                              replacement={
+                                  "Collection": "",
+                                  "UniqueIdentifier": record['Harvest']['Module']['UniqueFilter'],
+                                  "Harvest": record["Harvest"],
+                                  **{k: record.get(k) or flat_record.get(k) for k in meta_extra_fields}
+                              },
+                              upsert=True)
 
+    result = (collection, replace_resource, replace_meta)
     return result
 
 
-def write_records(client_writer: HarvestCacheConnection, records: list) -> list:
+def write_records(client: HarvestCacheConnection, records: list) -> list:
     """
     top-level co
-    :param client_writer: a HarvestCacheConnection writer configuration
+    :param client: a HarvestCacheConnection writer configuration
     :param records:
     :return:
     """
 
-    # gather record _ids by inserting/updating records
-    updated_records = []
+    bulk_records = {'meta': []}
     for record in records:
-        write_attempt = write_record(client_writer=client_writer, record=record)
-        if write_attempt:
-            updated_records.append(write_attempt)
+        collection, record_replace, meta_replace = write_record(record=record)
 
+        if not bulk_records.get(collection):
+            bulk_records[collection] = []
+
+        bulk_records[collection].append(record_replace)
+        bulk_records['meta'].append(meta_replace)
+
+    # perform bulk writes by collection but always do 'meta' last
+    updated_records = [client['harvest'][collection].bulk_write(bulk_records[collection])
+                       for collection in list([k for k in bulk_records.keys()
+                                               if k not in 'meta'] + ['meta'])]
     return updated_records
 
 
@@ -266,7 +239,6 @@ def check_harvest_metadata(flat_record: dict) -> bool:
                        'Module.Repository',
                        'Module.Version',
                        'Dates.DeactivatedOn',
-                       'Dates.FirstSeen',
                        'Dates.LastSeen',
                        'Active')
 

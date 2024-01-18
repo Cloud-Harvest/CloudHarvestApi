@@ -13,4 +13,6 @@ RUN cp -vn /src/harvest/harvest.yaml /etc/harvest.d/api/harvest.yaml
 
 RUN chmod 600 /etc/harvest.d/*
 
+EXPOSE 80
+
 ENTRYPOINT python harvest
