@@ -26,7 +26,7 @@ HarvestCacheHeartBeatThread(cache=cache, version=api_configuration['version'])
 
 @app.route("/")
 def default() -> str:
-    return 'hello world'
+    return 'Harvest API Server'
 
 
 @app.route("/reports/run")
@@ -49,7 +49,9 @@ def reports_run(name: str, match: list = None, add: list = None, limit: int = No
 
 @app.route("/reports/list", methods=['GET'])
 def reports_list() -> Response:
-    return jsonify(list(reports.keys()))
+    result = [{'name': k, 'description': v['description']} for k, v in reports.items()]
+
+    return jsonify(result)
 
 
 @app.errorhandler(404)
