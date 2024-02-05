@@ -117,13 +117,13 @@ def _find_first_valid_path(*args) -> str or None:
     performs os.path.expanduser() on each path
     """
 
-    from os.path import expanduser, exists
+    from os.path import abspath, expanduser, exists
     from os import PathLike
 
     for a in args:
         # expanduser() only expects str or PathLike
         if isinstance(a, (str, PathLike)):
-            _a = expanduser(a)
+            _a = abspath(expanduser(a))
             if exists(_a):
                 return _a
 
