@@ -1,7 +1,9 @@
+# This API
 api:
   host: 0.0.0.0
   port: 8000
 
+# Backend MongoDb
 cache:
   connection:
     host: localhost
@@ -42,14 +44,7 @@ cache:
     test:
       <<: *harvest_indexes
 
+# API Log File level and location
 logging:
   level: debug
   location: ./.harvest/api/logs/
-
-# retrieves harvest modules from remote git repositories
-modules:
-  path: ./.harvest/api/plugins
-  repos:
-    - source: git@github.com:Cloud-Harvest/plugin-aws.git
-      label: main
-#    - https://github.com/Cloud-Harvest/module-aws.git
