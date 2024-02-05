@@ -1,7 +1,6 @@
 from base.exceptions import BaseTaskException
 from typing import List
 from logging import getLogger
-from plugins import initialize_object
 
 
 logger = getLogger('harvest')

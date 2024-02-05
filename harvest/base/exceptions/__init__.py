@@ -19,11 +19,6 @@ class BaseDataCollectionException(BaseHarvestException):
         super(**kwargs).__init__()
 
 
-class PluginImportException(BaseHarvestException):
-    def __init__(self, *args):
-        super().__init__(*args)
-
-
 class BaseTaskException(BaseHarvestException):
     def __init__(self, *args):
         super().__init__(*args)

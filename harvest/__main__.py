@@ -1,26 +1,21 @@
+import configuration
 from cache.connection import HarvestCacheConnection
+from cache.heartbeat import HarvestCacheHeartBeatThread
 from flask import Flask, jsonify, Response
 
 # define the application
 app = Flask(__name__)
 
 # load configurations and begin startup sequence
-import configuration
 api_configuration = configuration.load_configuration_files()
 logger = configuration.load_logger(**api_configuration.get('logging', {}))
 
 reports = configuration.load_reports()
 
 # test backend connection
-from cache.connection import HarvestCacheConnection
 cache = HarvestCacheConnection(**api_configuration['cache']['connection'])
 
-# load modules
-from plugins import PluginRegistry
-plugin_registry = PluginRegistry(**api_configuration['modules']).initialize_repositories()
-
 # begin heartbeat thread
-from cache.heartbeat import HarvestCacheHeartBeatThread
 HarvestCacheHeartBeatThread(cache=cache, version=api_configuration['version'])
 
 
