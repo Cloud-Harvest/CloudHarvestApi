@@ -30,12 +30,12 @@ class HarvestCacheHeartBeatThread:
                 self._cache['harvest']['api_nodes'].update_one(filter={"hostname": getfqdn()},
                                                                upsert=True,
                                                                update={"$set": {"hostname": getfqdn(),
-                                                                                 "os": platform.system(),
-                                                                                 "version": self._version,
-                                                                                 "start": start_datetime,
-                                                                                 "last": datetime.now(tz=timezone.utc)
-                                                                                 }
-                                                                        }
+                                                                                "os": platform.system(),
+                                                                                "version": self._version,
+                                                                                "start": start_datetime,
+                                                                                "last": datetime.now(tz=timezone.utc)
+                                                                                }
+                                                                       }
                                                                )
 
             except Exception as ex:
