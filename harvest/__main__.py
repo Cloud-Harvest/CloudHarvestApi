@@ -4,7 +4,7 @@ from cache.heartbeat import HarvestCacheHeartBeatThread
 from flask import Flask, jsonify, Response
 
 # define the application
-app = Flask(__name__)
+app = Flask('cloud-harvest-api')
 
 # load configurations and begin startup sequence
 api_configuration = configuration.load_configuration_files()
