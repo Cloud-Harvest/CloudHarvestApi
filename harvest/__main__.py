@@ -1,6 +1,7 @@
 import configuration
 from cache.connection import HarvestCacheConnection
 from cache.heartbeat import HarvestCacheHeartBeatThread
+from plugins import PluginRegistry
 from flask import Flask, jsonify, Response
 
 # define the application
@@ -10,6 +11,10 @@ app = Flask('cloud-harvest-api')
 api_configuration = configuration.load_configuration_files()
 logger = configuration.load_logger(**api_configuration.get('logging', {}))
 
+# load modules
+plugin_registry = PluginRegistry(**api_configuration['modules']).initialize_repositories()
+
+# load reports from file system
 reports = configuration.load_reports()
 
 # test backend connection
@@ -44,7 +49,12 @@ def reports_run(name: str, match: list = None, add: list = None, limit: int = No
 
 @app.route("/reports/list", methods=['GET'])
 def reports_list() -> Response:
+    # local api reports
     result = [{'name': k, 'description': v['description']} for k, v in reports.items()]
+
+    # get a list of unique data collector nodes from the database (sort DESC by version so we get the latest)
+
+    # pull the available reports from those collectors
 
     return jsonify(result)
 

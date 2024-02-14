@@ -48,3 +48,10 @@ cache:
 logging:
   level: debug
   location: ./.harvest/api/logs/
+
+# Add support for data collectors, reports, or other functionality.
+modules:
+  path: ./.harvest/api/plugins
+  repos:
+    - source: git@github.com:Cloud-Harvest/api-plugin-aws.git
+      label: main
