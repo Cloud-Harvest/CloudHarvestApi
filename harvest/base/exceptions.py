@@ -10,7 +10,7 @@ class BaseHarvestException(BaseException):
     def __init__(self, *args: Iterable[str], log_level: _log_levels = 'error'):
         super().__init__(*args)
 
-        getattr(logger, log_level.lower())(' '.join(args))
+        getattr(logger, log_level.lower())(' '.join(*args))
 
 
 class BaseDataCollectionException(BaseHarvestException):
