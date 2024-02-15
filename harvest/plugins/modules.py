@@ -1,6 +1,6 @@
 from importlib import util
 from typing import Any
-from subprocess import run
+from subprocess import run, PIPE
 from logging import getLogger
 
 logger = getLogger('harvest')
@@ -33,6 +33,8 @@ class Plugin:
         self._install_python_requirements()
         self._run_setup_bash()
         self._load()
+
+        logger.info(f'{self.name}: activation complete')
 
         return self
         
@@ -115,6 +117,8 @@ class Plugin:
         else:
             logger.debug(f'{self.name}: no python requirements found')
 
+        return self
+
     def _run_setup_bash(self):
         from plugins.exceptions import PluginImportException
         from platform import platform
@@ -125,13 +129,19 @@ class Plugin:
 
         if exists(setup_file):
             logger.info(f'{self.name}: run {os_filename}')
-            process = run(args=[setup_file])
+            process = run(args=[setup_file], stdout=PIPE, stderr=PIPE)
 
             if process.returncode != 0:
-                raise PluginImportException(f'{self.name}: errors while running setup.sh')
+                raise PluginImportException(f'{self.name}: errors while running setup.sh',
+                                            '\n'.join([bytes(s).decode('utf8') for s in process.stdout]),
+                                            '\n'.join([bytes(s).decode('utf8') for s in process.stderr]))
 
         else:
             logger.debug(f'{self.name}: no setup.sh found')
+
+        logger.debug(f'{self.name}: setup complete')
+
+        return self
 
     def _load(self):
         from plugins.exceptions import PluginImportException
@@ -143,7 +153,9 @@ class Plugin:
 
         try:
             for filename in listdir(self._destination):
-                if filename.endswith('.py') and not filename.startswith('.') and not filename.startswith('__'):
+                if filename == '__init__.py' or (filename.endswith('.py') and not filename.startswith('.') and not filename.startswith('__')):
+                    logger.debug(f'{self.name}: importing: {filename}')
+
                     f = join(self._destination, filename)
 
                     name = filename[0:-3]
@@ -156,4 +168,5 @@ class Plugin:
         except ModuleNotFoundError as ex:
             raise PluginImportException(*ex.args)
 
+        logger.info(f'{self.name}: module load complete')
         return self

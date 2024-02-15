@@ -1,6 +1,6 @@
 description: |
   This report returns information from the `meta` collection where all objects across all platforms is stored. The meta
-  collection is used to find an object based on its platform, collection, collectio id.
+  collection is used to find an object based on its platform, collection, collection id.
 
 headers:
   - Platform

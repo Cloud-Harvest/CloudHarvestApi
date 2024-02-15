@@ -15,7 +15,7 @@ logger = configuration.load_logger(**api_configuration.get('logging', {}))
 PluginRegistry.initialize(**api_configuration['modules']).load()
 
 # load reports from file system
-reports = configuration.load_reports()
+reports = configuration.load_reports('./harvest', api_configuration.get('modules', {}).get('path'))
 
 # test backend connection
 cache = HarvestCacheConnection(**api_configuration['cache']['connection'])
@@ -52,7 +52,13 @@ def reports_run(name: str, match: list = None, add: list = None, limit: int = No
 @app.route("/reports/list", methods=['GET'])
 def reports_list() -> Response:
     # local api reports
-    result = [{'name': k, 'description': v['description']} for k, v in reports.items()]
+    result = [
+        {
+            'name': k,
+            'description': v.get('description', 'no description')
+         }
+        for k, v in reports.items()
+    ]
 
     # get a list of unique data collector nodes from the database (sort DESC by version so we get the latest)
 

@@ -34,6 +34,8 @@ class PluginRegistry:
 
         PluginRegistry.plugins = [Plugin(**repo).activate() for repo in PluginRegistry.repos]
 
+        logger.info('plugin load complete')
+
         return PluginRegistry
 
     @staticmethod

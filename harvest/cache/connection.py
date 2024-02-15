@@ -22,6 +22,8 @@ class HarvestCacheConnection(MongoClient):
 
         self.log_prefix = f'[{self.id}][{self.HOST}:{self.PORT}]'
 
+        logger.debug(f'{self.log_prefix}: initialized')
+
     def connect(self):
         """
         creates a new session if one is needed

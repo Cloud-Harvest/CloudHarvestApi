@@ -96,17 +96,34 @@ def load_logger(location: str, name: str = 'harvest', log_level: str = 'debug', 
     return logger
 
 
-def load_reports(search_path: str = '../**/**/reports/**/*.yaml') -> dict:
-    def load_report(path: str) -> dict:
-        from yaml import load, FullLoader
-        with open(path, 'r') as stream:
-            return load(stream, Loader=FullLoader)
-
+def load_reports(*search_paths: str) -> dict:
     from glob import glob
-    from os.path import sep
+    from logging import getLogger
+    from os.path import abspath, join, sep
+    logger = getLogger('harvest')
 
-    results = {'.'.join(file.split(sep)[-2:])[0:-5]: load_report(path=file)
-               for file in glob(search_path, recursive=True)}
+    results = {}
+    for search_path in search_paths:
+        abs_path = abspath(join(search_path, '**/reports/**/*.yaml'))
+        logger.debug(f'gathering report files from {abs_path}')
+
+        report_files = glob(abs_path, recursive=True)
+
+        logger.debug(f'found report files: {str(report_files)}')
+        from yaml import load, FullLoader
+        for file in report_files:
+            logger.debug(f'load report: {file}')
+
+            with open(file, 'r') as stream:
+                report_contents = load(stream, Loader=FullLoader)
+
+            report_name = '.'.join(file.split(sep)[-2:])[0:-5]
+
+            if isinstance(report_contents, dict):
+                results[report_name] = report_contents
+
+            else:
+                logger.warning(f'could not load report {report_name} because it is not a valid dictionary object')
 
     return results
 

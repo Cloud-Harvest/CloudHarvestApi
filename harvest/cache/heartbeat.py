@@ -26,7 +26,7 @@ class HarvestCacheHeartBeatThread:
 
         while True:
             message = 'OK'
-            level = 'DEBUG'
+            level = 'debug'
 
             try:
                 self._cache.connect()
@@ -46,7 +46,7 @@ class HarvestCacheHeartBeatThread:
 
             except Exception as ex:
                 message = ' '.join(ex.args)
-                level = 'ERROR'
+                level = 'error'
 
             finally:
                 from time import sleep
