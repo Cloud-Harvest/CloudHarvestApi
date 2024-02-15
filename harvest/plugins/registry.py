@@ -37,8 +37,16 @@ class PluginRegistry:
         return PluginRegistry
 
     @staticmethod
-    def meta():
-        return [
-            {k: v for k, v in dict(vars(plugin)).items() if isinstance(v, str) and not str(k).startswith('_')}
-            for plugin in PluginRegistry.plugins
-        ]
+    def meta() -> dict:
+        results = {}
+
+        for plugin in PluginRegistry.plugins:
+            as_dict = dict(vars(plugin))
+
+            results[as_dict['name']] = {
+                k: v
+                for k, v in as_dict.items()
+                if isinstance(v, str) and not str(k).startswith('_')
+            }
+
+        return results
