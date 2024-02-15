@@ -15,6 +15,8 @@ class HarvestCacheHeartBeatThread:
         self.thread.start()
 
     def _run(self):
+        logger.info('heartbeat: started')
+
         import platform
         from socket import getfqdn, gethostbyname
         from datetime import datetime, timezone
@@ -24,6 +26,7 @@ class HarvestCacheHeartBeatThread:
 
         while True:
             message = 'OK'
+            level = 'DEBUG'
 
             try:
                 self._cache.connect()
@@ -43,9 +46,10 @@ class HarvestCacheHeartBeatThread:
 
             except Exception as ex:
                 message = ' '.join(ex.args)
+                level = 'ERROR'
 
             finally:
                 from time import sleep
 
-                logger.debug(f'{self._cache.log_prefix}: api heartbeat: {message}')
+                getattr(logger, level)(f'{self._cache.log_prefix}: api heartbeat: {message}')
                 sleep(5)

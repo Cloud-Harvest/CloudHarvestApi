@@ -47,11 +47,11 @@ cache:
 # API Log File level and location
 logging:
   level: debug
-  location: ./.harvest/api/logs/
+  location: /etc/harvest.d/api/logs/
 
 # Add support for data collectors, reports, or other functionality.
 modules:
-  path: ./.harvest/api/plugins
+  path: /etc/harvest.d/api/plugins
   repos:
     - source: git@github.com:Cloud-Harvest/api-plugin-aws.git
       label: main

@@ -4,7 +4,7 @@ services:
   api:
     image: cloud-harvest-api
     build:
-      context: .
+      context: ./var/log/mongodb
       dockerfile: Dockerfile
       ssh:
         - default
@@ -13,7 +13,7 @@ services:
     stop_signal: SIGINT
     volumes:
       - "~/.ssh:/root/.ssh"
-      - "./.harvest:/etc/harvest.d"
+      - "~/.harvest/api/:/etc/harvest.d"
     working_dir: /src
     expose:
       - "8000"

@@ -23,6 +23,8 @@ cache = HarvestCacheConnection(**api_configuration['cache']['connection'])
 # begin heartbeat thread
 HarvestCacheHeartBeatThread(cache=cache, version=api_configuration['version'])
 
+logger.info('api startup complete')
+
 
 @app.route("/")
 def default() -> str:
