@@ -18,6 +18,7 @@ class HarvestCacheHeartBeatThread:
         import platform
         from socket import getfqdn, gethostbyname
         from datetime import datetime, timezone
+        from plugins.registry import PluginRegistry
 
         start_datetime = datetime.now(tz=timezone.utc)
 
@@ -32,6 +33,7 @@ class HarvestCacheHeartBeatThread:
                                                                update={"$set": {"hostname": getfqdn(),
                                                                                 "ip": gethostbyname(getfqdn()),
                                                                                 "os": platform.system(),
+                                                                                "plugins": PluginRegistry.meta(),
                                                                                 "version": self._version,
                                                                                 "start": start_datetime,
                                                                                 "last": datetime.now(tz=timezone.utc)

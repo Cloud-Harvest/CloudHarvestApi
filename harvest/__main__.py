@@ -1,7 +1,7 @@
 import configuration
 from cache.connection import HarvestCacheConnection
 from cache.heartbeat import HarvestCacheHeartBeatThread
-from plugins import PluginRegistry
+from plugins.registry import PluginRegistry
 from flask import Flask, jsonify, Response
 
 # define the application
@@ -12,7 +12,7 @@ api_configuration = configuration.load_configuration_files()
 logger = configuration.load_logger(**api_configuration.get('logging', {}))
 
 # load modules
-plugin_registry = PluginRegistry(**api_configuration['modules']).initialize_repositories()
+PluginRegistry.initialize(**api_configuration['modules']).load()
 
 # load reports from file system
 reports = configuration.load_reports()

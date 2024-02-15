@@ -28,10 +28,18 @@ class Plugin:
         self.status = None
         self.message = None
 
-    def clone(self):
+    def activate(self):
+        self._clone()
+        self._install_python_requirements()
+        self._run_setup_bash()
+        self._load()
+
+        return self
+        
+    def _clone(self):
         from os.path import exists, join
-        from .registry import PluginRegistry
-        from .exceptions import PluginImportException
+        from plugins.registry import PluginRegistry
+        from plugins.exceptions import PluginImportException
 
         args = ['git',
                 'clone',
@@ -92,8 +100,8 @@ class Plugin:
 
         return self
 
-    def install_python_requirements(self):
-        from .exceptions import PluginImportException
+    def _install_python_requirements(self):
+        from plugins.exceptions import PluginImportException
         from os.path import exists, join
         requirements = join(self._destination, 'requirements.txt')
 
@@ -107,8 +115,8 @@ class Plugin:
         else:
             logger.debug(f'{self.name}: no python requirements found')
 
-    def run_setup_bash(self):
-        from .exceptions import PluginImportException
+    def _run_setup_bash(self):
+        from plugins.exceptions import PluginImportException
         from platform import platform
         os_filename = 'setup.bat' if 'windows' in platform().lower() else 'setup.sh'
 
@@ -125,9 +133,8 @@ class Plugin:
         else:
             logger.debug(f'{self.name}: no setup.sh found')
 
-    def load(self):
-        from .exceptions import PluginImportException
-        from .registry import PluginRegistry
+    def _load(self):
+        from plugins.exceptions import PluginImportException
         from os import listdir
         from os.path import join
 
@@ -148,7 +155,5 @@ class Plugin:
 
         except ModuleNotFoundError as ex:
             raise PluginImportException(*ex.args)
-
-        PluginRegistry.loaded_plugins = self
 
         return self

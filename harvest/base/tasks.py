@@ -16,7 +16,7 @@ class BaseTask:
         self.data = None
 
     def __init_subclass__(cls, **kwargs):
-        from plugins import PluginRegistry
+        from plugins.registry import PluginRegistry
         super().__init_subclass__(**kwargs)
         PluginRegistry.objects[cls.__name__] = cls
 

@@ -96,7 +96,7 @@ def load_logger(location: str, name: str = 'harvest', log_level: str = 'debug', 
     return logger
 
 
-def load_reports(search_path: str = './**/reports/**/*.yaml') -> dict:
+def load_reports(search_path: str = '../**/**/reports/**/*.yaml') -> dict:
     def load_report(path: str) -> dict:
         from yaml import load, FullLoader
         with open(path, 'r') as stream:

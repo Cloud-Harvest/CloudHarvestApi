@@ -8,9 +8,11 @@ logger = getLogger('harvest')
 class PluginRegistry:
     path = None
     plugins = []
+    repos: List[Dict] = []
     objects = {}
 
-    def __init__(self, path: str, repos: List[Dict[str, str]]):
+    @staticmethod
+    def initialize(path: str, repos: List[Dict[str, str]]):
         # create module_path if it does not exist
         from pathlib import Path
         p = Path(path).expanduser().absolute()
@@ -18,21 +20,25 @@ class PluginRegistry:
 
         # set the path to the global Plugin registry
         PluginRegistry.path = str(p)
-        self.repos = repos
+        PluginRegistry.repos = repos
 
-    def initialize_repositories(self):
-        from .modules import Plugin
+        return PluginRegistry
+
+    @staticmethod
+    def load():
+        from plugins.modules import Plugin
         # check if git is installed
         if run(args=['git', '--version']).returncode != 0:
             raise FileNotFoundError('git was not found in the path',
                                     'git is required to retrieve remote modules')
 
-        plugins = [Plugin(**repo) for repo in self.repos]
+        PluginRegistry.plugins = [Plugin(**repo).activate() for repo in PluginRegistry.repos]
 
-        for plugin in plugins:
-            plugin.clone()
-            plugin.install_python_requirements()
-            plugin.run_setup_bash()
-            plugin.load()
+        return PluginRegistry
 
-        return self
+    @staticmethod
+    def meta():
+        return [
+            {k: v for k, v in dict(vars(plugin)).items() if isinstance(v, str) and not str(k).startswith('_')}
+            for plugin in PluginRegistry.plugins
+        ]
