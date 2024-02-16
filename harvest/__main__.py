@@ -3,16 +3,24 @@ from cache.connection import HarvestCacheConnection
 from cache.heartbeat import HarvestCacheHeartBeatThread
 from plugins.registry import PluginRegistry
 from flask import Flask, jsonify, Response
+from argparse import ArgumentParser
 
 # define the application
 app = Flask('cloud-harvest-api')
+
+parser = ArgumentParser()
+parser.add_argument('--purge-plugins',
+                    action='store_true',
+                    help='Delete the existing plugin directory. Useful for upgrading plugins.')
+
+args = dict(vars(parser.parse_args()))
 
 # load configurations and begin startup sequence
 api_configuration = configuration.load_configuration_files()
 logger = configuration.load_logger(**api_configuration.get('logging', {}))
 
 # load modules
-PluginRegistry.initialize(**api_configuration['modules']).load()
+PluginRegistry.initialize(**(api_configuration['modules'] | args)).load()
 
 # load reports from file system
 reports = configuration.load_reports('./harvest', api_configuration.get('modules', {}).get('path'))
