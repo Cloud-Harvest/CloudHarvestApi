@@ -43,8 +43,8 @@ class BaseTaskChain(List[BaseTask]):
 
         self.status = BaseTaskStatus.initialized
 
-        from plugins import initialize_objects
-        self.extend(initialize_objects(list_dict=tasks))
+        # from plugins.registry import PluginRegistry.
+        # self.extend(initialize_objects(list_dict=tasks))
 
     def __enter__(self):
         return self

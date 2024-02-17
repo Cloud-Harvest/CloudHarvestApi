@@ -6,7 +6,8 @@ logger = getLogger('harvest')
 
 
 class Report(BaseTaskChain):
-    def __init__(self, report_configuration: dict, match: tuple = (), add: tuple = (), limit: int = None, order: tuple = (), **kwargs):
+    def __init__(self, report_configuration: dict, match: tuple = (), add: tuple = (), limit: int = None,
+                 order: tuple = (), **kwargs):
         self.report_configuration = report_configuration
         self.add = add
         self.match = match
@@ -23,7 +24,6 @@ class Report(BaseTaskChain):
 
     def build(self) -> dict:
         results = []
-
 
         return {
             "meta": {

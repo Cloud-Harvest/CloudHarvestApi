@@ -24,7 +24,7 @@ log_argument_group.add_argument('--quiet',
                                 help='Suppress terminal output.\n'
                                      'Continues to `debug` write to the log file.')
 
-args = dict(vars(parser.parse_args()))
+args = {k: v for k, v in dict(vars(parser.parse_args())).items() if v is not None}
 
 # load configurations and begin startup sequence
 api_configuration = configuration.load_configuration_files()
@@ -51,7 +51,8 @@ def default() -> str:
 
 
 @app.route("/reports/run")
-def reports_run(name: str, match: list = None, add: list = None, limit: int = None, order: list = None, **kwargs) -> Response:
+def reports_run(name: str, match: list = None, add: list = None, limit: int = None, order: list = None,
+                **kwargs) -> Response:
     """
     execute a defined report and return the results
     :param name: the report to be executed
@@ -94,3 +95,5 @@ def not_found():
 if __name__ == '__main__':
     # start the webserver
     app.run(**api_configuration.get('api', {}))
+
+    logger.warning('api shutdown complete')

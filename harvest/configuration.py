@@ -1,4 +1,4 @@
-from logging import Logger
+from logging import Logger, DEBUG
 
 
 class HarvestConfiguration:
@@ -33,22 +33,21 @@ def load_configuration_files() -> dict:
 
         custom_config['version'] = version
 
-    return custom_config | default_config
+    return default_config | custom_config
 
 
-def load_logger(location: str, name: str = 'harvest', log_level: str = 'info', quiet: bool = False,
+def load_logger(location: str, name: str = 'harvest', level: str = None, quiet: bool = False,
                 **kwargs) -> Logger:
     """
     configures lagging for Harvest
     :param location: where log files should be stored
     :param name: internal log names
-    :param log_level: sets the file and stream log levels
+    :param level: sets the file and stream log levels
     :param quiet: hides stream output
     :return:
     """
 
-    assert isinstance(log_level, str)
-    assert isinstance(quiet, bool)
+    level = level if level is not None else 'info'
 
     from logging import getLogger, Formatter, StreamHandler
     from logging.handlers import RotatingFileHandler
@@ -58,13 +57,13 @@ def load_logger(location: str, name: str = 'harvest', log_level: str = 'info', q
 
     from importlib import import_module
     lm = import_module('logging')
-    log_level_attribute = getattr(lm, log_level.upper())
+    log_level_attribute = getattr(lm, level.upper())
 
     # clear existing log handlers anytime this library is called
     [logger.removeHandler(handler) for handler in logger.handlers]
 
     # formatting
-    log_format = Formatter(fmt='[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)d] %(message)s')
+    log_format = Formatter(fmt='[%(asctime)s][%(levelname)s][%(filename)s] %(message)s')
 
     # file handler
     from pathlib import Path
@@ -78,7 +77,7 @@ def load_logger(location: str, name: str = 'harvest', log_level: str = 'info', q
     from os.path import join
     fh = RotatingFileHandler(join(_location, 'harvest.api.log'), maxBytes=10000000, backupCount=5)
     fh.setFormatter(fmt=log_format)
-    fh.setLevel(log_level_attribute)
+    fh.setLevel(DEBUG)
 
     logger.addHandler(fh)
 

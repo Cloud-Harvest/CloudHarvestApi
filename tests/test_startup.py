@@ -15,7 +15,7 @@ def test_get_logger(log_level: str, quiet: bool, expected_level: int, expected_h
 
     test_log_name = f'harvest-{log_level}-{str(quiet)}'
 
-    logger = startup.load_logger(location='.harvest/api/logs/', name=test_log_name, log_level=log_level, quiet=quiet)
+    logger = startup.load_logger(location='.harvest/api/logs/', name=test_log_name, level=log_level, quiet=quiet)
 
     # assert we got a Logger class back
     assert isinstance(logger, Logger)

@@ -1,6 +1,5 @@
 from importlib import util
-from typing import Any
-from subprocess import run, PIPE
+from typing import Any, AnyStr, List, Tuple
 from logging import getLogger
 
 logger = getLogger('harvest')
@@ -34,7 +33,7 @@ class Plugin:
         self._run_setup_bash()
         self._load()
 
-        logger.info(f'{self.name}: activation complete')
+        logger.debug(f'{self.name}: module initialization complete')
 
         return self
         
@@ -62,17 +61,21 @@ class Plugin:
 
         else:
             logger.debug(f'{self.name}: -> {self._destination}')
-            r = run(args=args + [self._source, self._destination])
 
-            self.status = r.returncode
+            process = self._run(arguments=args + [self._source, self._destination])
 
-            if r.returncode == 0:
+            self.status = process[0]
+
+            if self.status == 0:
                 self.message = 'OK'
                 logger.debug(f'clone: OK: {self._source} -> {self._destination}')
 
             else:
-                raise PluginImportException(f'error when attempting to retrieve {self._source}')
-
+                raise PluginImportException(
+                    f'{self.name}: {self._source}, {str(process[0])}',
+                    process[1],
+                    process[2]
+                )
         # check for a harvest plugin meta.yaml file
         # contains keys: name, author, url, and version
         meta_path = join(self._destination, 'meta.yaml')
@@ -109,11 +112,14 @@ class Plugin:
 
         if exists(requirements):
             logger.info(f'{self.name}: install python packages')
-            process = run(args=['pip', 'install', '-r', requirements])
+            process = self._run(arguments=['pip', 'install', '-r', requirements])
 
-            if process.returncode != 0:
-                raise PluginImportException(f'{self.name}: errors while install python packages')
-
+            if process[0] != 0:
+                raise PluginImportException(
+                    f'{self.name}: errors while install python packages',
+                    process[1],
+                    process[2]
+                )
         else:
             logger.debug(f'{self.name}: no python requirements found')
 
@@ -129,12 +135,12 @@ class Plugin:
 
         if exists(setup_file):
             logger.info(f'{self.name}: run {os_filename}')
-            process = run(args=[setup_file], stdout=PIPE, stderr=PIPE)
+            process = self._run(arguments=[setup_file])
 
-            if process.returncode != 0:
+            if process[0] != 0:
                 raise PluginImportException(f'{self.name}: errors while running setup.sh',
-                                            '\n'.join([bytes(s).decode('utf8') for s in process.stdout]),
-                                            '\n'.join([bytes(s).decode('utf8') for s in process.stderr]))
+                                            process[1],
+                                            process[2])
 
         else:
             logger.debug(f'{self.name}: no setup.sh found')
@@ -153,7 +159,10 @@ class Plugin:
 
         try:
             for filename in listdir(self._destination):
-                if filename == '__init__.py' or (filename.endswith('.py') and not filename.startswith('.') and not filename.startswith('__')):
+                if all([filename == '__init__.py' or filename.endswith('.py'),
+                        not filename.startswith('.'),
+                        not filename.startswith('__')]):
+
                     logger.debug(f'{self.name}: importing: {filename}')
 
                     f = join(self._destination, filename)
@@ -168,5 +177,16 @@ class Plugin:
         except ModuleNotFoundError as ex:
             raise PluginImportException(*ex.args)
 
-        logger.info(f'{self.name}: module load complete')
+        logger.debug(f'{self.name}: module loaded')
         return self
+
+    @staticmethod
+    def _run(arguments: List[AnyStr]) -> Tuple[int, AnyStr, AnyStr]:
+        from subprocess import run, PIPE
+        process = run(args=arguments, stdout=PIPE, stderr=PIPE)
+
+        return (
+            process.returncode,
+            ' '.join(arguments),
+            '\n'.join([bytes(s).decode('utf8') for s in process.stdout + process.stderr])
+        )
