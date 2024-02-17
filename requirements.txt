@@ -5,3 +5,4 @@ flatten_json
 pymongo
 pytest
 pyyaml
+rich-argparse

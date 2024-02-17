@@ -1,23 +1,34 @@
 import configuration
+from argparse import ArgumentParser
+from rich_argparse import RawTextRichHelpFormatter
 from cache.connection import HarvestCacheConnection
 from cache.heartbeat import HarvestCacheHeartBeatThread
 from plugins.registry import PluginRegistry
 from flask import Flask, jsonify, Response
-from argparse import ArgumentParser
 
 # define the application
 app = Flask('cloud-harvest-api')
 
-parser = ArgumentParser()
+parser = ArgumentParser(formatter_class=RawTextRichHelpFormatter)
 parser.add_argument('--purge-plugins',
                     action='store_true',
                     help='Delete the existing plugin directory. Useful for upgrading plugins.')
+
+log_argument_group = parser.add_argument_group('Logging')
+log_argument_group.add_argument('--level',
+                                choices=['debug', 'info', 'warning', 'error', 'critical'],
+                                help='Set the terminal log level.\n'
+                                'Note that the log file is always set to `debug`.')
+log_argument_group.add_argument('--quiet',
+                                action='store_true',
+                                help='Suppress terminal output.\n'
+                                     'Continues to `debug` write to the log file.')
 
 args = dict(vars(parser.parse_args()))
 
 # load configurations and begin startup sequence
 api_configuration = configuration.load_configuration_files()
-logger = configuration.load_logger(**api_configuration.get('logging', {}))
+logger = configuration.load_logger(**api_configuration.get('logging', {}) | args)
 
 # load modules
 PluginRegistry.initialize(**(api_configuration['modules'] | args)).load()

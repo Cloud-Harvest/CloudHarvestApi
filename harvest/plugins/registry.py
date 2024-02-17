@@ -12,7 +12,7 @@ class PluginRegistry:
     objects = {}
 
     @staticmethod
-    def initialize(path: str, repos: List[Dict[str, str]], purge_plugins: bool = False):
+    def initialize(path: str, repos: List[Dict[str, str]], purge_plugins: bool = False, **kwargs):
         from os.path import expanduser, exists
         # optionally purge the plugins directory -- useful for updating plugins
         if exists(expanduser(path)) and purge_plugins:

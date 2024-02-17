@@ -36,7 +36,7 @@ def load_configuration_files() -> dict:
     return custom_config | default_config
 
 
-def load_logger(location: str, name: str = 'harvest', log_level: str = 'debug', quiet: bool = False,
+def load_logger(location: str, name: str = 'harvest', log_level: str = 'info', quiet: bool = False,
                 **kwargs) -> Logger:
     """
     configures lagging for Harvest
