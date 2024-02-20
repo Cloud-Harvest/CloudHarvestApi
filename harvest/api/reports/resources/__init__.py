@@ -1,4 +1,3 @@
-
 from base.tasks import BaseTaskChain
 from logging import getLogger
 

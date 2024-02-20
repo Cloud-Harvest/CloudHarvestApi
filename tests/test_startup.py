@@ -10,7 +10,6 @@ from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
                           ('critical', False, CRITICAL, 2),
                           ('debug', True, DEBUG, 1)])
 def test_get_logger(log_level: str, quiet: bool, expected_level: int, expected_handlers: int):
-    import configuration
     from logging import Logger
 
     test_log_name = f'harvest-{log_level}-{str(quiet)}'
@@ -32,8 +31,6 @@ def test_get_logger(log_level: str, quiet: bool, expected_level: int, expected_h
 
 
 def test_load_configuration_files():
-    import configuration
-
     result = startup.load_configuration_files()
 
     assert isinstance(result, dict)

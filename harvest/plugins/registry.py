@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import Any, List, Dict
 from subprocess import run
 from logging import getLogger
 
@@ -60,3 +60,7 @@ class PluginRegistry:
             }
 
         return results
+
+    @staticmethod
+    def of_type(typeof: Any) -> List[Any]:
+        return [o for o in PluginRegistry.objects if isinstance(o, typeof)]

@@ -1,6 +1,5 @@
 import datetime
 
-import pytest
 from configuration import load_configuration_files, load_cache_connections, load_logger
 
 api_configuration = load_configuration_files()
