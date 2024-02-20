@@ -15,4 +15,4 @@ RUN cp -vn /src/harvest/harvest.yaml /etc/harvest.d/harvest.yaml
 
 RUN chmod 600 /etc/harvest.d/*
 
-ENTRYPOINT python harvest
+ENTRYPOINT python harvest/wsgi.py
