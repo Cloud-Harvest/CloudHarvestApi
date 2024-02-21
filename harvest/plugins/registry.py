@@ -63,4 +63,13 @@ class PluginRegistry:
 
     @staticmethod
     def of_type(typeof: Any) -> List[Any]:
-        return [o for o in PluginRegistry.objects if isinstance(o, typeof)]
+        results = []
+        from inspect import getmembers, isclass
+
+        for plugin in PluginRegistry.plugins:
+            for module in plugin.modules:
+                for o in getmembers(module.module):
+                    if isinstance(o[1], typeof):
+                        results.append(o[1])
+
+        return results

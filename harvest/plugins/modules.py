@@ -6,9 +6,13 @@ logger = getLogger('harvest')
 
 
 class Module:
-    def __init__(self, path: str, module: Any):
+    def __init__(self, parent, path: str, module: Any):
+        self.parent = parent
         self.path = path
         self.module = module
+
+    def __str__(self):
+        return f'{self.parent.name}.{type(self.module)}'
 
 
 class Plugin:
@@ -150,32 +154,24 @@ class Plugin:
         return self
 
     def _load(self):
-        from plugins.exceptions import PluginImportException
-        from os import listdir
-        from os.path import join
 
-        # originally based on
-        # https://gist.github.com/dorneanu/cce1cd6711969d581873a88e0257e312
+        from importlib import util
+        from os.path import abspath, join
+        from glob import glob
 
-        try:
-            for filename in listdir(self._destination):
-                if all([filename == '__init__.py' or filename.endswith('.py'),
-                        not filename.startswith('.'),
-                        not filename.startswith('__')]):
+        # modified from https://stackoverflow.com/a/57893077
+        start_path = abspath(self._destination)
+        pattern = '**/*.py'
+        py_files = [f for f in glob(join(start_path, pattern), recursive=True) if not f.endswith('__.py')]
 
-                    logger.debug(f'{self.name}: importing: {filename}')
+        for py_file in py_files:
+            logger.debug(f'{self.name}: loading {py_file}')
 
-                    f = join(self._destination, filename)
+            spec = util.spec_from_file_location('', py_file)
+            module = util.module_from_spec(spec)
+            spec.loader.exec_module(module)
 
-                    name = filename[0:-3]
-                    spec = util.spec_from_file_location(name, f)
-                    module = util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
-
-                    self.modules.append(Module(path=join(self._destination, filename), module=module))
-
-        except ModuleNotFoundError as ex:
-            raise PluginImportException(*ex.args)
+            self.modules.append(Module(parent=self, path=join(self._destination, py_file), module=module))
 
         logger.debug(f'{self.name}: module loaded')
         return self

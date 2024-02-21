@@ -143,7 +143,6 @@ def _find_first_valid_path(*args) -> str or None:
 
 
 api_configuration = load_configuration_files()
-logger = load_logger(**api_configuration.get('logging', {}))
 
 
 class HarvestConfiguration:
