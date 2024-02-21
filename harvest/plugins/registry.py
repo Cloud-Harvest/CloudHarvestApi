@@ -35,8 +35,11 @@ class PluginRegistry:
     @staticmethod
     def load():
         from plugins.modules import Plugin
-        # check if git is installed
-        if run(args=['git', '--version']).returncode != 0:
+        from shutil import which
+        git_binary = which('git')
+        if git_binary:
+            logger.debug(f'found git at: {git_binary}')
+        else:
             raise FileNotFoundError('git was not found in the path',
                                     'git is required to retrieve remote modules')
 
