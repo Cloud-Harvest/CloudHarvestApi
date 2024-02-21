@@ -5,11 +5,21 @@ from logging import getLogger
 logger = getLogger('harvest')
 
 
+class ImportedObject:
+    def __init__(self, module, name: str, imported_object):
+        self.module = module
+        self.name = name
+        self.object = imported_object
+
+
 class Module:
-    def __init__(self, parent, path: str, module: Any):
-        self.parent = parent
+    def __init__(self, plugin, path: str, module: Any):
+        self.parent = plugin
         self.path = path
         self.module = module
+
+        from inspect import getmembers
+        self.objects = [ImportedObject(module=self, name=o[0], imported_object=o[1]) for o in getmembers(self.module)]
 
     def __str__(self):
         return f'{self.parent.name}.{type(self.module)}'
@@ -171,7 +181,7 @@ class Plugin:
             module = util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
-            self.modules.append(Module(parent=self, path=join(self._destination, py_file), module=module))
+            self.modules.append(Module(plugin=self, path=join(self._destination, py_file), module=module))
 
         logger.debug(f'{self.name}: module loaded')
         return self
