@@ -1,7 +1,7 @@
 Flask
 Authlib
 pandas
-flatten_json
+flatten-json
 pymongo
 pytest
 pyyaml
