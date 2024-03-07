@@ -112,7 +112,10 @@ def load_reports(*search_paths: str) -> dict:
             with open(file, 'r') as stream:
                 report_contents = load(stream, Loader=FullLoader)
 
-            report_name = '.'.join(file.split(sep)[-2:])[0:-5]
+            file_separated = file.split(sep)
+            root_report_dir_index = max([i for i in range(len(file_separated)) if file_separated[i] == 'reports'])
+
+            report_name = '.'.join(file_separated[root_report_dir_index + 1:])[0:-5]
 
             if isinstance(report_contents, dict):
                 results[report_name] = report_contents
