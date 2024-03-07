@@ -24,6 +24,15 @@ class HarvestCacheConnection(MongoClient):
 
         logger.debug(f'{self.log_prefix}: initialized')
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.is_connected():
+            self.close()
+
+        return None
+
     def connect(self):
         """
         creates a new session if one is needed
