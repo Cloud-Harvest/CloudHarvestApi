@@ -1,17 +1,30 @@
 from cache.connection import HarvestCacheConnection
+from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime, timezone
 from logging import getLogger
 
 logger = getLogger('harvest')
 _flat_record_separator = '.'
+_required_meta_fields = ('Platform',
+                         'Service',
+                         'Type',
+                         'Account',
+                         'Region',
+                         'Module.FilterCriteria.0',  # FilterCriteria requires at least one value, so .0 is expected
+                         'Module.Name',
+                         'Module.Repository',
+                         'Module.Version',
+                         'Dates.DeactivatedOn',
+                         'Dates.LastSeen',
+                         'Active')
 
 
-def set_pstar(client_writer: HarvestCacheConnection, **kwargs) -> ObjectId:
+def set_pstar(client: (HarvestCacheConnection or MongoClient), **kwargs) -> ObjectId:
     """
     a PSTAR is a concept in Harvest where objects are stored on five dimensions
     ['harvest'][platform.service.type]
-    :param client_writer: a HarvestCacheConnection writer configuration
+    :param client: a HarvestCacheConnection writer configuration
     :param Platform: the cloud provider this database was retrieved from (ie AWS, Azure, Google)
     :param Service: the provider's service (ie "RDS", "EC2")
     :param Type: service's object classification (ie RDS "instance" or EC2 "event")
@@ -26,7 +39,7 @@ def set_pstar(client_writer: HarvestCacheConnection, **kwargs) -> ObjectId:
     :return:
     """
 
-    client_writer.connect()
+    client.connect()
 
     # no need to replicate this logic everywhere
     kwargs['duration'] = duration_in_seconds(a=kwargs['EndTime'], b=kwargs['StartTime'])
@@ -34,17 +47,17 @@ def set_pstar(client_writer: HarvestCacheConnection, **kwargs) -> ObjectId:
     _id = None
     try:
         from datetime import datetime
-        _id = client_writer['harvest']['pstar'].find_one_and_update(filter={k: kwargs.get(k) for k in ['Platform',
-                                                                                                       'Service',
-                                                                                                       'Type',
-                                                                                                       'Account',
-                                                                                                       'Region']},
-                                                                    projection={'_id': 1},
-                                                                    update={"$set": kwargs},
-                                                                    upsert=True).get('_id')
+        _id = client['harvest']['pstar'].find_one_and_update(filter={k: kwargs.get(k) for k in ['Platform',
+                                                                                                'Service',
+                                                                                                'Type',
+                                                                                                'Account',
+                                                                                                'Region']},
+                                                             projection={'_id': 1},
+                                                             update={"$set": kwargs},
+                                                             upsert=True).get('_id')
 
     except Exception as ex:
-        logger.error(f'{client_writer.log_prefix}: ' + ' '.join(ex.args))
+        logger.error(f'{client.log_prefix}: ' + ' '.join(ex.args))
 
     finally:
         return _id
@@ -108,7 +121,7 @@ def write_record(record: dict, meta_extra_fields: tuple = ()) -> tuple:
     return result
 
 
-def write_records(client: HarvestCacheConnection, records: list) -> list:
+def write_records(client: (HarvestCacheConnection or MongoClient), records: list) -> list:
     """
     top-level co
     :param client: a HarvestCacheConnection writer configuration
@@ -165,8 +178,8 @@ def get_unique_filter(record: dict, flat_record: dict) -> dict:
     return {field: flat_record.get(field) for field in record['Harvest']['Module']['FilterCriteria']}
 
 
-def deactivate_records(client_writer: HarvestCacheConnection, collection_name: str, record_ids: list) -> dict:
-    collection = client_writer['harvest'][collection_name]
+def deactivate_records(client: (HarvestCacheConnection or MongoClient), collection_name: str, record_ids: list) -> dict:
+    collection = client['harvest'][collection_name]
 
     # deactivate records which were not inserted/updated in this write operation
     records_to_deactivate = [r["_id"] for r in collection.find({"Harvest.Active": True, "_id": {"$nin": record_ids}},
@@ -179,12 +192,12 @@ def deactivate_records(client_writer: HarvestCacheConnection, collection_name: s
                                          update=update_set)
 
     # update the meta cache
-    collection = client_writer['harvest']['meta']
+    collection = client['harvest']['meta']
     update_meta = collection.update_many(filter={"Collection": collection_name,
                                                  "CollectionId": {"$in": records_to_deactivate}},
                                          update=update_set)
 
-    logger.debug(f'{client_writer.log_prefix}: harvest.{collection_name}: deactivated {update_many.modified_count}')
+    logger.debug(f'{client.log_prefix}: harvest.{collection_name}: deactivated {update_many.modified_count}')
 
     return {
         'deactivated_ids': records_to_deactivate,
@@ -193,15 +206,15 @@ def deactivate_records(client_writer: HarvestCacheConnection, collection_name: s
     }
 
 
-def add_indexes(client_writer: HarvestCacheConnection, indexes: dict):
+def add_indexes(client: (HarvestCacheConnection or MongoClient), indexes: dict):
     """
     create an index in the backend cache
-    :param client_writer: a HarvestCacheConnection writer configuration
+    :param client: a HarvestCacheConnection writer configuration
     :param indexes: a dictionary of the {database: {collection: [fielda, fieldb]}} construct
     :return:
     """
     # verify connection
-    client_writer.connect()
+    client.connect()
 
     # identify databases
     for database in indexes.keys():
@@ -210,16 +223,16 @@ def add_indexes(client_writer: HarvestCacheConnection, indexes: dict):
             # identify indexes
             for index in indexes['harvest'][collection]:
                 if isinstance(index, (str or list)):
-                    client_writer['harvest'][collection].create_index(keys=index)
-                    logger.debug(f'{client_writer.log_prefix}: added index: {database}.{collection}.{str(index)}')
+                    client['harvest'][collection].create_index(keys=index)
+                    logger.debug(f'{client.log_prefix}: added index: {database}.{collection}.{str(index)}')
 
                 elif isinstance(index, dict):
                     # pymongo is very picky and demands a list[tuple())
                     keys = [(i['field'], i.get('sort', 1)) for i in index.get('keys', [])]
 
-                    client_writer['harvest'][collection].create_index(keys=keys, **index['options'])
+                    client['harvest'][collection].create_index(keys=keys, **index['options'])
 
-                    logger.debug(f'{client_writer.log_prefix}: added index: {database}.{collection}.{str(index)}')
+                    logger.debug(f'{client.log_prefix}: added index: {database}.{collection}.{str(index)}')
 
                 else:
                     logger.error(f'unexpected type for index `{index}`: {str(type(index))}')
@@ -229,20 +242,7 @@ def check_harvest_metadata(flat_record: dict) -> bool:
     if not flat_record:
         return False
 
-    required_fields = ('Platform',
-                       'Service',
-                       'Type',
-                       'Account',
-                       'Region',
-                       'Module.FilterCriteria.0',       # FilterCriteria requires at least one value, so .0 is expected
-                       'Module.Name',
-                       'Module.Repository',
-                       'Module.Version',
-                       'Dates.DeactivatedOn',
-                       'Dates.LastSeen',
-                       'Active')
-
-    for field in required_fields:
+    for field in _required_meta_fields:
         field_name = _flat_record_separator.join(['Harvest', field])
 
         if field_name not in flat_record.keys():
