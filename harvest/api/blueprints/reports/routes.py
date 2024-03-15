@@ -1,12 +1,12 @@
 from flask import Blueprint, Response, jsonify
 
 # Blueprint Configuration
-reporting_bp = Blueprint(
+blueprint = Blueprint(
     'reporting_bp', __name__
 )
 
 
-@reporting_bp.route('/reports/run', methods=['GET'])
+@blueprint.route('/reports/run', methods=['GET'])
 def reports_run(name: str, match: list = None, add: list = None, limit: int = None, order: list = None,
                 **kwargs) -> Response:
     """
@@ -25,7 +25,7 @@ def reports_run(name: str, match: list = None, add: list = None, limit: int = No
     return jsonify({})
 
 
-@reporting_bp.route('/reports/list', methods=['GET'])
+@blueprint.route('/reports/list', methods=['GET'])
 def reports_list() -> Response:
     from configuration import HarvestConfiguration
     # local api reports

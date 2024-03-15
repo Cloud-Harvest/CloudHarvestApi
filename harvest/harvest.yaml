@@ -6,7 +6,7 @@ api:
 # Backend MongoDb
 cache:
   connection:
-    host: mongo
+    host: localhost
     port: 27017
     username:     # intentionally null
     password:     # intentionally null
