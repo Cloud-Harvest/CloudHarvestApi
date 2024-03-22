@@ -49,6 +49,10 @@ def load_blueprints(app: Flask, blueprint_dir: str):
             if filename == 'routes.py':
                 module_name = filename[:-3]  # remove .py extension
                 module_path = join(blueprint_dir, blueprint).replace('/', '.') + '.' + module_name
+                module_path = '.'.join(module_path.split('.')[1:])  # remove leading 'harvest' (or equivalent)
+
+                logger.info(f'Loading module: {module_path}')
+
                 module = import_module(module_path)
                 for item in dir(module):
                     obj = getattr(module, item)
