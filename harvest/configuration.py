@@ -150,8 +150,8 @@ api_configuration = load_configuration_files()
 
 class HarvestConfiguration:
     api = api_configuration.get('api')
-    cache_connection = HarvestCacheConnection(**api_configuration['cache']['connection'])
-    heartbeat = HarvestCacheHeartBeatThread(cache=cache_connection, version=api_configuration['version'])
+    cache = api_configuration['cache']
+    heartbeat = HarvestCacheHeartBeatThread(cache=HarvestCacheConnection(**cache['connection']), version=api_configuration['version'])
     logger = load_logger(**api_configuration.get('logging', {}))
     plugin_registry = PluginRegistry.initialize(**(api_configuration['modules'])).load()
     reports: dict = load_reports('./harvest', api_configuration.get('modules', {}).get('path'))
