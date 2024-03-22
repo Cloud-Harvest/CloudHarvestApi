@@ -22,11 +22,17 @@ def cache_upload() -> Response:
 
     :return:
     """
-    data = request.get_json()
+    from json import loads
+    try:
+        data = loads(request.get_json())
 
-    from cache.data import HarvestCacheConnection, write_records
-    from configuration import HarvestConfiguration
-    with HarvestCacheConnection(connect=True, **HarvestConfiguration.cache_connection) as cache:
-        results = write_records(client=cache, records=data)
+    except Exception as ex:
+        return jsonify(400, f'Could not load json: {ex}')
 
-    return jsonify(len(results))
+    else:
+        from cache.data import HarvestCacheConnection, write_records
+        from configuration import HarvestConfiguration
+        with HarvestCacheConnection(connect=True, **HarvestConfiguration.cache['connection']) as cache:
+            results = write_records(client=cache, records=data)
+
+        return jsonify(len(results))
