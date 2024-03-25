@@ -1,4 +1,5 @@
-from flask import Blueprint, Response, jsonify
+from flask import Blueprint, Response, jsonify, request
+from json import loads
 
 # Blueprint Configuration
 blueprint = Blueprint(
@@ -7,19 +8,16 @@ blueprint = Blueprint(
 
 
 @blueprint.route('/reports/run', methods=['GET'])
-def reports_run(name: str, match: list = None, add: list = None, limit: int = None, order: list = None,
-                **kwargs) -> Response:
-    """
-    execute a defined report and return the results
-    :param name: the report to be executed
-    :param match: matching logic
-    :param add: appends extra fields to a report output
-    :param limit: only return this many records
-    :param order: sort results by these fields
-    :return:
-    """
+def reports_run() -> Response:
+    request_json = loads(request.get_json())
+
+    from configuration import HarvestConfiguration
+
+    if request_json.get('report_name_or_file') not in HarvestConfiguration.reports.keys():
+        return jsonify({'error': f'report `{request_json.get("report_name_or_file")}` not found'})
+
     from .resources import Report
-    with Report(**kwargs) as report:
+    with Report(**request_json) as report:
         report.build()
 
     return jsonify({})
