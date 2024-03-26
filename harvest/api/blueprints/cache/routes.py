@@ -1,4 +1,5 @@
 from flask import Blueprint, Response, jsonify, request
+from json import loads
 
 # Blueprint Configuration
 blueprint = Blueprint(
@@ -22,7 +23,6 @@ def cache_upload() -> Response:
 
     :return:
     """
-    from json import loads
     try:
         data = loads(request.get_json())
 
