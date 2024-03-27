@@ -6,18 +6,20 @@ from logging import getLogger
 
 logger = getLogger('harvest')
 _flat_record_separator = '.'
-_required_meta_fields = ('Platform',
-                         'Service',
-                         'Type',
-                         'Account',
-                         'Region',
-                         'Module.FilterCriteria.0',  # FilterCriteria requires at least one value, so .0 is expected
-                         'Module.Name',
-                         'Module.Repository',
-                         'Module.Version',
-                         'Dates.DeactivatedOn',
-                         'Dates.LastSeen',
-                         'Active')
+_required_meta_fields = (
+    'Platform',                    # The Platform (ie AWS, Azure, Google)
+    'Service',                     # The Platform's service name (ie RDS, EC2, GCP)
+    'Type',                        # The Service subtype, if applicable (ie RDS instance, EC2 event)
+    'Account',                     # The Platform account name or identifier
+    'Region',                      # The geographic region name for the Platform
+    'Module.FilterCriteria.0',     # FilterCriteria requires at least one value, so .0 is expected
+    'Module.Name',                 # The name of the Harvest module that collected the data
+    'Module.Repository',           # The repository where the Harvest module is stored
+    'Module.Version',              # The version of the Harvest module
+    'Dates.DeactivatedOn',         # The date the record was deactivated, if applicable
+    'Dates.LastSeen',              # The date indicating when the record was last collected by Harvest
+    'Active'                       # A boolean indicating if the record is active
+)
 
 
 def set_pstar(client: (HarvestCacheConnection or MongoClient), **kwargs) -> ObjectId:
@@ -97,7 +99,7 @@ def write_record(record: dict, meta_extra_fields: tuple = ()) -> tuple:
     replace_filter = {
         'Harvest': {
             'Module': {
-                'UniqueFilter': record['Harvest']['Module']['UniqueFilter']
+                'FilterCriteria': get_unique_filter(record=record, flat_record=flat_record)
             }
         }
     }
@@ -111,7 +113,7 @@ def write_record(record: dict, meta_extra_fields: tuple = ()) -> tuple:
     replace_meta = ReplaceOne(filter=replace_filter,
                               replacement={
                                   "Collection": "",
-                                  "UniqueIdentifier": record['Harvest']['Module']['UniqueFilter'],
+                                  "UniqueIdentifier": record['Harvest']['Module']['FilterCriteria'],
                                   "Harvest": record["Harvest"],
                                   **{k: record.get(k) or flat_record.get(k) for k in meta_extra_fields}
                               },
