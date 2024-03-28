@@ -177,7 +177,10 @@ def get_unique_filter(record: dict, flat_record: dict) -> dict:
     :param flat_record: flattened record
     :return: a new dict of field: fieldValue
     """
-    return {field: flat_record.get(field) for field in record['Harvest']['Module']['FilterCriteria']}
+    return {
+        field: flat_record.get(field)
+        for field in (record.get('Harvest', {}).get('Module', {}).get('FilterCriteria') or [])
+    }
 
 
 def deactivate_records(client: (HarvestCacheConnection or MongoClient), collection_name: str, record_ids: list) -> dict:
