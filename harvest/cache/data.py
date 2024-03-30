@@ -96,13 +96,7 @@ def write_record(record: dict, meta_extra_fields: tuple = ()) -> tuple:
     from flatten_json import flatten
     flat_record = flatten(record, separator=_flat_record_separator)
 
-    replace_filter = {
-        'Harvest': {
-            'Module': {
-                'FilterCriteria': get_unique_filter(record=record, flat_record=flat_record)
-            }
-        }
-    }
+    replace_filter = get_unique_filter(record=record, flat_record=flat_record)
 
     collection = get_collection_name(**record['Harvest'])
 
