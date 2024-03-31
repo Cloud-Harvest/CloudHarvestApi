@@ -93,21 +93,26 @@ def write_record(record: dict, meta_extra_fields: tuple = ()) -> tuple:
     :return: _id
     """
     from pymongo import ReplaceOne
+
+    # flatten the record so we can build the Harvest.UniqueIdentifier
     from flatten_json import flatten
     flat_record = flatten(record, separator=_flat_record_separator)
+    unique_filter = get_unique_filter(record=record, flat_record=flat_record)
+    record['Harvest']['UniqueIdentifier'] = unique_filter
 
-    replace_filter = get_unique_filter(record=record, flat_record=flat_record)
-
+    # identify the target collection name from the metadata
     collection = get_collection_name(**record['Harvest'])
 
-    replace_resource = ReplaceOne(filter=replace_filter,
+    # create the bulk write operation for this record
+    replace_resource = ReplaceOne(filter=unique_filter,
                                   replacement=record,
                                   upsert=True)
 
-    replace_meta = ReplaceOne(filter=replace_filter,
+    # create the bulk write operation for the meta record
+    replace_meta = ReplaceOne(filter=unique_filter,
                               replacement={
-                                  "Collection": "",
-                                  "UniqueIdentifier": record['Harvest']['Module']['FilterCriteria'],
+                                  "Collection": collection,
+                                  "UniqueIdentifier": unique_filter,
                                   "Harvest": record["Harvest"],
                                   **{k: record.get(k) or flat_record.get(k) for k in meta_extra_fields}
                               },
@@ -221,7 +226,7 @@ def add_indexes(client: (HarvestCacheConnection or MongoClient), indexes: dict):
         for collection in indexes['harvest'].keys():
             # identify indexes
             for index in indexes['harvest'][collection]:
-                if isinstance(index, (str or list)):
+                if isinstance(index, (str, list)):
                     client['harvest'][collection].create_index(keys=index)
                     logger.debug(f'{client.log_prefix}: added index: {database}.{collection}.{str(index)}')
 
