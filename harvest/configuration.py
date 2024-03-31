@@ -29,7 +29,8 @@ def load_configuration_files() -> dict:
 
         custom_config['version'] = version
 
-    return default_config | custom_config
+    from flatten_json import flatten, unflatten_list
+    return unflatten_list(flatten(default_config, separator='.') | flatten(custom_config, separator='.'), separator='.')
 
 
 def load_logger(location: str, name: str = 'harvest', level: str = None, quiet: bool = False,
