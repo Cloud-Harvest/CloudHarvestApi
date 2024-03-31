@@ -41,8 +41,6 @@ cache:
             - field: Harvest.Module.UniqueFilter
           options:
             unique: true
-    test:
-      <<: *harvest_indexes
 
 # API Log File level and location
 logging:
