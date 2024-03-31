@@ -18,6 +18,16 @@ def init_app():
         from flask.blueprints import Blueprint
         [app.register_blueprint(blueprint) for blueprint in PluginRegistry.of_type(Blueprint)]
 
+        # index the backend database
+        try:
+            from cache.data import add_indexes
+            from configuration import HarvestConfiguration
+            from cache.connection import HarvestCacheConnection
+            add_indexes(client=HarvestCacheConnection(**HarvestConfiguration.cache['connection']),
+                        indexes=HarvestConfiguration.cache.get('indexes'))
+        except Exception as e:
+            logger.error(f'Could not index the backend database: {e.args}')
+
         return app
 
 
