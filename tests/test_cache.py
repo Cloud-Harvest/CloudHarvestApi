@@ -103,7 +103,7 @@ def test_write_record():
     from json import load
     test_json = load(_load_test_records_json())
 
-    from cache.data import get_collection_name, write_record
+    from cache.data import get_collection_name, prepare_record
     # here we're checking that files are written/aborted as expected
     for original_record in test_json:
         if original_record.get('Harvest'):
@@ -114,7 +114,7 @@ def test_write_record():
             collection_name = get_collection_name(**original_record['Harvest'])
             collection = cache_nodes['reader']['harvest'][collection_name]
 
-            record_result = write_record(client_writer=cache_nodes['writer'], record=original_record)
+            record_result = prepare_record(client_writer=cache_nodes['writer'], record=original_record)
 
             assert bool(record_result) is original_record['expected_state']
 
