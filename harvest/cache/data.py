@@ -65,7 +65,7 @@ def set_pstar(client: (HarvestCacheConnection or MongoClient), **kwargs) -> Obje
         return _id
 
 
-def write_record(record: dict, meta_extra_fields: tuple = ()) -> tuple:
+def prepare_record(record: dict, meta_extra_fields: tuple = ()) -> tuple or HarvestCacheConnection:
     """
     a record to be written to the harvest cache
     to qualify as a valid record, it must contain a key named Harvest with the following structure
@@ -98,6 +98,11 @@ def write_record(record: dict, meta_extra_fields: tuple = ()) -> tuple:
     from flatten_json import flatten
     flat_record = flatten(record, separator=_flat_record_separator)
     unique_filter = get_unique_filter(record=record, flat_record=flat_record)
+
+    if not unique_filter:
+        from .exceptions import HarvestCacheException
+        return HarvestCacheException('UniqueFilter not found in record')
+
     record['Harvest']['UniqueIdentifier'] = unique_filter
 
     # identify the target collection name from the metadata
@@ -130,9 +135,22 @@ def write_records(client: (HarvestCacheConnection or MongoClient), records: list
     :return:
     """
 
+    results = {
+        'updated': [],
+        'deactivated': [],
+        'errors': []
+    }
+
     bulk_records = {'meta': []}
     for record in records:
-        collection, record_replace, meta_replace = write_record(record=record)
+        write_record_result = prepare_record(record=record)
+
+        # don't add this record to the bulk operation if it had an error during the write_record phase
+        if isinstance(write_record_result, Exception):
+            results['errors'].append((record, write_record_result))
+            continue
+
+        collection, record_replace, meta_replace = write_record_result
 
         if not bulk_records.get(collection):
             bulk_records[collection] = []
@@ -141,9 +159,14 @@ def write_records(client: (HarvestCacheConnection or MongoClient), records: list
         bulk_records['meta'].append(meta_replace)
 
     # perform bulk writes by collection but always do 'meta' last
-    updated_records = [client['harvest'][collection].bulk_write(bulk_records[collection])
-                       for collection in list([k for k in bulk_records.keys()
-                                               if k not in 'meta'] + ['meta'])]
+    updated_records = [
+        client['harvest'][collection].bulk_write(bulk_records[collection])
+        for collection in list([k for k in bulk_records.keys()
+                                if k not in 'meta'] + ['meta'])
+    ]
+
+    results['updated'] = updated_records
+
     return updated_records
 
 
