@@ -13,7 +13,7 @@ services:
     stop_signal: SIGINT
     volumes:
       - "~/.ssh:/root/.ssh"
-      - "~/.harvest/api/:/etc/harvest.d"
+      - "~/.harvest/:/etc/harvest.d"
     working_dir: /src
     expose:
       - "8000"
