@@ -1,4 +1,4 @@
-from base.tasks import BaseTaskChain
+from tasks.base import BaseTaskChain
 from logging import getLogger
 
 logger = getLogger('harvest')
