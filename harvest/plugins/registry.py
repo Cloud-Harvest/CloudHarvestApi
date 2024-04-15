@@ -1,5 +1,4 @@
 from typing import Any, List, Dict
-from subprocess import run
 from logging import getLogger
 
 logger = getLogger('harvest')
@@ -65,7 +64,7 @@ class PluginRegistry:
         return results
 
     @staticmethod
-    def of_type(typeof: Any) -> List[Any]:
+    def of_type(typeof: Any = None, name: str = None) -> List[Any]:
         """
         Returns plugin objects based on the type provided.
         """
@@ -73,9 +72,11 @@ class PluginRegistry:
         results = []
 
         for plugin in PluginRegistry.plugins:
-            for module in plugin.modules:
-                for io in module.objects:
-                    if isinstance(io.object, typeof):
-                        results.append(io.object)
+            for o in plugin.objects:
+                if typeof and isinstance(o[1], typeof):
+                    results.append(o[1])
+
+                if name and o[0] == name:
+                    results.append(o[1])
 
         return results

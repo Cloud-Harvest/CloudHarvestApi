@@ -21,6 +21,15 @@ class BaseTask:
         super().__init_subclass__(**kwargs)
         PluginRegistry.objects[cls.__name__] = cls
 
+    def run(self, *args, **kwargs):
+        """
+        Override this method with code to run a task.
+        """
+        pass
+
+    def terminate(self):
+        self.status = TaskStatusCodes.terminating
+
 
 class TaskStatusCodes(Enum):
     """
@@ -36,6 +45,8 @@ class TaskStatusCodes(Enum):
 class BaseTaskChain(List[BaseTask]):
     def __init__(self, name: str, tasks: List[dict]):
         super().__init__()
+
+        # TODO: Check that any AsyncTask have a WaitTask at some point after it.
 
         self.name = name
         self._vars = {}

@@ -4,26 +4,6 @@ from logging import getLogger
 logger = getLogger('harvest')
 
 
-class ImportedObject:
-    def __init__(self, module, name: str, imported_object):
-        self.module = module
-        self.name = name
-        self.object = imported_object
-
-
-class Module:
-    def __init__(self, plugin, path: str, module: Any):
-        self.parent = plugin
-        self.path = path
-        self.module = module
-
-        from inspect import getmembers
-        self.objects = [ImportedObject(module=self, name=o[0], imported_object=o[1]) for o in getmembers(self.module)]
-
-    def __str__(self):
-        return f'{self.parent.name}.{type(self.module)}'
-
-
 class Plugin:
     def __init__(self, source: str, label: str = None):
         self._source = source
@@ -36,7 +16,7 @@ class Plugin:
         self.url = None
         self.version = None
 
-        self.modules = []
+        self.objects = []
         self.status = None
         self.message = None
 
@@ -166,6 +146,7 @@ class Plugin:
         import pkgutil
         import sys
         from importlib import import_module
+        from inspect import getmembers, isclass
         from os.path import basename, join
 
         sys.path.insert(0, join(self._destination))
@@ -173,10 +154,27 @@ class Plugin:
         package_name = basename(self._destination)
         package = __import__(package_name, fromlist=[''])
 
-        for _, module_name, _ in pkgutil.iter_modules(package.__path__):
-            import_module(f'{package_name}.{module_name}')
+        # Iterate over all the modules in the package
+        for importer, module_name, _ in pkgutil.walk_packages(package.__path__, package_name + '.'):
+            # Import the module
+            try:
+                module = import_module(module_name)
 
-        logger.debug(f'{self.name}: module loaded')
+                objects = [
+                    m
+                    for m in getmembers(module)
+                ]
+
+                # Get all the classes
+                self.objects.extend(objects)
+
+                logger.debug(f'{self.name}: module loaded')
+
+            except ModuleNotFoundError:
+                from traceback import format_exc
+                logger.debug(f'{self.name}: could not import {module_name}\n{format_exc()}')
+                continue
+
         return self
 
     @staticmethod

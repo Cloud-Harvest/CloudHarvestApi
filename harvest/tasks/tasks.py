@@ -7,6 +7,19 @@ class AsyncTask(BaseTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        self.thread = None
+
+    def run(self, function, *args, **kwargs):
+        from threading import Thread
+
+        self.thread = Thread(target=function, args=args, kwargs=kwargs)
+        self.thread.start()
+        self.status = TaskStatusCodes.running
+
+    def terminate(self):
+        self.status = TaskStatusCodes.terminating
+        self.thread.join()
+
 
 class WaitTask(BaseTask):
     """
@@ -55,24 +68,27 @@ class WaitTask(BaseTask):
 
         super().__init__(**kwargs)
 
-    def run(self):
+    def run(self, *args, **kwargs):
         """
         Runs the task. This method will block until all conditions specified in the constructor are met.
         """
 
         from time import sleep
 
-        while True:
-            if any([
-                self.when_all_previous_async_tasks_complete,
-                self.when_all_previous_tasks_complete,
-                self.when_all_tasks_by_name_complete,
-                self.when_any_tasks_by_name_complete,
-                self.status == TaskStatusCodes.terminating
-            ]):
-                break
+        try:
+            while True:
+                if any([
+                    self.when_all_previous_async_tasks_complete,
+                    self.when_all_previous_tasks_complete,
+                    self.when_all_tasks_by_name_complete,
+                    self.when_any_tasks_by_name_complete,
+                    self.status == TaskStatusCodes.terminating
+                ]):
+                    break
 
-            sleep(self.check_time_seconds)
+                sleep(self.check_time_seconds)
+        finally:
+            self.status = TaskStatusCodes.complete
 
     @property
     def when_all_previous_async_tasks_complete(self) -> bool:
