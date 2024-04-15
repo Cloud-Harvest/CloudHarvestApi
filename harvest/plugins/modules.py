@@ -1,4 +1,3 @@
-from importlib import util
 from typing import Any, AnyStr, List, Tuple
 from logging import getLogger
 
@@ -50,7 +49,7 @@ class Plugin:
         logger.debug(f'{self.name}: module initialization complete')
 
         return self
-        
+
     def _clone(self):
         from os.path import exists, join
         from plugins.registry import PluginRegistry
@@ -164,24 +163,18 @@ class Plugin:
         return self
 
     def _load(self):
+        import pkgutil
+        import sys
+        from importlib import import_module
+        from os.path import basename, join
 
-        from importlib import util
-        from os.path import abspath, join
-        from glob import glob
+        sys.path.insert(0, join(self._destination))
 
-        # modified from https://stackoverflow.com/a/57893077
-        start_path = abspath(self._destination)
-        pattern = '**/*.py'
-        py_files = [f for f in glob(join(start_path, pattern), recursive=True) if not f.endswith('__.py')]
+        package_name = basename(self._destination)
+        package = __import__(package_name, fromlist=[''])
 
-        for py_file in py_files:
-            logger.debug(f'{self.name}: loading {py_file}')
-
-            spec = util.spec_from_file_location('', py_file)
-            module = util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-
-            self.modules.append(Module(plugin=self, path=join(self._destination, py_file), module=module))
+        for _, module_name, _ in pkgutil.iter_modules(package.__path__):
+            import_module(f'{package_name}.{module_name}')
 
         logger.debug(f'{self.name}: module loaded')
         return self

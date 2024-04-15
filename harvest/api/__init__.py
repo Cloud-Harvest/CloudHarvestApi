@@ -20,9 +20,9 @@ def init_app():
 
         # index the backend database
         try:
+            from cache.connection import HarvestCacheConnection
             from cache.data import add_indexes
             from configuration import HarvestConfiguration
-            from cache.connection import HarvestCacheConnection
             add_indexes(client=HarvestCacheConnection(**HarvestConfiguration.cache['connection']),
                         indexes=HarvestConfiguration.cache.get('indexes'))
         except Exception as e:
