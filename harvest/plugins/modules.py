@@ -146,7 +146,7 @@ class Plugin:
         import pkgutil
         import sys
         from importlib import import_module
-        from inspect import getmembers, isclass
+        from inspect import getmembers
         from os.path import basename, join
 
         sys.path.insert(0, join(self._destination))
