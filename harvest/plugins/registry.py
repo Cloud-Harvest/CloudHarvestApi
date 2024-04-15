@@ -8,7 +8,6 @@ class PluginRegistry:
     path = None
     plugins = []
     repos: List[Dict] = []
-    objects = {}
 
     @staticmethod
     def initialize(path: str, repos: List[Dict[str, str]], purge_plugins: bool = False, **kwargs):
@@ -64,9 +63,32 @@ class PluginRegistry:
         return results
 
     @staticmethod
-    def of_type(typeof: Any = None, name: str = None) -> List[Any]:
+    def class_of_type(typeof: Any = None, name: str = None) -> List[Any]:
         """
-        Returns plugin objects based on the type provided.
+        Returns classes of the provided name / type. Note that the class must have been defined and imported. An example
+        of the appropriate syntax is `from my_module import MyClass` or `class MyClass()`.
+        """
+
+        results = []
+
+        from inspect import isclass
+
+        for plugin in PluginRegistry.plugins:
+            for o in plugin.objects:
+                if isclass(o[1]):
+                    if typeof and (isinstance(o[1], typeof) or issubclass(o[1], typeof)):
+                        results.append(o[1])
+
+                    if name and o[1].__name__ == name:
+                        results.append(o[1])
+
+        return list(set(results))
+
+    @staticmethod
+    def instantiated_of_type(typeof: Any = None, name: str = None) -> List[Any]:
+        """
+        Return objects which have been instantiated from a class of the provided name / type. Note that the class must
+        have been instantiated using syntax such as `my_class = MyClass()` for this method to return the object.
         """
 
         results = []
@@ -76,7 +98,7 @@ class PluginRegistry:
                 if typeof and isinstance(o[1], typeof):
                     results.append(o[1])
 
-                if name and o[0] == name:
+                if name and o[1].__name__ == name:
                     results.append(o[1])
 
         return results

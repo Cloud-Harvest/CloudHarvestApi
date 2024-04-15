@@ -16,7 +16,7 @@ def init_app():
         # Register Blueprints added from plugins
         from plugins.registry import PluginRegistry
         from flask.blueprints import Blueprint
-        [app.register_blueprint(blueprint) for blueprint in PluginRegistry.of_type(Blueprint)]
+        [app.register_blueprint(blueprint) for blueprint in PluginRegistry.instantiated_of_type(Blueprint)]
 
         # index the backend database
         try:

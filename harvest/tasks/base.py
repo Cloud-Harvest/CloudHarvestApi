@@ -16,11 +16,6 @@ class BaseTask:
         self.previous_task = None
         self.data = None
 
-    def __init_subclass__(cls, **kwargs):
-        from plugins.registry import PluginRegistry
-        super().__init_subclass__(**kwargs)
-        PluginRegistry.objects[cls.__name__] = cls
-
     def run(self, *args, **kwargs):
         """
         Override this method with code to run a task.

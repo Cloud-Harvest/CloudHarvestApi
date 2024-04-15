@@ -161,7 +161,7 @@ class Plugin:
                 module = import_module(module_name)
 
                 objects = [
-                    m
+                    (m[0], m[1], package_name)
                     for m in getmembers(module)
                 ]
 
