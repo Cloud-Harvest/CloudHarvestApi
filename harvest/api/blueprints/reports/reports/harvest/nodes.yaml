@@ -1,0 +1,29 @@
+headers:
+  - Active
+  - Hostname
+  - IP
+  - Version
+  - Start
+  - Last
+
+tasks:
+  - cache:
+      collection: api_nodes
+      pipeline:
+        - $project:
+            Active:
+              $cond:
+                if:
+                  $gte:
+                    - "5"
+                    - $dateDiff:
+                      startDate: "$last"
+                      endDate: "{{datetime_now}}"
+                      unit: "minutes"
+                then: False
+                else: True
+            Hostname: "$hostname"
+            IP: "$ip"
+            Version: "$version"
+            Start: "$start"
+            Last: "$last"
