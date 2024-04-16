@@ -47,6 +47,7 @@ class BaseTask:
 
         self.previous_task = None
         self.data = None
+        self.meta = None
 
     def run(self, function: Any, *args, **kwargs) -> 'BaseTask':
         """
@@ -80,12 +81,18 @@ class BaseTask:
         Override this method with code to run when a task errors.
         """
         self.status = TaskStatusCodes.error
+
+        if hasattr(ex, 'args'):
+            self.meta = ex.args
+
         logger.error(f'Error running task {self.name}: {ex}')
 
         return self
 
     def terminate(self) -> 'BaseTask':
         self.status = TaskStatusCodes.terminating
+        logger.warning(f'Terminating task {self.name}')
+
         return self
 
     def __init_subclass__(cls, **kwargs):
@@ -124,7 +131,7 @@ class BaseAsyncTask(BaseTask):
         pass
 
     def terminate(self) -> 'BaseAsyncTask':
-        self.status = TaskStatusCodes.terminating
+        super().terminate()
         self.thread.join()
 
         return self
