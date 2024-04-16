@@ -1,29 +1,10 @@
 from .exceptions import BaseTaskException
 from enum import Enum
-from typing import List
+from typing import Any, List
 from logging import getLogger
 
 
 logger = getLogger('harvest')
-
-
-class BaseTask:
-
-    def __init__(self, name: str, **kwargs):
-        self.name = name
-        self.status = TaskStatusCodes.initialized
-
-        self.previous_task = None
-        self.data = None
-
-    def run(self, *args, **kwargs):
-        """
-        Override this method with code to run a task.
-        """
-        pass
-
-    def terminate(self):
-        self.status = TaskStatusCodes.terminating
 
 
 class TaskStatusCodes(Enum):
@@ -37,14 +18,124 @@ class TaskStatusCodes(Enum):
     terminating = 'terminating'     # the thread was ordered to stop and is currently attempting to shut down
 
 
+class TaskRegistry:
+    """
+    This class is a registry for all tasks available in the program. Tasks are automatically added when they inherit
+    BaseTask. As a result, all tasks should inherit BaseTask even if they do not use the BaseTask functionality.
+    """
+    tasks = {}
+
+    @staticmethod
+    def task_class_by_name(name: str) -> 'BaseTask' or None:
+        return TaskRegistry.tasks.get(name)
+
+
+class BaseTask:
+    def __init__(self,
+                 name: str,
+                 task_chain: 'BaseTaskChain' = None,
+                 result_as: str = None,
+                 **kwargs):
+
+        self.name = name
+        self.task_chain = task_chain
+        self.result_as = result_as
+        self.status = TaskStatusCodes.initialized
+
+        self.previous_task = None
+        self.data = None
+
+    def run(self, function: Any, *args, **kwargs) -> 'BaseTask':
+        """
+        Override this method with code to run a task.
+        """
+        try:
+            self.status = TaskStatusCodes.running
+            self.data = function(*args, **kwargs)
+
+        except Exception as ex:
+            self.on_error(ex)
+
+        else:
+            self.on_complete()
+
+        return self
+
+    def on_complete(self) -> 'BaseTask':
+        """
+        Override this method with code to run when a task completes.
+        """
+        if self.result_as and self.task_chain:
+            self.task_chain.vars[self.result_as] = self.data
+
+        self.status = TaskStatusCodes.complete
+
+        return self
+
+    def on_error(self, ex: Exception) -> 'BaseTask':
+        """
+        Override this method with code to run when a task errors.
+        """
+        self.status = TaskStatusCodes.error
+        logger.error(f'Error running task {self.name}: {ex}')
+
+        return self
+
+    def terminate(self) -> 'BaseTask':
+        self.status = TaskStatusCodes.terminating
+        return self
+
+    def __init_subclass__(cls, **kwargs):
+        """
+        This method is called when a subclass of BaseTask is created.
+        """
+        super().__init_subclass__(**kwargs)
+
+        if cls.__name__ not in TaskRegistry.tasks:
+            TaskRegistry.tasks[cls.__name__.lower()[0:-4]] = cls
+
+
+class BaseAsyncTask(BaseTask):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.thread = None
+
+    def run(self, *args, **kwargs) -> 'BaseAsyncTask':
+        """
+        Override this method with code to run a task asynchronously.
+        """
+        from threading import Thread
+
+        self.thread = Thread(target=self._run, args=args, kwargs=kwargs)
+        self.thread.start()
+
+        self.status = TaskStatusCodes.running
+
+        return self
+
+    def _run(self, *args, **kwargs):
+        """
+        Override this method with code to run a task.
+        """
+        pass
+
+    def terminate(self) -> 'BaseAsyncTask':
+        self.status = TaskStatusCodes.terminating
+        self.thread.join()
+
+        return self
+
+
 class BaseTaskChain(List[BaseTask]):
     def __init__(self, name: str, tasks: List[dict]):
         super().__init__()
 
-        # TODO: Check that any AsyncTask have a WaitTask at some point after it.
+        # TODO: Check that any AsyncTask (except PruneTask) have a WaitTask at some point after it.
 
         self.name = name
-        self._vars = {}
+        self.vars = {}
+        self._initial_task_templates = tasks
 
         self.position = 0
 
@@ -55,13 +146,13 @@ class BaseTaskChain(List[BaseTask]):
         # from plugins.registry import PluginRegistry.
         # self.extend(initialize_objects(list_dict=tasks))
 
-    def __enter__(self):
+    def __enter__(self) -> 'BaseTaskChain':
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         return None
 
-    def run(self):
+    def run(self) -> 'BaseTaskChain':
         from datetime import datetime, timezone
         self.status = TaskStatusCodes.running
 
@@ -132,5 +223,7 @@ class BaseTaskChain(List[BaseTask]):
         """
         return len(self)
 
-    def terminate(self):
+    def terminate(self) -> 'BaseTaskChain':
         self.status = TaskStatusCodes.terminating
+
+        return self
