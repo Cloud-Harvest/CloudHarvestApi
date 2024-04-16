@@ -87,7 +87,7 @@ def parse_datetime(reference_date: (str or datetime) = None, result_tz_aware: bo
         return None
 
 
-def filter_datetime_ago(
+def filter_datetime_since(
         reference_date: (str or datetime) = None,
         result_as_string: bool = False,
         **timedelta_kwargs
@@ -118,7 +118,7 @@ def filter_datetime_ago(
         return result
 
 
-def filter_datetime_in(
+def filter_datetime_until(
         reference_date: (str or datetime) = None,
         result_as_string: bool = False,
         **timedelta_kwargs
@@ -147,3 +147,29 @@ def filter_datetime_in(
 
     else:
         return result
+
+
+def filter_datetime_now(as_epoc: bool = False, result_tz_aware: bool = True) -> datetime or float:
+    """
+    Returns the current datetime.
+
+    This function returns the current datetime. If `as_epoc` is set to True, it returns the current datetime as a Unix timestamp.
+    If `result_tz_aware` is set to True, the returned datetime object is timezone aware (set to UTC). If False, the datetime object is naive.
+
+    Args:
+        as_epoc (bool, optional): If True, returns the current datetime as a Unix timestamp. Defaults to False.
+        result_tz_aware (bool, optional): If True, the returned datetime object is timezone aware (set to UTC). If False, the datetime object is naive. Defaults to True.
+
+    Returns:
+        datetime or float: The current datetime. If `as_epoc` is True, this will be a Unix timestamp. Otherwise, it will be a datetime object.
+    """
+    from datetime import datetime, timezone
+
+    # Get the current datetime
+    now = datetime.now(tz=timezone.utc) if result_tz_aware else datetime.now()
+
+    # If as_epoc is True, return the current datetime as a Unix timestamp
+    if as_epoc:
+        return now.timestamp()
+    else:
+        return now
