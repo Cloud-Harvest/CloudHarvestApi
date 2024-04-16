@@ -6,6 +6,9 @@ from logging import getLogger
 
 logger = getLogger('harvest')
 
+# TODO: (Async)TemplateTask (a task that generates more tasks from a template) with parameters to insert the new tasks
+#       into a specific task chain position (or immediately following itself)
+
 
 class TaskStatusCodes(Enum):
     """
