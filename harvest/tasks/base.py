@@ -106,6 +106,15 @@ class BaseTask:
         if cls.__name__ not in TaskRegistry.tasks:
             TaskRegistry.tasks[cls.__name__.lower()[0:-4]] = cls
 
+    def __dict__(self) -> dict:
+        return {
+            'name': self.name,
+            'description': self.description,
+            'status': self.status,
+            'data': self.data,
+            'meta': self.meta
+        }
+
 
 class BaseAsyncTask(BaseTask):
     def __init__(self, *args, **kwargs):
