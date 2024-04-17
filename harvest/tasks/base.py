@@ -36,11 +36,13 @@ class TaskRegistry:
 class BaseTask:
     def __init__(self,
                  name: str,
+                 description: str = None,
                  task_chain: 'BaseTaskChain' = None,
                  result_as: str = None,
                  **kwargs):
 
         self.name = name
+        self.description = description
         self.task_chain = task_chain
         self.result_as = result_as
         self.status = TaskStatusCodes.initialized
