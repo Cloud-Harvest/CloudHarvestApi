@@ -1,24 +1,4 @@
 from typing import Any
-from tasks.base import BaseTask
-
-
-# class TemplateTask(BaseTask):
-#     def __init__(self, template: str, global_variables: dict = None, **kwargs):
-#         super().__init__(**kwargs)
-#
-#         from jinja2 import Environment, DictLoader
-#
-#         self.template = template
-#         self._global_variables = global_variables
-#
-#         self.environment = Environment(
-#             loader=DictLoader({'template': self.template}),
-#         )
-#
-#         from .filters import list_filters
-#         self.environment.filters.update(list_filters())
-#
-#         self.environment.globals.update(self._global_variables or {})
 
 
 def template_object(template: Any, variables: dict = None) -> dict:
