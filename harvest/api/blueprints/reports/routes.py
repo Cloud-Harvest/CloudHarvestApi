@@ -19,7 +19,7 @@ def reports_run() -> Response:
 
     report_configuration = HarvestConfiguration.reports.get(report_name)
 
-    from tasks.chains import task_chain_from_dict
+    from tasks.factories import task_chain_from_dict
     report = task_chain_from_dict(task_chain_name=report_name,
                                   task_chain=report_configuration,
                                   chain_class_name='report')
