@@ -47,12 +47,56 @@ class PruneTask(BaseTask):
 
         # If stored_variables is True, clear all variables stored in the task chain
         if self.stored_variables:
-            self.task_chain.vars.clear()
+            self.task_chain.variables.clear()
 
         return self
 
     def on_complete(self) -> 'PruneTask':
         self.status = TaskStatusCodes.complete
+
+        return self
+
+
+class TemplateTask(BaseTask):
+    def __init__(self, template: dict,
+                 records: (List[dict] or str) = None,
+                 insert_tasks_at_position: int = None,
+                 insert_tasks_before_name: str = None,
+                 insert_tasks_after_name: str = None,
+                 **kwargs):
+
+        super().__init__(**kwargs)
+
+        self.template = template
+        self.records = records if isinstance(records, list) else self.task_chain.variables.get(records)
+
+        # Insert position for tasks
+        self.insert_tasks_at_position = insert_tasks_at_position
+        self.insert_tasks_before_name = insert_tasks_before_name
+        self.insert_tasks_after_name = insert_tasks_after_name
+
+    def run(self, *args, **kwargs) -> 'TemplateTask':
+        self.status = TaskStatusCodes.running
+
+        for record in self.records:
+            from tasks.base import TaskConfiguration
+            task_configuration = TaskConfiguration(task_configuration=self.template.copy(),
+                                                   task_chain=self.task_chain,
+                                                   extra_vars=record)
+
+            if self.insert_tasks_at_position:
+                self.task_chain.task_templates.insert(self.insert_tasks_at_position, task_configuration)
+
+            elif self.insert_tasks_before_name:
+                self.task_chain.insert_task_before_name(self.insert_tasks_before_name, task_configuration)
+
+            elif self.insert_tasks_after_name:
+                self.task_chain.insert_task_after_name(self.insert_tasks_after_name, task_configuration)
+
+            else:
+                self.task_chain.task_templates.append(task_configuration)
+
+        self.on_complete()
 
         return self
 
