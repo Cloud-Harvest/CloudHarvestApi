@@ -23,7 +23,6 @@ def task_chain_from_file(file_path: str, chain_class_name: str):
 
 
 def task_chain_from_dict(task_chain_name: str, task_chain: dict, chain_class_name: str) -> BaseTaskChain:
-
     """
     Creates a task chain from a dictionary.
 
