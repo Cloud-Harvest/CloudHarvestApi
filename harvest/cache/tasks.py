@@ -7,7 +7,7 @@ from logging import getLogger
 logger = getLogger('harvest')
 
 
-class CacheTask(BaseTask):
+class CacheAggregateTask(BaseTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -78,7 +78,7 @@ def aggregate(connection: HarvestCacheConnection,
                                                  exclude_keys=exclude_keys,
                                                  matches=matches)
 
-    from templating.templates import template_object
+    from templating.functions import template_object
     pipeline_to_execute = template_object(pipeline_to_execute)
 
     result = list(connection[database][collection].aggregate(pipeline=pipeline_to_execute, comment='harvest-api'))
