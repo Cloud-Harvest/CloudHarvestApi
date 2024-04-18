@@ -1,17 +1,22 @@
 from tasks.base import BaseTask, TaskStatusCodes
+from .recordset import HarvestRecordSet
 
 
 class RecordSetTask(BaseTask):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, recordset_name: HarvestRecordSet, function: str, arguments: dict, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def run(self, recordset_name: str, function: str, *args, **kwargs):
+        self.recordset_name = recordset_name
+        self.function = function
+        self.arguments = arguments
 
-        recordset = self.task_chain.variables.get(recordset_name)
+    def run(self):
+
+        recordset = self.task_chain.get_variables_by_names(self.recordset_name)
 
         try:
             self.status = TaskStatusCodes.running
-            self.data = getattr(recordset, function)(*args, **kwargs)
+            self.data = getattr(recordset, self.function)(**self.arguments)
 
         except Exception as ex:
             self.on_error(ex)
