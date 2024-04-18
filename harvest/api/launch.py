@@ -18,6 +18,7 @@ def init_app():
 
         # Register Tasks
         from tasks.base import BaseTask, BaseTaskChain
+        load_subclasses('harvest/**/chains.py', BaseTask, BaseTaskChain)
         load_subclasses('harvest/**/tasks.py', BaseTask, BaseTaskChain)
 
         # index the backend database
