@@ -1,6 +1,6 @@
 from .exceptions import BaseTaskException
 from enum import Enum
-from typing import Any, List
+from typing import List, Literal
 from logging import getLogger
 
 
@@ -26,11 +26,56 @@ class TaskRegistry:
     This class is a registry for all Tasks available in the program. Tasks are automatically added when they inherit
     BaseTask. As a result, all tasks should inherit BaseTask even if they do not use the BaseTask functionality.
     """
-    tasks = {}
+    tasks = []
 
     @staticmethod
-    def task_class_by_name(name: str) -> 'BaseTask' or None:
-        return TaskRegistry.tasks.get(name)
+    def add_subclass(subclass: 'BaseTask' or 'BaseTaskChain'):
+        """
+        Add a subclass to the TaskRegistry.
+        Args:
+            subclass: The subclass to add.
+        """
+        import re
+
+        if issubclass(subclass, BaseTask):
+            class_name = subclass.__name__[0:-4]
+
+        elif issubclass(subclass, BaseTaskChain):
+            class_name = subclass.__name__[0:-9]
+
+        else:
+            raise TypeError(f'Cannot add subclass of type {type(subclass)} to TaskRegistry. '
+                            f'Must be subclass of BaseTask or BaseTaskChain.')
+
+        class_name = str(class_name[0] + re.sub(r'([A-Z])', r'_\1', class_name[1:])).lower()
+
+        if class_name not in TaskRegistry.tasks:
+            TaskRegistry.tasks.append({class_name: subclass})
+
+    @staticmethod
+    def get_task_class_by_name(target_name: str,
+                               target_task_type: Literal['task', 'taskchain']) -> 'BaseTask' or 'BaseTaskChain' or None:
+        """
+        This method retrieves a task class by its name and type.
+        Args:
+            target_name: The desired task name.
+            target_task_type: The desired task type.
+
+        Returns:
+            'BaseTask', 'BaseTaskChain', or None
+        """
+
+        for task in TaskRegistry.tasks:
+            for task_name, task_type in task.items():
+                if task_name == target_name:
+                    match target_task_type:
+                        case 'task':
+                            if isinstance(task_type, BaseTask) or issubclass(task_type, BaseTask):
+                                return task_type
+
+                        case 'taskchain':
+                            if isinstance(task_type, BaseTaskChain) or issubclass(task_type, BaseTaskChain):
+                                return task_type
 
 
 class TaskConfiguration:
@@ -73,8 +118,8 @@ class TaskConfiguration:
         self.description = self.task_configuration.get('description')
 
         self.extra_vars = extra_vars or {}
-        self.task_chain = task_chain or {}
-        self.task_class = TaskRegistry.task_class_by_name(self.class_name)
+        self.task_chain = task_chain
+        self.task_class = TaskRegistry.get_task_class_by_name(self.class_name, target_task_type='task')
 
         self.instantiated_class = None
 
@@ -144,7 +189,7 @@ class BaseTask:
         self.meta = None
         self.result_as = result_as
 
-    def run(self, *args, **kwargs) -> 'BaseTask':
+    def run(self) -> 'BaseTask':
         """
         Runs the task. This method will block until all conditions specified in the constructor are met.
         Note that this method should be overwritten in subclasses to provide specific functionality.
@@ -153,10 +198,6 @@ class BaseTask:
         - Include on_complete() and on_error() calls within custom run() methods.
         - Capture when the task_chain.status is set to 'terminating' and exit the run() method if prudent.
         - Return self at the end of the run() method.
-
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
 
         Returns:
             BaseTask: The instance of the task.
@@ -220,14 +261,7 @@ class BaseTask:
         This method is called when a subclass of BaseTask is created.
         """
         super().__init_subclass__(**kwargs)
-
-        import re
-        class_name = cls.__name__[0:-4]
-
-        class_name = str(class_name[0] + re.sub(r'([A-Z])', r'_\1', class_name[1:])).lower()
-
-        if class_name not in TaskRegistry.tasks:
-            TaskRegistry.tasks[class_name] = cls
+        TaskRegistry.add_subclass(cls)
 
     def __dict__(self) -> dict:
         return {
@@ -278,6 +312,9 @@ class BaseTaskChain(List[BaseTask]):
     It stores a list of tasks and provides methods to run the tasks in the chain, insert new tasks into the chain,
     and handle completion and error states. It also provides properties to track the progress of the task chain.
 
+    Tasks are templated just before they are run. This allows for dynamic configuration of Tasks based on the variables
+    provided by previous Tasks. The templating is done using the templating.functions.template_object function.
+
     Attributes:
         name (str): The name of the task chain.
         description (str): A brief description of what the task chain does.
@@ -304,25 +341,28 @@ class BaseTaskChain(List[BaseTask]):
         terminate() -> 'BaseTaskChain': Terminates the task chain.
     """
 
-    def __init__(self, name: str, task_templates: List[dict], description: str = None, *args, **kwargs):
+    def __init__(self, template: dict, *args, **kwargs):
         """
         Initializes a new instance of the BaseTaskChain class.
 
         Args:
-            name (str): The name of the task chain.
-            task_templates (List[dict]): A list of task configurations for the tasks in the chain.
-            description (str, optional): A brief description of what the task chain does. Defaults to None.
+            template(dict): The configuration for the task chain.
+                name(str): The name of the task chain.
+                tasks(list[dict]): A list of task configurations for the tasks in the chain.
+                description(str, optional): A brief description of what the task chain does. Defaults to None.
         """
 
         # TODO: Check that any AsyncTask (except PruneTask) have a WaitTask at some point after it.
         super().__init__()
 
-        self.name = name
-        self.description = description
+        self.name = template['name']
+        self.description = template.get('description')
 
         self.variables = {}
         self.task_templates: List[TaskConfiguration] = [
-            TaskConfiguration(task_configuration=template, task_chain=self) for template in task_templates
+            TaskConfiguration(task_configuration=t,
+                              task_chain=self)
+            for t in template.get('tasks', [])
         ]
 
         self.status = TaskStatusCodes.initialized
@@ -356,6 +396,10 @@ class BaseTaskChain(List[BaseTask]):
             exc_tb (traceback): A traceback object encapsulating the call stack at the point where the exception was raised, if any.
         """
         return None
+
+    @property
+    def data(self):
+        return self.variables.get('result')
 
     @property
     def detailed_progress(self) -> dict:
@@ -396,6 +440,16 @@ class BaseTaskChain(List[BaseTask]):
         Returns the current progress of the task chain as a percentage cast as float.
         """
         return self.position / self.total if self.total > 0 else -1
+
+    @property
+    def result(self) -> dict:
+        """
+        Returns the result of the task chain.
+        """
+        return {
+            'data': self.data,
+            'meta': self.meta
+        }
 
     @property
     def total(self) -> int:
@@ -542,7 +596,7 @@ class BaseTaskChain(List[BaseTask]):
             while True:
                 # Instantiate the task from the task configuration
                 task = self.task_templates[self.position].instantiate()
-
+                self.append(task)
                 # Execute the task
                 task.run()
 
@@ -572,3 +626,10 @@ class BaseTaskChain(List[BaseTask]):
         self.status = TaskStatusCodes.terminating
 
         return self
+
+    def __init_subclass__(cls, **kwargs):
+        """
+        This method is called when a subclass of BaseTask is created.
+        """
+        super().__init_subclass__(**kwargs)
+        TaskRegistry.add_subclass(cls)
