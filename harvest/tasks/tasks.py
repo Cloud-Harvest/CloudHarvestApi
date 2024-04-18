@@ -18,6 +18,63 @@ from .base import BaseAsyncTask, BaseTask, BaseTaskChain, TaskStatusCodes
 #         self.status = TaskStatusCodes.complete
 
 
+class DelayTask(BaseTask):
+    """
+    The DelayTask class is a subclass of the BaseTask class. It represents a task that introduces a delay in the task
+    chain execution.
+
+    Attributes:
+        delay_seconds (float): The duration of the delay in seconds.
+
+    Methods:
+        run(): Overrides the run method of the BaseTask class. It introduces a delay in the task chain execution.
+
+    Example:
+        delay_task = DelayTask(delay_seconds=5)
+        delay_task.run()  # This will introduce a delay of 5 seconds.
+    """
+
+    def __init__(self, delay_seconds: float, **kwargs):
+        """
+        Initializes a new instance of the DelayTask class.
+
+        Args:
+            delay_seconds (float): The duration of the delay in seconds.
+            **kwargs: Arbitrary keyword arguments.
+        """
+        super().__init__(**kwargs)
+        self.delay_seconds = delay_seconds
+
+    def run(self):
+        """
+        Runs the task. This method will introduce a delay in the task chain execution.
+
+        The delay is introduced using the sleep function from the time module. The duration of the delay is specified by the delay_seconds attribute.
+
+        The method also checks the status of the task during the delay. If the status changes to 'terminating', the delay is interrupted and the method exits.
+
+        Once the delay is over or interrupted, the on_complete method is called to mark the task as complete or terminating respectively.
+
+        Example:
+            delay_task = DelayTask(delay_seconds=5)
+            delay_task.run()  # This will introduce a delay of 5 seconds or less if the task is terminated earlier.
+        """
+
+        from datetime import datetime
+        from time import sleep
+
+        self.status = TaskStatusCodes.running
+        start_time = datetime.now()
+
+        while (datetime.now() - start_time).total_seconds() < self.delay_seconds:
+            sleep(1)
+
+            if self.status == TaskStatusCodes.terminating:
+                break
+
+        self.on_complete()
+
+
 class PruneTask(BaseTask):
     def __init__(self, previous_task_data: bool = False, stored_variables: bool = False, *args, **kwargs):
         """
