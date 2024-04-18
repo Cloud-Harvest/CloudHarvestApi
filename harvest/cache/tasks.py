@@ -8,10 +8,65 @@ logger = getLogger('harvest')
 
 
 class CacheAggregateTask(BaseTask):
-    def __init__(self, *args, **kwargs):
+    """
+    A class used to represent a Cache Aggregate Task.
+
+    This class is a subclass of the BaseTask class and is used to perform aggregation operations on a MongoDB collection.
+
+    Attributes
+    ----------
+    collection : str
+        The name of the MongoDB collection to perform the aggregation on.
+    pipeline : List[dict]
+        The aggregation pipeline to execute. This is a list of dictionaries, where each dictionary represents a stage in the pipeline.
+    headers : dict, optional
+        The headers to be used in the request.
+    arguments : dict, optional
+        Additional arguments to be used in the request.
+
+    Methods
+    -------
+    run() -> 'BaseTask':
+        Executes the CacheAggregateTask. This method will block until the task is completed.
+    """
+
+    def __init__(self, collection: str, pipeline: List[dict], arguments: dict = None, *args, **kwargs):
+        """
+        Constructs all the necessary attributes for the CacheAggregateTask object.
+
+        Parameters
+        ----------
+            collection : str
+                The name of the MongoDB collection to perform the aggregation on.
+            pipeline : List[dict]
+                The aggregation pipeline to execute. This is a list of dictionaries, where each dictionary represents a stage in the pipeline.
+            arguments : dict, optional
+                Additional arguments to be used in the request.
+            *args:
+                Variable length argument list.
+            **kwargs:
+                Arbitrary keyword arguments.
+        """
+
         super().__init__(*args, **kwargs)
 
-    def run(self, *args, **kwargs) -> 'BaseTask':
+        self.collection = collection
+        self.pipeline = pipeline
+        self.headers = kwargs.get('headers')
+        self.arguments = arguments or {}
+
+    def run(self) -> 'BaseTask':
+        """
+        Executes the CacheAggregateTask. This method will block until the task is completed.
+
+        Returns
+        -------
+        BaseTask
+            The instance of the task.
+        """
+
+        connection = None
+
         try:
             self.status = TaskStatusCodes.running
 
@@ -19,16 +74,23 @@ class CacheAggregateTask(BaseTask):
             from configuration import HarvestConfiguration
 
             connection = HarvestCacheConnection(**HarvestConfiguration.cache['connection'])
-            result = aggregate(connection=connection, **kwargs)
+            result = aggregate(connection=connection,
+                               collection=self.collection,
+                               pipeline=self.pipeline,
+                               **self.arguments)
 
             self.data = result.get('data')
-            self.meta = result.get('meta')
+            self.meta = result.get('meta', {}) | {'headers': self.headers}
 
         except Exception as ex:
             self.on_error(ex)
 
         else:
             self.on_complete()
+
+        finally:
+            if connection:
+                connection.close()
 
         return self
 
@@ -63,7 +125,7 @@ def aggregate(connection: HarvestCacheConnection,
 
     Example:
     >>> aggregate(connection, 'myCollection', [{'$match': {'field': 'value'}}], ignore_user_filters=True, add_keys=['field1', 'field2'], exclude_keys=['field3'], matches=['field1=value'])
-    {'result': [...], 'meta': {...}}
+    {'data': [...], 'meta': {...}}
     """
 
     from datetime import datetime, timezone
@@ -81,7 +143,19 @@ def aggregate(connection: HarvestCacheConnection,
     from templating.functions import template_object
     pipeline_to_execute = template_object(pipeline_to_execute)
 
-    result = list(connection[database][collection].aggregate(pipeline=pipeline_to_execute, comment='harvest-api'))
+    result = connection[database][collection].aggregate(pipeline=pipeline_to_execute, comment='harvest-api')
+
+    if count:
+        result = len(list(result))
+
+    else:
+        result = [
+            {
+                k: str(v) if k == '_id' else v
+                for k, v in doc.items()
+            }
+            for doc in result
+        ]
 
     end = datetime.now(tz=timezone.utc)
 
@@ -93,7 +167,7 @@ def aggregate(connection: HarvestCacheConnection,
     }
 
     return {
-        'data': len(result) if count else result,
+        'data': result,
         'meta': meta
     }
 
@@ -122,7 +196,7 @@ def apply_user_filters(pipeline: List[dict],
     if matches:
         try:
             # This is a required plugin
-            from core_data_model.matching import HarvestMatch
+            from recordsets.matching import HarvestMatch
 
             match_pipeline = []
             for match in matches:
