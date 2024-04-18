@@ -1,25 +1,31 @@
-headers:
-  - Active
-  - Hostname
-  - IP
-  - Version
-  - Start
-  - Last
+description: Generates a list of all API nodes and their status.
 
 tasks:
-  - cache:
+  - cache_aggregate:
+      name: query harvest.api_nodes
+      description: ''
+      result_as: result
       collection: api_nodes
+      header_order:
+        - Active
+        - Hostname
+        - IP
+        - Version
+        - Start
+        - Last
       pipeline:
         - $project:
             Active:
               $cond:
                 if:
                   $gte:
-                    - "5"
                     - $dateDiff:
-                      startDate: "$last"
-                      endDate: "{{datetime_now}}"
-                      unit: "minutes"
+                        startDate: "$last"
+                        endDate:
+                          $dateFromString:
+                            dateString: "{{'' | datetime_now}}"    # report is relative to the current UTC time
+                        unit: "minute"
+                    - "5"
                 then: False
                 else: True
             Hostname: "$hostname"
