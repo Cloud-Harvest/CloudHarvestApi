@@ -53,5 +53,3 @@ modules:
   repos:
     - source: git@github.com:Cloud-Harvest/api-plugin-aws.git
       label: main
-    - source: git@github.com:Cloud-Harvest/core-data-model.git
-      label: main
