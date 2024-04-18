@@ -18,6 +18,10 @@ def init_app():
         from flask.blueprints import Blueprint
         [app.register_blueprint(blueprint) for blueprint in PluginRegistry.instantiated_of_type(Blueprint)]
 
+        # Register Tasks
+        from tasks.base import BaseTask, BaseTaskChain
+        load_subclasses('harvest/**/tasks.py', BaseTask, BaseTaskChain)
+
         # index the backend database
         try:
             from cache.connection import HarvestCacheConnection
@@ -69,3 +73,23 @@ def load_blueprints(app: Flask, blueprint_dir: str):
                     if isinstance(obj, Blueprint):
                         app.register_blueprint(obj)
                         logger.debug(f'Loaded blueprint: {obj.name}')
+
+
+def load_subclasses(pathname: str = 'harvest', *subclass_types):
+    import inspect
+    from tasks.base import BaseTask, BaseTaskChain
+
+    subclasses = []
+
+    from glob import glob
+    for module in glob(pathname, recursive=True):
+        module = module.replace('/', '.').replace('\\', '.').replace('.py', '')
+        module = module.split('harvest.')[1]
+        module = __import__(module, fromlist=[''])
+
+        for name, obj in inspect.getmembers(module):
+            if inspect.isclass(obj) and any([issubclass(obj, base_class) for base_class in subclass_types]):
+                subclasses.append(obj)
+
+    logger.debug('Loaded subclasses: ' + ', '.join([subclass.__name__ for subclass in subclasses]))
+    return subclasses
