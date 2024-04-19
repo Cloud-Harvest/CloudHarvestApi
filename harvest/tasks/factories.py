@@ -22,7 +22,11 @@ def task_chain_from_file(file_path: str, chain_class_name: str):
     return task_chain
 
 
-def task_chain_from_dict(task_chain_name: str, task_chain: dict, chain_class_name: str) -> BaseTaskChain:
+def task_chain_from_dict(task_chain_name: str,
+                         task_chain: dict,
+                         chain_class_name: str,
+                         extra_vars: dict = None,
+                         **kwargs) -> BaseTaskChain:
     """
     Creates a task chain from a dictionary.
 
@@ -48,4 +52,4 @@ def task_chain_from_dict(task_chain_name: str, task_chain: dict, chain_class_nam
     if 'name' not in task_chain.keys():
         task_chain['name'] = task_chain_name
 
-    return chain_class(template=task_chain)
+    return chain_class(template=task_chain, extra_vars=extra_vars, **kwargs)

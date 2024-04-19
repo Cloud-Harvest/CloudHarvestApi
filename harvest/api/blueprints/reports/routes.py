@@ -20,11 +20,19 @@ def reports_run() -> Response:
     report_configuration = HarvestConfiguration.reports.get(report_name)
 
     from tasks.factories import task_chain_from_dict
+
+    if request_json.get('describe'):
+        return jsonify({'data': report_configuration})
+
     report = task_chain_from_dict(task_chain_name=report_name,
                                   task_chain=report_configuration,
-                                  chain_class_name='report')
+                                  chain_class_name='report',
+                                  **request_json)
 
     report.run()
+
+    if not hasattr(report, 'result'):
+        return jsonify([{'error': 'no result'}])
 
     result = report.result
 

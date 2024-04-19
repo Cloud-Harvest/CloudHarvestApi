@@ -22,3 +22,8 @@ class BaseDataCollectionException(BaseHarvestException):
 class BaseTaskException(BaseHarvestException):
     def __init__(self, *args):
         super().__init__(*args)
+
+
+class TaskTerminationError(BaseTaskException):
+    def __init__(self, *args):
+        super().__init__(*args)

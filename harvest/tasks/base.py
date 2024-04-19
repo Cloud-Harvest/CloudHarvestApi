@@ -99,7 +99,7 @@ class TaskConfiguration:
         instantiate() -> BaseTask: Instantiates a task based on the task configuration.
     """
 
-    def __init__(self, task_configuration: dict, task_chain: 'BaseTaskChain' = None, extra_vars: dict = None):
+    def __init__(self, task_configuration: dict, task_chain: 'BaseTaskChain' = None, **kwargs):
         """
         Initializes a new instance of the TaskConfiguration class.
 
@@ -117,11 +117,11 @@ class TaskConfiguration:
         self.name = self.task_configuration['name']
         self.description = self.task_configuration.get('description')
 
-        self.extra_vars = extra_vars or {}
         self.task_chain = task_chain
         self.task_class = TaskRegistry.get_task_class_by_name(self.class_name, target_task_type='task')
 
         self.instantiated_class = None
+        self.kwargs = kwargs
 
     def instantiate(self) -> 'BaseTask':
         """
@@ -143,10 +143,10 @@ class TaskConfiguration:
 
         # Template the task configuration with the variables from the task chain
         templated_class_kwargs = template_object(template=self.task_configuration,
-                                                 variables=task_chain_vars | self.extra_vars)
+                                                 variables=task_chain_vars)
 
         # Instantiate the task with the templated configuration and return it
-        self.instantiated_class = self.task_class(task_chain=self.task_chain, **templated_class_kwargs)
+        self.instantiated_class = self.task_class(task_chain=self.task_chain, **templated_class_kwargs | self.kwargs)
 
         return self.instantiated_class
 
@@ -341,7 +341,7 @@ class BaseTaskChain(List[BaseTask]):
         terminate() -> 'BaseTaskChain': Terminates the task chain.
     """
 
-    def __init__(self, template: dict, *args, **kwargs):
+    def __init__(self, template: dict, extra_vars: dict = None, *args, **kwargs):
         """
         Initializes a new instance of the BaseTaskChain class.
 
@@ -361,7 +361,9 @@ class BaseTaskChain(List[BaseTask]):
         self.variables = {}
         self.task_templates: List[TaskConfiguration] = [
             TaskConfiguration(task_configuration=t,
-                              task_chain=self)
+                              task_chain=self,
+                              extra_vars=extra_vars,
+                              **kwargs)
             for t in template.get('tasks', [])
         ]
 
@@ -372,7 +374,8 @@ class BaseTaskChain(List[BaseTask]):
         self.start = None
         self.end = None
 
-        self.meta = None
+        self._data = None
+        self._meta = None
 
     def __enter__(self) -> 'BaseTaskChain':
         """
@@ -444,11 +447,12 @@ class BaseTaskChain(List[BaseTask]):
     @property
     def result(self) -> dict:
         """
-        Returns the result of the task chain.
+        Returns the result of the task chain. This can be interpreted either as the 'result' variable in the task
+        chain's variables or the data and meta of the last task in the chain.
         """
         return {
-            'data': self.data,
-            'meta': self.meta
+            'data': self._data or self.data or self[-1].data,
+            'meta': self._meta or self[-1].meta
         }
 
     @property
@@ -571,7 +575,7 @@ class BaseTaskChain(List[BaseTask]):
         """
 
         self.status = TaskStatusCodes.error
-        self.meta = ex.args
+        self._meta = ex.args
         logger.error(f'Error running task chain {self.name}: {ex}')
 
         return self
@@ -597,6 +601,7 @@ class BaseTaskChain(List[BaseTask]):
                 # Instantiate the task from the task configuration
                 task = self.task_templates[self.position].instantiate()
                 self.append(task)
+
                 # Execute the task
                 task.run()
 
@@ -604,8 +609,12 @@ class BaseTaskChain(List[BaseTask]):
                 self.position += 1
 
                 # Escape after completing the last task
-                if self.position == self.total or self.status == TaskStatusCodes.terminating:
+                if self.position == self.total:
                     break
+
+                if self.status == TaskStatusCodes.terminating:
+                    from .exceptions import TaskTerminationError
+                    raise TaskTerminationError('Task chain was instructed to terminate.')
 
         except Exception as ex:
             self.on_error(ex)

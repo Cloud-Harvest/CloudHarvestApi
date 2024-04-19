@@ -6,7 +6,7 @@ tasks:
       description: ''
       result_as: result
       collection: api_nodes
-      header_order:
+      headers:
         - Active
         - Hostname
         - IP
