@@ -30,6 +30,12 @@ class HarvestMatch:
         self.is_match = None
 
     def as_mongo_match(self) -> dict:
+        if self.key is None and self.value is None:
+            self.key, self.value = self._input.split(self.operator, maxsplit=1)
+
+            from .functions import fuzzy_cast
+            self.value = fuzzy_cast(self.value)
+
         key = f'${self.key}'
 
         match self.operator:
@@ -38,7 +44,8 @@ class HarvestMatch:
                 result = {
                     "$regexMatch": {
                         "input": key,
-                        "regex": self.value
+                        "regex": self.value,
+                        "options": "i"
                     }
                 }
 
@@ -69,17 +76,16 @@ class HarvestMatch:
                     self.key: self.value
                 }
             case '!=':
-                # https://www.mongodb.com/docs/manual/reference/operator/aggregation/ne/
+                # https://www.mongodb.com/docs/manual/reference/operator/aggregation/not/
                 # https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexMatch/
                 result = {
-                    "$ne": [
-                        {
-                            "$regexMatch": {
-                                "input": key,
-                                "pattern": self.value
-                            }
+                    "$not": {
+                        "$regexMatch": {
+                            "input": key,
+                            "regex": self.value,
+                            "options": "i"
                         }
-                    ]
+                    }
                 }
 
             case '<':
@@ -152,10 +158,23 @@ class HarvestMatch:
 
 
 class HarvestMatchSet(list):
-    def __init__(self, record: OrderedDict, syntax: str, matches: List[str]):
+    def __init__(self, matches: List[str], record: OrderedDict = None):
         super().__init__()
 
-        self.original_syntax = syntax
         self._record = record
 
         self.matches = [HarvestMatch(record=record, syntax=match) for match in matches]
+
+    def as_mongo_match(self) -> dict:
+        if len(self.matches) == 0:
+            return {}
+
+        elif len(self.matches) == 1:
+            return {
+                "$expr": self.matches[0].as_mongo_match()
+            }
+
+        else:
+            return {
+                "$and": [match.as_mongo_match() for match in self.matches]
+            }

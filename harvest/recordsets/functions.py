@@ -44,6 +44,33 @@ def cast(value: Any, typeof: Literal['bool', 'str', 'int', 'float', 'list', 'dic
         return None
 
 
+def fuzzy_cast(value: Any) -> Any:
+    """
+    Attempts to cast a value to a more appropriate type based on the value itself.
+    Args:
+        value: The input variable to cast.
+
+    Returns: Any
+    """
+
+    if is_bool(value):
+        cast_variables_as = 'bool'
+
+    elif is_datetime(value):
+        cast_variables_as = 'datetime'
+
+    elif is_null(value):
+        cast_variables_as = 'null'
+
+    elif is_number(value):
+        cast_variables_as = 'float'
+
+    else:
+        cast_variables_as = 'str'
+
+    return cast(value, cast_variables_as)
+
+
 def delimiter_list_to_string(value: list, delimiter: str) -> str:
     """
     Splits a string into a list based on a delimiter. This is especially useful when changing a rich Table output to
