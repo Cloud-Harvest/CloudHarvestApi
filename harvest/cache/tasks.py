@@ -18,6 +18,7 @@ class BaseCacheTask(BaseTask):
                  headers: List[str] = None,
                  limit: int = None,
                  matches: List[List[str]] = None,
+                 sort: List[str] = None,
                  *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -35,6 +36,7 @@ class BaseCacheTask(BaseTask):
         self.exclude_keys = exclude_keys or []
         self.limit = limit
         self.matches = matches or []
+        self.sort = sort
 
         if self.ignore_user_filters:
             pipeline_to_execute = self.pipeline
@@ -96,6 +98,10 @@ class BaseCacheTask(BaseTask):
             pipeline.append({
                 '$limit': self.limit
             })
+
+        pipeline.append({
+            '$sort': self.get_sort()
+        })
 
         return pipeline
 
@@ -175,6 +181,41 @@ class BaseCacheTask(BaseTask):
                 h for h in self.headers + [a for a in self.add_keys if a not in self.headers]
                 if h not in self.exclude_keys
             ]
+
+        return result
+
+    def get_sort(self) -> dict:
+        """
+        This method is used to get the sort attribute for the task. If the sort attribute is not set, it will default to
+        sorting by the _id field in ascending order.
+
+        Returns:
+            dict: A dictionary representing the sort attribute for the task.
+
+        Example:
+            Assuming the sort attribute is ['field1', 'field2'], calling this method would return
+            {'field1': 1, 'field2': 1}.
+        """
+
+        result = {}
+        from pymongo import ASCENDING, DESCENDING
+        for s in self.sort or self.headers or []:
+            if ':' in s:
+                key, value = s.split(':')
+                key = key.strip()
+
+                if value.lower() == 'desc':
+                    order = DESCENDING
+
+                else:
+                    order = ASCENDING
+
+            else:
+                key = s
+                order = ASCENDING
+
+            if key not in self.exclude_keys:
+                result.update({key: order})
 
         return result
 
