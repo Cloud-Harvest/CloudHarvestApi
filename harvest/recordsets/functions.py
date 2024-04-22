@@ -53,21 +53,36 @@ def fuzzy_cast(value: Any) -> Any:
     Returns: Any
     """
 
+    # Check if the value is a boolean
     if is_bool(value):
         cast_variables_as = 'bool'
 
+    # Check if the value is a datetime
     elif is_datetime(value):
         cast_variables_as = 'datetime'
 
+    # Check if the value is null
     elif is_null(value):
         cast_variables_as = 'null'
 
+    # Check if the value is a number
     elif is_number(value):
-        cast_variables_as = 'float'
+        # If the value is a string and contains a decimal point, cast it as a float
+        if isinstance(value, str):
+            if '.' in str(value):
+                cast_variables_as = 'float'
+            else:
+                # If the value is a string and does not contain a decimal point, cast it as an integer
+                cast_variables_as = 'int'
+        else:
+            # If the value is not a string, cast it as a float
+            cast_variables_as = 'float'
 
+    # If none of the above conditions are met, cast the value as a string
     else:
         cast_variables_as = 'str'
 
+    # Use the cast() function to cast the value to the determined type
     return cast(value, cast_variables_as)
 
 
