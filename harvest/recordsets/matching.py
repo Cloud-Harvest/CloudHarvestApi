@@ -21,7 +21,37 @@ _MATCH_OPERATIONS = {
 
 
 class HarvestMatch:
+    """
+    The HarvestMatch class is used to perform matching operations on a record based on a provided syntax.
+
+    Attributes:
+        syntax (str): The matching syntax to be used.
+        key (str): The key to be used in the matching operation.
+        value (str): The value to be used in the matching operation.
+        operator (str): The operator to be used in the matching operation.
+        final_match_operation (str): The final matching operation after processing.
+        is_match (bool): The result of the matching operation.
+
+    Methods:
+        as_mongo_match() -> dict:
+            Converts the matching operation into a MongoDB match operation.
+
+        match() -> bool:
+            Performs the matching operation and returns the result.
+
+        get_operator_key() -> str:
+            Retrieves the operator key from the matching syntax.
+    """
+
     def __init__(self, syntax: str, record: OrderedDict = None):
+        """
+        Constructs a new HarvestMatch instance.
+
+        Args:
+            syntax (str): The matching syntax to be used.
+            record (OrderedDict, optional): The record to be matched. Defaults to an empty dictionary.
+        """
+
         self._record = record or {}
         self.syntax = syntax
         self.key = None
@@ -32,6 +62,13 @@ class HarvestMatch:
         self.is_match = None
 
     def as_mongo_match(self) -> dict:
+        """
+        Converts the matching operation into a MongoDB match operation.
+
+        Returns:
+            dict: A dictionary representing the MongoDB match operation.
+        """
+
         if self.key is None and self.value is None:
             self.key, self.value = self.syntax.split(self.operator, maxsplit=1)
 
@@ -123,6 +160,13 @@ class HarvestMatch:
         return result
 
     def match(self) -> bool:
+        """
+        Performs the matching operation and returns the result.
+
+        Returns:
+            bool: The result of the matching operation.
+        """
+
         self.key, self.value = self.syntax.split(self.operator, maxsplit=1)
 
         from .functions import is_bool, is_datetime, is_null, is_number
@@ -164,6 +208,16 @@ class HarvestMatch:
         return result
 
     def get_operator_key(self):
+        """
+        Retrieves the operator key from the matching syntax.
+
+        Returns:
+            str: The operator key.
+
+        Raises:
+            ValueError: If no valid operator is found in the syntax.
+        """
+
         for op in _MATCH_OPERATIONS.keys():
             if op in self.syntax:
                 return op
@@ -172,7 +226,27 @@ class HarvestMatch:
 
 
 class HarvestMatchSet(list):
+    """
+    The HarvestMatchSet class is a list of HarvestMatch instances. It is used to perform matching operations on a record
+    based on a list of provided syntaxes.
+
+    Attributes:
+        matches (List[HarvestMatch]): The list of HarvestMatch instances.
+
+    Methods:
+        as_mongo_match() -> dict:
+            Converts the matching operations of all HarvestMatch instances into MongoDB match operations.
+    """
+
     def __init__(self, matches: List[str], record: OrderedDict = None):
+        """
+        Constructs a new HarvestMatchSet instance.
+
+        Args:
+            matches (List[str]): The list of matching syntaxes to be used.
+            record (OrderedDict, optional): The record to be matched. Defaults to an empty dictionary.
+        """
+
         super().__init__()
 
         self._record = record
@@ -180,6 +254,13 @@ class HarvestMatchSet(list):
         self.matches = [HarvestMatch(record=record, syntax=match) for match in matches]
 
     def as_mongo_match(self) -> dict:
+        """
+        Converts the matching operations of all HarvestMatch instances into MongoDB match operations.
+
+        Returns:
+            dict: A dictionary representing the MongoDB match operations.
+        """
+
         result = {}
         expr = {'$expr': {'$and': []}}
         non_expr = {}
