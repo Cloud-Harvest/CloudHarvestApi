@@ -36,6 +36,9 @@ class HarvestMatch:
             from .functions import fuzzy_cast
             self.value = fuzzy_cast(self.value)
 
+            if self.value is None:
+                return {self.key: None}
+
         key = f'${self.key}'
 
         match self.operator:
@@ -44,7 +47,7 @@ class HarvestMatch:
                 result = {
                     "$regexMatch": {
                         "input": key,
-                        "regex": self.value,
+                        "regex": str(self.value),       # $regexMatch requires a string
                         "options": "i"
                     }
                 }
@@ -82,7 +85,7 @@ class HarvestMatch:
                     "$not": {
                         "$regexMatch": {
                             "input": key,
-                            "regex": self.value,
+                            "regex": str(self.value),       # $regexMatch requires a string
                             "options": "i"
                         }
                     }
@@ -166,15 +169,22 @@ class HarvestMatchSet(list):
         self.matches = [HarvestMatch(record=record, syntax=match) for match in matches]
 
     def as_mongo_match(self) -> dict:
-        if len(self.matches) == 0:
-            return {}
+        result = {}
+        expr = {'$expr': {'$and': []}}
+        non_expr = {}
 
-        elif len(self.matches) == 1:
-            return {
-                "$expr": self.matches[0].as_mongo_match()
-            }
+        for match in self.matches:
+            match_syntax = match.as_mongo_match()
+            if list(match_syntax.keys())[0].startswith('$'):
+                expr['$expr']['$and'].append(match_syntax)
 
-        else:
-            return {
-                "$and": [match.as_mongo_match() for match in self.matches]
-            }
+            else:
+                non_expr.update(match_syntax)
+
+        if expr['$expr']['$and']:
+            result.update(expr)
+
+        if non_expr:
+            result.update(non_expr)
+
+        return result
