@@ -10,7 +10,9 @@ from typing import List
 _MATCH_OPERATIONS = {
         '==': operator.eq,  # Checks if 'a' is equal to 'b'
         '>=': operator.ge,  # Checks if 'a' is greater than or equal to 'b'
+        '=>': operator.ge,  # Checks if 'a' is greater than or equal to 'b'
         '<=': operator.le,  # Checks if 'a' is less than or equal to 'b'
+        '=<': operator.le,  # Checks if 'a' is less than or equal to 'b'
         '!=': operator.ne,  # Checks if 'a' is not equal to 'b'
         '>': operator.gt,   # Checks if 'a' is greater than 'b'
         '<': operator.lt,   # Checks if 'a' is less than 'b'
@@ -21,23 +23,31 @@ _MATCH_OPERATIONS = {
 class HarvestMatch:
     def __init__(self, syntax: str, record: OrderedDict = None):
         self._record = record or {}
-        self._input = syntax
+        self.syntax = syntax
         self.key = None
         self.value = None
 
-        self.operator = [op for op in _MATCH_OPERATIONS.keys() if op in syntax][0]
+        self.operator = self.get_operator_key()
         self.final_match_operation = None
         self.is_match = None
 
     def as_mongo_match(self) -> dict:
         if self.key is None and self.value is None:
-            self.key, self.value = self._input.split(self.operator, maxsplit=1)
+            self.key, self.value = self.syntax.split(self.operator, maxsplit=1)
 
+            # strip whitespace from the key, value, and operator
+            for v in ['key', 'value', 'operator']:
+                if hasattr(getattr(self, v), 'strip'):
+                    setattr(self, v, getattr(self, v).strip())
+
+            # fuzzy cast the value to the appropriate type
             from .functions import fuzzy_cast
             self.value = fuzzy_cast(self.value)
 
             if self.value is None:
-                return {self.key: None}
+                return {
+                    self.key: None
+                }
 
         key = f'${self.key}'
 
@@ -46,45 +56,45 @@ class HarvestMatch:
             case '=':
                 result = {
                     "$regexMatch": {
-                        "input": key,
+                        "input": {
+                            "$toString": key
+                        },
                         "regex": str(self.value),       # $regexMatch requires a string
                         "options": "i"
                     }
                 }
 
-            case '<=':
+            case '<=' | '=<':
                 # https://www.mongodb.com/docs/manual/reference/operator/aggregation/lte/
                 result = {
-                    "$lte": {
-                        [
-                            key,
-                            self.value
-                        ]
+                    self.key: {
+                        "$lte": self.value
                     }
                 }
 
-            case '>=':
+            case '>=' | '=>':
                 # https://www.mongodb.com/docs/manual/reference/operator/aggregation/gte/
                 result = {
-                    "$gte": {
-                        [
-                            key,
-                            self.value
-                        ]
+                    self.key: {
+                        "$gte": self.value
                     }
                 }
+
             case '==':
                 # https://www.mongodb.com/docs/manual/reference/operator/aggregation/match/
                 result = {
                     self.key: self.value
                 }
+
             case '!=':
                 # https://www.mongodb.com/docs/manual/reference/operator/aggregation/not/
                 # https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexMatch/
                 result = {
                     "$not": {
                         "$regexMatch": {
-                            "input": key,
+                            "input": {
+                                "$toString": key
+                            },
                             "regex": str(self.value),       # $regexMatch requires a string
                             "options": "i"
                         }
@@ -94,22 +104,16 @@ class HarvestMatch:
             case '<':
                 # https://www.mongodb.com/docs/manual/reference/operator/aggregation/lt/
                 result = {
-                    "$lt": {
-                        [
-                            key,
-                            self.value
-                        ]
+                    self.key: {
+                        "$lt": self.value
                     }
                 }
 
             case '>':
                 # https://www.mongodb.com/docs/manual/reference/operator/aggregation/gt/
                 result = {
-                    "$gt": {
-                        [
-                            key,
-                            self.value
-                        ]
+                    self.key: {
+                        "$gt": self.value
                     }
                 }
 
@@ -119,7 +123,7 @@ class HarvestMatch:
         return result
 
     def match(self) -> bool:
-        self.key, self.value = self._input.split(self.operator, maxsplit=1)
+        self.key, self.value = self.syntax.split(self.operator, maxsplit=1)
 
         from .functions import is_bool, is_datetime, is_null, is_number
         matching_value = self.value
@@ -158,6 +162,13 @@ class HarvestMatch:
         self.is_match = result
 
         return result
+
+    def get_operator_key(self):
+        for op in _MATCH_OPERATIONS.keys():
+            if op in self.syntax:
+                return op
+
+        raise ValueError('No valid operator found in syntax. Valid operators are: ' + ', '.join(_MATCH_OPERATIONS.keys()))
 
 
 class HarvestMatchSet(list):
