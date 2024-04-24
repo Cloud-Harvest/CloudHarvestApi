@@ -85,10 +85,10 @@ class BaseCacheTask(BaseTask):
                 })
 
         if self.add_keys:
-            self.pipeline.append(
+            pipeline.append(
                 {
                     '$addFields': {
-                        key: 1
+                        key: f'${key}'
                         for key in self.add_keys
                         if key not in (self.exclude_keys or [])
                     }
@@ -98,6 +98,13 @@ class BaseCacheTask(BaseTask):
             pipeline.append({
                 '$limit': self.limit
             })
+
+        if self.count:
+            pipeline.append({
+                '$count': 'result'
+            })
+
+            self.headers = ['result']
 
         pipeline.append({
             '$sort': self.get_sort()
@@ -135,17 +142,13 @@ class BaseCacheTask(BaseTask):
         result = self.connection[self.database][self.collection].aggregate(pipeline=self.pipeline_to_execute,
                                                                            comment='harvest-api')
 
-        if self.count:
-            result = len(list(result))
-
-        else:
-            result = [
-                {
-                    k: str(v) if k == '_id' else v
-                    for k, v in doc.items()
-                }
-                for doc in result
-            ]
+        result = [
+            {
+                k: str(v) if k == '_id' else v
+                for k, v in doc.items()
+            }
+            for doc in result
+        ]
 
         end = datetime.now(tz=timezone.utc)
 
@@ -153,7 +156,7 @@ class BaseCacheTask(BaseTask):
             'start': start,
             'end': end,
             'duration': (end - start).total_seconds(),
-            'pipeline': self.pipeline
+            'pipeline': self.pipeline_to_execute
         }
 
         return {
