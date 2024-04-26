@@ -1,0 +1,46 @@
+description: Displays the data collection jobs and their status.
+
+tasks:
+  - cache_aggregate:
+      name: query harvest.data-collection-jobs
+      description: ''
+      result_as: result
+      collection: data-collection-jobs
+      headers:
+        - JobId
+        - Platform
+        - Service
+        - Type
+        - Account
+        - Region
+        - Completed
+        - Total
+        - Status
+        - Start
+        - End
+        - Errors
+
+      pipeline:
+        - $unwind:
+            path: "$pstar"
+            preserveNullAndEmptyArrays: True
+
+        - $project:
+            JobId:
+              $toString: "$_id"
+            Platform: "$pstar.platform"
+            Service: "$pstar.service"
+            Type: "$pstar.type"
+            Account: "$pstar.account"
+            Region: "$pstar.region"
+            Completed: "$pstar.completed"
+            Total: "$pstar.total"
+            Status: "$pstar.status"
+            Start: "$pstar.start"
+            End: "$pstar.end"
+            Duration:
+              $dateDiff:
+                startDate: "$pstar.start"
+                endDate: "$pstar.end"
+                unit: "second"
+            Errors: "$errors"
