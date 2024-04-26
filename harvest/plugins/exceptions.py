@@ -1,4 +1,4 @@
-from core.tasks.tasks.exceptions import BaseHarvestException
+from core.tasks import BaseHarvestException
 
 
 class PluginImportException(BaseHarvestException):
