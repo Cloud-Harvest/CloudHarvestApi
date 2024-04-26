@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime, timezone
 from logging import getLogger
+from typing import List
 
 logger = getLogger('harvest')
 _flat_record_separator = '.'
@@ -277,3 +278,61 @@ def check_harvest_metadata(flat_record: dict) -> bool:
             return False
 
     return True
+
+
+def map_dicts(dict_list):
+    """
+    This function examines a list of dictionaries and generates an output of the keys and data types.
+
+    Parameters:
+    dict_list (list): A list of dictionaries to examine.
+
+    Returns:
+    dict: A dictionary representing the consolidated keys and their data types from the list of dictionaries.
+    """
+
+    # Initialize an empty dictionary to store the results
+    result = {}
+
+    def examine_data(data, prefix=''):
+        """
+        This function is a helper function that recursively traverses a data structure and collects the keys and their
+        corresponding data types.
+
+        Parameters:
+        data: The data to examine. Can be any standard Python type.
+        prefix (str): The prefix for the key (default is '').
+
+        Returns:
+        None
+        """
+
+        # If the data is a dictionary, iterate over its items
+        if isinstance(data, dict):
+            for k, v in data.items():
+                examine_data(v, prefix + k + _flat_record_separator)
+
+        # If the data is a list, iterate over its items
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                examine_data(item, prefix + f'{i}.')
+
+        # If the data is a basic type (not a dict or list), add the key (with the prefix) and the type of the value to
+        # the result dictionary
+        else:
+            key = prefix.rstrip('.')
+            value_type = type(data).__name__
+
+            # Only add the key-value pair if the key does not exist or the existing value is different
+            if key not in result or result[key] != value_type:
+                result[key] = value_type
+
+    # Iterate over the dictionaries in the list and call the helper function with each dictionary
+    [
+        examine_data(d) for d in dict_list
+    ]
+
+    # Return the result dictionary
+    from flatten_json import unflatten_list
+
+    return unflatten_list(result, separator=_flat_record_separator)
