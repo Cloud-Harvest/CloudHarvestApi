@@ -62,7 +62,7 @@ class BaseCacheTask(BaseTask):
 
         if self.matches:
             # This is a required plugin
-            from recordsets.matching import HarvestMatchSet
+            from core.data.recordsets.matching import HarvestMatchSet
 
             match_pipeline = []
             for matches in self.matches:
