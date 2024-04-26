@@ -19,7 +19,7 @@ def reports_run() -> Response:
 
     report_configuration = HarvestConfiguration.reports.get(report_name)
 
-    from tasks.factories import task_chain_from_dict
+    from core.tasks.tasks.factories import task_chain_from_dict
 
     if request_json.get('describe'):
         return jsonify({'data': report_configuration})
