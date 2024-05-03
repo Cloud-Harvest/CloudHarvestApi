@@ -1,11 +1,11 @@
 Authlib
 Flask
+Jinja2
+PyYAML
 flatten-json
-jinja2
 pandas
 pymongo
 pytest
 python-dateutil
-pyyaml
 rich-argparse
 setuptools

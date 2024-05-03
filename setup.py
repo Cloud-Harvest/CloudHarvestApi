@@ -8,7 +8,7 @@ setup(
     version='0.1.0',
     description='This is the API layer for CloudHarvest.',
     author='Cloud Harvest',
-    url='https://github.com/Cloud-Harvest/api',
+    url='https://github.com/Cloud-Harvest/CloudHarvestApi',
     packages=find_packages(exclude=['tests', 'tests.*']),
     install_requires=requirements,
     classifiers=[
