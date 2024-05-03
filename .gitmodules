@@ -1,6 +1,0 @@
-[submodule "harvest/core/data"]
-	path = harvest/core/data
-	url = git@github.com:Cloud-Harvest/core-submodule-data-model.git
-[submodule "harvest/core/tasks"]
-	path = harvest/core/tasks
-	url = git@github.com:Cloud-Harvest/core-submodule-tasks.git
