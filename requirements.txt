@@ -8,3 +8,4 @@ pytest
 python-dateutil
 pyyaml
 rich-argparse
+setuptools
