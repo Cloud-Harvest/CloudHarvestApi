@@ -1,5 +1,5 @@
 import unittest
-from harvest.templating.functions import template_object
+from cloud_harvest_api.templating.functions import template_object
 
 
 class TestTemplateObject(unittest.TestCase):
