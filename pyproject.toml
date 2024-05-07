@@ -6,6 +6,9 @@ authors = ["Cloud Harvest <email@cloudharvest.com>", "Fiona June Leathers <fiona
 license = "CC Attribution-NonCommercial-ShareAlike 4.0 International"
 readme = "README.md"
 
+[[tool.poetry.packages]]
+include = "CloudHarvestApi"
+
 [tool.poetry.dependencies]
 python = ">=3.10"
 Authlib = "*"
