@@ -1,7 +1,7 @@
 from typing import List
 from .connection import HarvestCacheConnection
 
-from core.tasks import BaseTask, TaskStatusCodes
+from CloudHarvestCoreTasks.tasks import BaseTask, TaskStatusCodes
 from logging import getLogger
 
 logger = getLogger('harvest')
@@ -44,7 +44,7 @@ class BaseCacheTask(BaseTask):
         else:
             pipeline_to_execute = self.prepare_pipeline()
 
-        from core.tasks import template_object
+        from CloudHarvestCoreTasks.templating.functions import template_object
         self.pipeline_to_execute = template_object(pipeline_to_execute)
 
     def prepare_pipeline(self) -> List[dict]:
@@ -62,7 +62,7 @@ class BaseCacheTask(BaseTask):
 
         if self.matches:
             # This is a required plugin
-            from core.data import HarvestMatchSet
+            from CloudHarvestCoreDataModel.matching import HarvestMatchSet
 
             match_pipeline = []
             for matches in self.matches:

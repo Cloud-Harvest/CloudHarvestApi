@@ -17,7 +17,7 @@ def init_app():
         [app.register_blueprint(blueprint) for blueprint in PluginRegistry.instantiated_of_type(Blueprint)]
 
         # Register Tasks
-        from core.tasks import BaseTask, BaseTaskChain
+        from CloudHarvestCoreTasks.tasks import BaseTask, BaseTaskChain
         load_subclasses('harvest/**/chains.py', BaseTask, BaseTaskChain)
         load_subclasses('harvest/**/tasks.py', BaseTask, BaseTaskChain)
 
