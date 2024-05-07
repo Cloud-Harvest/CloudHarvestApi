@@ -1,4 +1,4 @@
-from  import BaseHarvestException
+from   import BaseHarvestException
 
 
 class PluginImportException(BaseHarvestException):

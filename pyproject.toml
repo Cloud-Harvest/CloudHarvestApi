@@ -3,11 +3,11 @@ name = "CloudHarvestApi"
 version = "0.1.0"
 description = "This is the API layer for CloudHarvest."
 authors = ["Cloud Harvest <email@cloudharvest.com>", "Fiona June Leathers <fiona.june.leathers@example.com>"]
-license = "MIT"
+license = "CC Attribution-NonCommercial-ShareAlike 4.0 International"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = ">=3.10"
 Authlib = "*"
 Flask = "*"
 Jinja2 = "*"
@@ -18,8 +18,8 @@ pymongo = "*"
 python-dateutil = "*"
 rich-argparse = "*"
 setuptools = "*"
-CloudHarvestCoreTasks = { git = "git@github.com:Cloud-Harvest/CloudHarvestCoreTasks.git" }
-CloudHarvestCoreDataModel = { git = "git@github.com:Cloud-Harvest/CloudHarvestCoreDataModel.git" }
+CloudHarvestCoreTasks = { git = "https://github.com/Cloud-Harvest/CloudHarvestCoreTasks.git" }
+CloudHarvestCoreDataModel = { git = "https://github.com/Cloud-Harvest/CloudHarvestCoreDataModel.git" }
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
