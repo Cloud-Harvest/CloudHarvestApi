@@ -129,6 +129,6 @@ dmypy.json
 .pyre/
 
 # Harvest-specific
-.harvest/*
+app
 .idea
 poetry.lock
