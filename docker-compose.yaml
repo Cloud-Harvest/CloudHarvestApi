@@ -14,5 +14,6 @@ services:
       - "~/.ssh:/root/.ssh"
       - "./app/:/src/app/"
     working_dir: /src
+    user: "${UID}:${GID}"
     expose:
       - "8000"

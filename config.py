@@ -104,7 +104,7 @@ def main(reset: bool = False):
 
     except KeyboardInterrupt:
         console.print('\nExiting...', style='bold red')
-        exit(0)
+        exit(1)
 
     else:
         if not exists('./app'):

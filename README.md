@@ -34,10 +34,7 @@ docker build -t cloud_harvest_api .
 ```
 
 # Run
-The API can be run using the following command:
-```
-docker compose up -d
-```
+The API can be run by executing [`launch.sh`](launch.sh). The [configuration tool](#config-tool-usage) is automatically run if a configuration file is not found.
 
 # License
 Shield: [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
