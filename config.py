@@ -113,7 +113,7 @@ def main(reset: bool = False):
 
         with open('./app/harvest.yaml', 'w') as config_file_stream:
             from yaml import dump
-            dump(defaults, config_file_stream)
+            dump(defaults, config_file_stream, default_style='"')
 
         console.print('Configuration saved to ./app/harvest.yaml',
                       style='blue')
