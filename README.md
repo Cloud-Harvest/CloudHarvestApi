@@ -1,5 +1,43 @@
-# api
-interface between clients, the server cache, and other apis
+# Cloud Harvest API
+This repository provides an interface between clients, the server cache, and other apis. This program is intended to operation individually or as part of a cluster of API nodes. 
+
+# Table of Contents
+- [Configuration](#configpy)
+  - [Location](#location) 
+  - [Config Tool Usage](#config-tool-usage)
+- [Building](#building)
+- [Run](#run)
+- [License](#license)
+
+
+# config.py
+First-time users are strongly encouraged to use the [config.py](config.py) script to generate a configuration file. This script will prompt for the necessary information and create a `harvest.yaml` file in `./app/harvest.yaml`.
+
+## Location
+A compiled configuration file is located at `./app/harvest.yaml`.
+
+## Config Tool Usage
+```
+Usage: config.py [-h] [--reset]
+
+Cloud Harvest API Configuration Tool
+
+Options:
+  -h, --help  show this help message and exit
+  --reset     Reset the configuration file to defaults
+```
+
+# Building
+The API can be built locally using the following command:
+```
+docker build -t cloud_harvest_api .
+```
+
+# Run
+The API can be run using the following command:
+```
+docker compose up -d
+```
 
 # License
 Shield: [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
