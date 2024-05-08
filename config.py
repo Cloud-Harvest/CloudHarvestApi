@@ -5,7 +5,6 @@ from typing import Any
 
 def main(reset: bool = False):
     from rich.console import Console
-    from rich.prompt import Prompt
 
     console = Console()
 
