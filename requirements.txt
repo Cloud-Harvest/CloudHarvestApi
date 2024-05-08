@@ -9,5 +9,5 @@ pandas
 pymongo
 python-dateutil
 pytest
+rich
 setuptools
-survey
