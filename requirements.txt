@@ -1,0 +1,12 @@
+CloudHarvestCoreDataModel @ git+https://github.com/Cloud-Harvest/CloudHarvestCoreDataModel.git@main
+CloudHarvestCoreTasks @ git+https://github.com/Cloud-Harvest/CloudHarvestCoreTasks.git@main
+Authlib
+Flask
+Jinja2
+PyYAML
+flatten-json
+pandas
+pymongo
+python-dateutil
+pytest
+setuptools
