@@ -10,6 +10,9 @@ config = dict(name='CloudHarvestApi',
               url='https://github.com/Cloud-Harvest/CloudHarvestApi',
               packages=find_packages(include=['CloudHarvestApi']),
               install_requires=required,
+              classifiers=[
+                  'Programming Language :: Python :: 3.12',
+              ],
               license='CC Attribution-NonCommercial-ShareAlike 4.0 International')
 
 
