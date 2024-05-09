@@ -18,7 +18,7 @@ def cache_collect() -> Response:
 def cache_map() -> Response:
     request_json = loads(request.get_json())
 
-    from configuration import HarvestConfiguration
+    from startup import HarvestConfiguration
     from cache.connection import HarvestCacheConnection
     from cache.data import get_collection_name, map_dicts
     from datetime import datetime, timezone
@@ -74,7 +74,7 @@ def cache_upload() -> Response:
 
     else:
         from cache.data import HarvestCacheConnection, write_records
-        from configuration import HarvestConfiguration
+        from startup import HarvestConfiguration
         with HarvestCacheConnection(connect=True, **HarvestConfiguration.cache['connection']) as cache:
             results = write_records(client=cache, records=data)
 
@@ -84,7 +84,7 @@ def cache_upload() -> Response:
 @blueprint.route('/cache/get/data_collections', methods=['GET'])
 def cache_get_platforms() -> Response:
     from cache.connection import HarvestCacheConnection
-    from configuration import HarvestConfiguration
+    from startup import HarvestConfiguration
     with HarvestCacheConnection(connect=True, **HarvestConfiguration.cache['connection']) as cache:
         results = cache['harvest'].list_collection_names()
 

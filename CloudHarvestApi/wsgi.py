@@ -1,5 +1,5 @@
 from api.launch import init_app
-from configuration import HarvestConfiguration
+from startup import HarvestConfiguration
 
 app = init_app()
 

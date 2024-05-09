@@ -13,4 +13,10 @@ config = dict(name='CloudHarvestApi',
               install_requires=required,
               license='CC Attribution-NonCommercial-ShareAlike 4.0 International')
 
-setup(**config)
+
+def main():
+    setup(**config)
+
+
+if __name__ == '__main__':
+    main()

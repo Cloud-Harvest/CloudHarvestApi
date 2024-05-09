@@ -5,29 +5,32 @@ logger = getLogger('harvest')
 
 def init_app():
     """Initialize the core application."""
-    app = Flask('cloud-harvest-api', instance_relative_config=False)
+    app = Flask('CloudHarvestApi', instance_relative_config=False)
+
+    from startup import HarvestConfiguration
+    HarvestConfiguration.startup()
 
     with app.app_context():
         # Register Blueprints
-        load_blueprints(app=app, blueprint_dir='harvest/api/blueprints')
+        # load_blueprints(app=app, blueprint_dir='CloudHarvestApi/api/blueprints')
 
         # Register Blueprints added from plugins
-        from plugins.registry import PluginRegistry
-        from flask.blueprints import Blueprint
-        [app.register_blueprint(blueprint) for blueprint in PluginRegistry.instantiated_of_type(Blueprint)]
-
-        # Register Tasks
-        from CloudHarvestCoreTasks.tasks import BaseTask, BaseTaskChain
-        load_subclasses('harvest/**/chains.py', BaseTask, BaseTaskChain)
-        load_subclasses('harvest/**/tasks.py', BaseTask, BaseTaskChain)
+        # from plugins import PluginRegistry
+        # from flask.blueprints import Blueprint
+        # [app.register_blueprint(blueprint) for blueprint in PluginRegistry.instantiated_of_type(Blueprint)]
+        #
+        # # Register Tasks
+        # from CloudHarvestCoreTasks.tasks import BaseTask, BaseTaskChain
+        # load_subclasses('harvest/**/chains.py', BaseTask, BaseTaskChain)
+        # load_subclasses('harvest/**/tasks.py', BaseTask, BaseTaskChain)
 
         # index the backend database
         try:
             from cache.connection import HarvestCacheConnection
             from cache.data import add_indexes
-            from configuration import HarvestConfiguration
-            add_indexes(client=HarvestCacheConnection(**HarvestConfiguration.cache['connection']),
-                        indexes=HarvestConfiguration.cache.get('indexes'))
+            from startup import HarvestConfiguration
+            add_indexes(client=HarvestCacheConnection(**HarvestConfiguration.cache),
+                        indexes=HarvestConfiguration.indexes)
         except Exception as e:
             logger.error(f'Could not index the backend database: {e.args}')
 

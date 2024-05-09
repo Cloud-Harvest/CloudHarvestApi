@@ -21,7 +21,7 @@ def main(reset: bool = False):
         },
         'logging': {
             'level': 'debug',
-            'location': './app/logs/api.log'
+            'location': './app/logs/'
         },
         'plugins': {}
     }

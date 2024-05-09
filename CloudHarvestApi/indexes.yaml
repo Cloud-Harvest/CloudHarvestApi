@@ -1,0 +1,42 @@
+# Documentation for `indexes.yaml`
+#
+# This file is used to define the indexes for the MongoDB collections used in the CloudHarvest API.
+# The structure of the file is as follows:
+#
+# - The root level of the file contains the names of the MongoDB databases. In the provided example, there is one database named `harvest`.
+# - The first nested level under each database name contains the names of the collections. In the provided example, there are collections named `api_nodes`, `pstar`, and `meta`.
+# - Each collection has a list of fields that should be indexed. These are listed under the collection name.
+#     - For simple binary tree indexes, the field name is listed as a string.
+#     - For compound indexes or indexes with additional options, the field names and options are listed as a dictionary.
+#     - The `keys` field in the dictionary is used to specify the fields that should be included in the index.
+#     - The `options` field in the dictionary is used to specify additional options for the index, such as whether the index should enforce uniqueness (`unique: true`).
+
+
+harvest:              # The database name
+  api_nodes:          # The collection name
+    - hostname        # A simple binary tree index on the `hostname` field
+    - end             # A simple binary tree index on the `end` field
+  pstar:              # Another collection
+    - Platform
+    - Service
+    - Type
+    - Account
+    - Region
+    - Records
+    - Errors
+    - keys:                                             # A compound index on multiple fields
+        - field: Platform
+        - field: Service
+        - field: Type
+        - field: Account
+        - field: Region
+      options:                                          # Additional options for the compound index
+        name: unique_pstar_idx                          # The name of the index
+        comment: unique identifier for pstar records    # A comment describing the index
+        unique: true                                    # The index enforces uniqueness
+  meta:
+    - [Collection, CollectionId]      # A compound index on the `Collection` and `CollectionId` fields
+    - keys:                           # A single field index with complex options
+        - field: Harvest.Module.UniqueFilter
+      options:                        # Additional options for the compound index
+        unique: true                  # The index enforces uniqueness

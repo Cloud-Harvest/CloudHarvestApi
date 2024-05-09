@@ -1,5 +1,4 @@
 from typing import List
-from .connection import HarvestCacheConnection
 
 from CloudHarvestCoreTasks.tasks import BaseTask, TaskStatusCodes
 from logging import getLogger
@@ -263,7 +262,7 @@ class CacheAggregateTask(BaseCacheTask):
             self.status = TaskStatusCodes.running
 
             from cache.connection import HarvestCacheConnection
-            from configuration import HarvestConfiguration
+            from startup import HarvestConfiguration
             self.connection = HarvestCacheConnection(**HarvestConfiguration.cache['connection'])
 
             result = self.aggregate()
