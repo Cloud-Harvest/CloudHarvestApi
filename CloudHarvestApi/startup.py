@@ -166,7 +166,7 @@ class HarvestConfiguration:
         HarvestConfiguration.load_logger()
 
         # installs plugins
-        from plugins import PluginRegistry
+        from CloudHarvestCorePluginManager import PluginRegistry
         PluginRegistry.plugins = HarvestConfiguration.plugins
         PluginRegistry.install()
 

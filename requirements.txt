@@ -1,4 +1,5 @@
 CloudHarvestCoreDataModel @ git+https://github.com/Cloud-Harvest/CloudHarvestCoreDataModel.git@main
+CloudHarvestCorePluginManager @ git+https://github.com/Cloud-Harvest/CloudHarvestCorePluginManager.git@main
 CloudHarvestCoreTasks @ git+https://github.com/Cloud-Harvest/CloudHarvestCoreTasks.git@main
 Authlib
 Flask
