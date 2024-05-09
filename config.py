@@ -17,7 +17,8 @@ def main(reset: bool = False):
             'host': 'localhost',
             'port': 27017,
             'username': 'admin',
-            'password': ''
+            'password': '',
+            'authsource': 'harvest'         # tells MongoDB which database to authenticate against
         },
         'logging': {
             'level': 'debug',
