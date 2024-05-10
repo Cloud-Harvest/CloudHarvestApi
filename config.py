@@ -127,14 +127,22 @@ def ask(prompt: str, default: str = None, style: str = 'white', **kwargs) -> Any
     from rich.text import Text
 
     result = Prompt.ask(prompt=Text('\n' + prompt, style=style),
-                        default=str(default),
+                        default=None if default is None else str(default),
                         **kwargs)
 
-    if default is None and result == '':
-        return None
+    if default is None and result is None:
+        result = None
+
+    elif default is not None and result is None:
+        result = default
+
+    elif default is None and result is not None:
+        result = result
 
     else:
-        return result
+        result = type(default)(result)
+
+    return result
 
 
 if __name__ == '__main__':
