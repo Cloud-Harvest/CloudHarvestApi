@@ -47,8 +47,8 @@ def main(reset: bool = False):
             defaults.update(existing_config)
 
     try:
-        defaults['api']['host'] = ask('Please enter the API host IP address or hostname',
-                                      default=defaults['api']['host'], )
+        defaults['api']['host'] = ask('Please enter the binding address for the API',
+                                      default=defaults['api']['host'])
         defaults['api']['port'] = int(ask('Please enter the API port',
                                           default=defaults['api']['port']))
         defaults['cache']['host'] = ask('Please enter the cache host IP address or hostname',
