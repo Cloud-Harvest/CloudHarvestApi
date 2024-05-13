@@ -3,11 +3,12 @@ from json import loads
 
 # Blueprint Configuration
 blueprint = Blueprint(
-    'reporting_bp', __name__
+    'reporting_bp', __name__,
+    url_prefix='/reports'
 )
 
 
-@blueprint.route('/reports/list', methods=['GET'])
+@blueprint.route(rule='list', methods=['GET'])
 def reports_list() -> Response:
     from startup import HarvestConfiguration
 
@@ -16,7 +17,8 @@ def reports_list() -> Response:
         'data': [
             {
                 'Name': k,
-                'Description': v.get('description', 'no description')
+                'Description': v.get('report', {}).get('description', 'no description'),
+                'Headers': v.get('report', {}).get('headers', [])
             }
             for k, v in HarvestConfiguration.reports.items()
         ],
@@ -28,8 +30,8 @@ def reports_list() -> Response:
     return jsonify(result)
 
 
-@blueprint.route('/reports/reload', methods=['GET'])
-def reports_run() -> Response:
+@blueprint.route(rule='reload', methods=['GET'])
+def reports_reload() -> Response:
     from startup import HarvestConfiguration
 
     HarvestConfiguration.load_reports()
@@ -37,7 +39,7 @@ def reports_run() -> Response:
     return reports_list()
 
 
-@blueprint.route('/reports/run', methods=['GET'])
+@blueprint.route(rule='run', methods=['GET'])
 def reports_run() -> Response:
     from startup import HarvestConfiguration
 
