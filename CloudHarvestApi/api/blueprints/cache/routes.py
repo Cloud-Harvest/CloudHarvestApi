@@ -19,7 +19,7 @@ def cache_collect() -> Response:
 def cache_map() -> Response:
     request_json = loads(request.get_json())
 
-    from startup import HarvestConfiguration
+    from configuration import HarvestConfiguration
     from cache.connection import HarvestCacheConnection
     from cache.data import get_collection_name, map_dicts
     from datetime import datetime, timezone
@@ -34,7 +34,7 @@ def cache_map() -> Response:
     })
 
     # check if the collection exists
-    with HarvestCacheConnection(connect=True, **HarvestConfiguration.cache['connection']) as cache:
+    with HarvestCacheConnection(connect=True, **HarvestConfiguration.cache) as cache:
         collection = cache['harvest'][collection_name]
 
         if collection is None:
@@ -75,8 +75,8 @@ def cache_upload() -> Response:
 
     else:
         from cache.data import HarvestCacheConnection, write_records
-        from startup import HarvestConfiguration
-        with HarvestCacheConnection(connect=True, **HarvestConfiguration.cache['connection']) as cache:
+        from configuration import HarvestConfiguration
+        with HarvestCacheConnection(connect=True, **HarvestConfiguration.cache) as cache:
             results = write_records(client=cache, records=data)
 
         return jsonify(len(results))
@@ -85,8 +85,8 @@ def cache_upload() -> Response:
 @blueprint.route(rule='get/data_collections', methods=['GET'])
 def cache_get_platforms() -> Response:
     from cache.connection import HarvestCacheConnection
-    from startup import HarvestConfiguration
-    with HarvestCacheConnection(connect=True, **HarvestConfiguration.cache['connection']) as cache:
+    from configuration import HarvestConfiguration
+    with HarvestCacheConnection(connect=True, **HarvestConfiguration.cache) as cache:
         results = cache['harvest'].list_collection_names()
 
     return jsonify([

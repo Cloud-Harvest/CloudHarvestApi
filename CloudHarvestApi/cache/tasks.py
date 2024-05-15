@@ -177,12 +177,17 @@ class BaseCacheTask(BaseTask):
             and exclude_keys is ['header2'], calling this method would return ['header1', 'header3', 'header4'].
         """
 
-        result = []
-        if self.headers:
-            result = [
-                h for h in self.headers + [a for a in self.add_keys if a not in self.headers]
-                if h not in self.exclude_keys
-            ]
+        base_headers = self.headers or safe_index([
+                list(stage_config.keys())
+                for stage in reversed(self.pipeline)
+                for stage_name, stage_config in stage.items()
+                if stage_name == '$project'
+            ], 0)
+
+        result = [
+            h for h in base_headers + [a for a in self.add_keys if a not in self.headers]
+            if h not in self.exclude_keys
+        ]
 
         return result
 
@@ -201,7 +206,30 @@ class BaseCacheTask(BaseTask):
 
         result = {}
         from pymongo import ASCENDING, DESCENDING
-        for s in self.sort or self.headers or []:
+
+        def first_true(*args):
+            for a in args:
+                if a:
+                    return a
+
+        """
+        Sorting is determined by the:
+            sort attribute
+            headers attribute
+            headers attribute of the task chain
+            and finally the keys of the last $project stage in the pipeline
+        """
+        headers = first_true(self.sort,
+                             self.headers,
+                             self.task_chain.headers if hasattr(self.task_chain, 'headers') else None,
+                             safe_index([
+                               list(stage_config.keys())
+                               for stage in reversed(self.pipeline)
+                               for stage_name, stage_config in stage.items()
+                               if stage_name == '$project'
+                             ], 0))
+
+        for s in headers or []:
             if ':' in s:
                 key, value = s.split(':')
                 key = key.strip()
@@ -262,8 +290,8 @@ class CacheAggregateTask(BaseCacheTask):
             self.status = TaskStatusCodes.running
 
             from cache.connection import HarvestCacheConnection
-            from startup import HarvestConfiguration
-            self.connection = HarvestCacheConnection(**HarvestConfiguration.cache['connection'])
+            from configuration import HarvestConfiguration
+            self.connection = HarvestCacheConnection(**HarvestConfiguration.cache)
 
             result = self.aggregate()
 
@@ -281,3 +309,11 @@ class CacheAggregateTask(BaseCacheTask):
                 self.connection.close()
 
         return self
+
+
+def safe_index(lst, item):
+    try:
+        return lst[item]
+
+    except ValueError:
+        return None

@@ -10,7 +10,7 @@ blueprint = Blueprint(
 
 @blueprint.route(rule='list', methods=['GET'])
 def reports_list() -> Response:
-    from startup import HarvestConfiguration
+    from configuration import HarvestConfiguration
 
     # local api reports
     result = {
@@ -32,7 +32,7 @@ def reports_list() -> Response:
 
 @blueprint.route(rule='reload', methods=['GET'])
 def reports_reload() -> Response:
-    from startup import HarvestConfiguration
+    from configuration import HarvestConfiguration
 
     HarvestConfiguration.load_reports()
 
@@ -41,7 +41,7 @@ def reports_reload() -> Response:
 
 @blueprint.route(rule='run', methods=['GET'])
 def reports_run() -> Response:
-    from startup import HarvestConfiguration
+    from configuration import HarvestConfiguration
 
     request_json = loads(request.get_json())
 
@@ -58,16 +58,16 @@ def reports_run() -> Response:
     if request_json.get('describe'):
         return jsonify({'data': report_configuration})
 
-    report = task_chain_from_dict(task_chain_name=report_name,
-                                  task_chain=report_configuration,
-                                  chain_class_name='report',
-                                  **request_json)
+    chains = []
 
-    report.run()
+    for chain_class, chain_configuration in report_configuration.items():
+        chain = task_chain_from_dict(task_chain_name=chain_class,
+                                     task_chain=chain_configuration,
+                                     chain_class_name=chain_class,
+                                     **request_json)
+        chains.append(chain)
 
-    if not hasattr(report, 'result'):
-        return jsonify([{'error': 'no result'}])
+        chain.run()
 
-    result = report.result
+    return jsonify(chains[-1].result)
 
-    return jsonify(result)
