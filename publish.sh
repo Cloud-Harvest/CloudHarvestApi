@@ -55,11 +55,11 @@ version=$(grep -oP '(?<="version": ")[^"]*' meta.json)
 
 # Check that all commits have been pushed to git
 if [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
-    echo "Not on main branch or not all commits pushed to git. Aborting."
+    echo "Not on main branch. Aborting."
     exit 1
 fi
 
-if [ "$(git rev-list origin/master..HEAD)" != "" ]; then
+if [ "$(git rev-list origin/main..HEAD)" != "" ]; then
     echo "Not all commits have been pushed to git. Aborting."
     exit 1
 fi
