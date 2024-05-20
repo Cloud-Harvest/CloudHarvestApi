@@ -32,18 +32,18 @@ def main(reset: bool = False):
                              '',
                              'This tool will assist you in setting up your Cloud Harvest API.',
                              '* You can escape this process at any time with CTRL+C.',
-                             '* You may also edit the file manually once it is created in ./app/harvest.yaml',
-                             '* You can skip this process by copying an existing harvest.yaml to ./app/harvest.yaml',
+                             '* You may also edit the file manually once it is created in ./app/harvest.json',
+                             '* You can skip this process by copying an existing harvest.json to ./app/harvest.json',
                              '']))
 
     from os.path import exists
 
-    if exists('./app/harvest.yaml') and reset is False:
-        console.print('Loading existing configuration at `./app/harvest.yaml`', style='bold yellow')
+    if exists('./app/harvest.json') and reset is False:
+        console.print('Loading existing configuration at `./app/harvest.json`', style='bold yellow')
 
-        with open('./app/harvest.yaml', 'r') as existing_config_file_stream:
-            from yaml import load, FullLoader
-            existing_config = load(existing_config_file_stream, Loader=FullLoader)
+        with open('./app/harvest.json', 'r') as existing_config_file_stream:
+            from json import load
+            existing_config = load(existing_config_file_stream)
             defaults.update(existing_config)
 
     try:
@@ -111,11 +111,11 @@ def main(reset: bool = False):
             from os import mkdir
             mkdir('./app')
 
-        with open('./app/harvest.yaml', 'w') as config_file_stream:
+        with open('./app/harvest.json', 'w') as config_file_stream:
             from yaml import dump
             dump(defaults, config_file_stream, default_style='"')
 
-        console.print('Configuration saved to ./app/harvest.yaml',
+        console.print('Configuration saved to ./app/harvest.json',
                       style='blue')
         from rich.text import Text
         console.print(Text('You may now start the Harvest API using the following command:', style='green') +

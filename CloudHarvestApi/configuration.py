@@ -13,11 +13,11 @@ class HarvestConfiguration:
     reports = {}
 
     @staticmethod
-    def load(filename: str = 'app/harvest.yaml'):
-        from yaml import load, FullLoader
+    def load(filename: str = 'app/harvest.json'):
+        from json import load
 
         with open(filename, 'r') as f:
-            config = load(f, Loader=FullLoader)
+            config = load(f)
 
         for key, value in config.items():
             setattr(HarvestConfiguration, key, value)
