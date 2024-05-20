@@ -1,14 +1,10 @@
 #!/bin/bash
 
-# The  launch.sh script is a simple bash script that sets the UID and GID environment variables to the current user’s
-#   UID and GID, respectively, and then runs  docker-compose up -d .
-
-# The docker-compose.yml file is a Docker Compose file that defines the services that make up the application.
-
 # Initialize our own variables
 with_mongo=0
+harvest_config=0
 
-# Check for --with-mongo flag
+# Check for --with-mongo and --harvest-config flags
 for arg in "$@"
 do
     case $arg in
@@ -16,16 +12,20 @@ do
         with_mongo=1
         shift # Remove --with-mongo from processing
         ;;
+        --harvest-config)
+        harvest_config=1
+        shift # Remove --harvest-config from processing
+        ;;
         *)
         shift # Remove generic argument from processing
         ;;
     esac
 done
 
-# Check if the app/harvest.json file exists
-if [ ! -f "./app/harvest.json" ]; then
-    # If the file does not exist, start config.py
-    python3 config.py
+# Check if the app/harvest.json file exists or --harvest-config is provided
+if [ ! -f "./app/harvest.json" ] || [ $harvest_config -eq 1 ]; then
+    # If the file does not exist or --harvest-config is provided, start config.py using docker run
+    docker run -it --rm harvest-api /bin/bash -c "python3 config.py"
 
     # Check the exit status of config.py
     if [ $? -ne 0 ]; then

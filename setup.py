@@ -1,6 +1,11 @@
 from setuptools import setup, find_packages
-from CloudHarvestApi.meta import meta
 
+# load the metadata from the meta.json file
+with open('meta.json') as meta_file_stream:
+    from json import load
+    meta = load(meta_file_stream)
+
+# load requirements from requirements.txt
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
