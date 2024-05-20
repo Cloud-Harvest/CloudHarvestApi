@@ -44,7 +44,7 @@ required_binaries=("docker" "git" "grep")
 
 # Loop through each binary and check if it's installed
 for binary in "${required_binaries[@]}"; do
-    if ! where "$binary" > /dev/null 2>&1; then
+    if ! which "$binary" > /dev/null 2>&1; then
         echo "$binary is not installed. Please install $binary and try again."
         exit 1
     fi
@@ -55,7 +55,7 @@ version=$(grep -oP '(?<="version": ")[^"]*' meta.json)
 
 # Check that all commits have been pushed to git
 if [ "$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then
-    echo "Not on master branch. Aborting."
+    echo "Not on master branch or not all commits pushed to git. Aborting."
     exit 1
 fi
 
