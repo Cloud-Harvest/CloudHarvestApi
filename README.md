@@ -11,10 +11,32 @@ This repository provides an interface between clients, the server cache, and oth
 
 
 # config.py
-First-time users are strongly encouraged to use the [config.py](config.py) script to generate a configuration file. This script will prompt for the necessary information and create a `harvest.yaml` file in `./app/harvest.yaml`.
+First-time users are strongly encouraged to use the [config.py](config.py) script to generate a configuration file. This script will prompt for the necessary information and create a `harvest.json` file in `./app/harvest.json`.
 
 ## Location
-A compiled configuration file is located at `./app/harvest.yaml`.
+A compiled configuration file is located at `./app/harvest.json` and has this basic structure:
+```json
+{
+    "api": {
+        "host": "0.0.0.0",
+        "port": 8000
+    },
+    "cache": {
+        "host": "cloudharvestapi-mongo-1",
+        "password": "eoisjndfkvnzkdfjnbk",
+        "port": 27017,
+        "username": "harvest-api",
+        "authsource": "harvest"
+    },
+    "logging": {
+        "level": "debug",
+        "location": "./app/logs/"
+    },
+    "plugins": {
+        "https://github.com/Cloud-Harvest/CloudHarvestPluginAws.git": "main"
+    }
+}
+```
 
 ## Config Tool Usage
 ```
@@ -30,11 +52,22 @@ Options:
 # Building
 The API can be built locally using the following command:
 ```
-docker build -t cloud_harvest_api .
+docker compose build api
 ```
 
 # Run
 The API can be run by executing [`launch.sh`](launch.sh). The [configuration tool](#config-tool-usage) is automatically run if a configuration file is not found.
+
+## launch.sh Usage
+```bash
+./launch.sh [--with-mongo]
+```
+
+## Arguments
+| Argument       | Description                                                                                                                                                                                                                                                                                    |
+|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--with-mongo` | Starts a local MongoDB instance using the `mongo:latest` image. This is useful for testing and development purposes but also if you just want to run Harvest locally. For the purposes of using Harvest locally, leave the usernames and passwords as the defaults in the `harvest.json` file. |
+
 
 # License
 Shield: [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
