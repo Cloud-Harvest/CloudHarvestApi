@@ -14,10 +14,10 @@ def main(reset: bool = False):
             'port': 8000
         },
         'cache': {
-            'host': 'localhost',
+            'host': 'harvest-mongo',
             'port': 27017,
-            'username': 'admin',
-            'password': '',
+            'username': 'harvest-api',
+            'password': 'default-harvest-password',
             'authsource': 'harvest'         # tells MongoDB which database to authenticate against
         },
         'logging': {
@@ -112,14 +112,16 @@ def main(reset: bool = False):
             mkdir('./app')
 
         with open('./app/harvest.json', 'w') as config_file_stream:
-            from yaml import dump
-            dump(defaults, config_file_stream, default_style='"')
+            from json import dump
+            dump(defaults, config_file_stream, indent=4)
 
         console.print('Configuration saved to ./app/harvest.json',
                       style='blue')
         from rich.text import Text
-        console.print(Text('You may now start the Harvest API using the following command:', style='green') +
-                      Text('docker compose up\n', style='blue'))
+        console.print(Text('You may now start the Harvest API using the following command: ', style='green') +
+                      Text('./launch\n', style='blue') +
+                      Text(' or ', style='green') +
+                      Text('./launch --with-mongo\n', style='blue'))
 
 
 def ask(prompt: str, default: str = None, style: str = 'white', **kwargs) -> Any:
