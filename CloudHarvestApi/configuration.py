@@ -116,8 +116,8 @@ class HarvestConfiguration:
 
     @staticmethod
     def startup() -> None:
-        from setup import config
-        HarvestConfiguration.meta = config
+        from meta import meta
+        HarvestConfiguration.meta = meta
 
         # loads configuration files
         HarvestConfiguration.load()
