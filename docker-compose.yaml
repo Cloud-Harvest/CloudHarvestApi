@@ -5,7 +5,7 @@
 
 services:                           # Defines the services that make up your application
   api:                              # The first service is the API
-    image: "${IMAGE_NAME-cloud-harvest-api}:${IMAGE_TAG:-latest}"   # The Docker image to use for this service
+    image: "${IMAGE_NAME-fionajuneleathers/cloud-harvest-api}:${IMAGE_TAG:-latest}"   # The Docker image to use for this service
     build:                          # Specifies the build configuration
       dockerfile: Dockerfile        # The name of the Dockerfile
       ssh:                          # Specifies SSH configurations

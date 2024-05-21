@@ -3,6 +3,8 @@
 # Initialize our own variables
 with_mongo=0
 harvest_config=0
+image_name="fionajuneleathers/cloud-harvest-api"
+image_tag="latest"
 
 # Check for --with-mongo, --harvest-config, --tag, --image and --help flags
 for arg in "$@"
