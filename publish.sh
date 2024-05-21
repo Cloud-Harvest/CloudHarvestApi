@@ -27,7 +27,7 @@ image_name="cloud-harvest-api"
 docker_namespace="fionajuneleathers"
 skip_git_check=0
 
-# Check for --dry-run and --skip-git-check flags
+# Check for --dry-run, --skip-git-check and --help flags
 for arg in "$@"
 do
     case $arg in
@@ -38,6 +38,15 @@ do
         --skip-git-check)
         skip_git_check=1
         shift # Remove --skip-git-check from processing
+        ;;
+        --help)
+        echo "Usage: ./publish.sh [--dry-run] [--skip-git-check] [--help]"
+        echo ""
+        echo "Options:"
+        echo "--dry-run: Perform all steps except pushing the Docker image to the Docker registry."
+        echo "--skip-git-check: Skip the checks for the main branch and that all commits have been pushed."
+        echo "--help: Show this help message."
+        exit 0
         ;;
         *)
         shift # Remove generic argument from processing
