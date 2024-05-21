@@ -4,7 +4,7 @@
 with_mongo=0
 harvest_config=0
 
-# Check for --with-mongo and --harvest-config flags
+# Check for --with-mongo, --harvest-config, --tag, --image and --help flags
 for arg in "$@"
 do
     case $arg in
@@ -16,6 +16,27 @@ do
         harvest_config=1
         shift # Remove --harvest-config from processing
         ;;
+        --tag)
+        shift # Remove --tag from processing
+        image_tag="$1"  # Assign the next argument as the image tag
+        shift # Remove the image tag from processing
+        ;;
+        --image)
+        shift # Remove --image from processing
+        image_name="$1"  # Assign the next argument as the image name
+        shift # Remove the image name from processing
+        ;;
+        --help)
+        echo "Usage: ./launch.sh [--with-mongo] [--harvest-config] [--tag] [--image] [--help]"
+        echo ""
+        echo "Options:"
+        echo "--with-mongo: Start the application with MongoDB."
+        echo "--harvest-config: Start config.py using docker run."
+        echo "--tag: Specify the Docker image tag."
+        echo "--image: Specify the Docker image name."
+        echo "--help: Show this help message."
+        exit 0
+        ;;
         *)
         shift # Remove generic argument from processing
         ;;
@@ -25,7 +46,7 @@ done
 # Check if the app/harvest.json file exists or --harvest-config is provided
 if [ ! -f "./app/harvest.json" ] || [ $harvest_config -eq 1 ]; then
     # If the file does not exist or --harvest-config is provided, start config.py using docker run
-    docker run -it --rm harvest-api /bin/bash -c "python3 config.py"
+    docker run -it --rm --entrypoint=/bin/bash -v "./app:/src/app" "$image_name:$image_tag" -c "python3 config.py"
 
     # Check the exit status of config.py
     if [ $? -ne 0 ]; then
@@ -33,15 +54,29 @@ if [ ! -f "./app/harvest.json" ] || [ $harvest_config -eq 1 ]; then
         echo "config.py exited with an error. Aborting."
         exit 1
     fi
+
+    # If --harvest-config was provided, exit with a status code of 0
+    if [ $harvest_config -eq 1 ]; then
+        echo "--harvest-config was specified. Exiting."
+        exit 0
+    fi
 fi
 
 # Check the value of with_mongo
 if [ $with_mongo -eq 1 ]; then
     echo "Starting the application with MongoDB"
     mkdir -p ./app/mongo/data ./app/mongo/logs
-    UID=$(id -u) GID=$(id -g) docker compose up
+    LOCAL_UID=$(id -u) \
+    && LOCAL_GID=$(id -g) \
+    && IMAGE_NAME=$image_name \
+    && IMAGE_TAG=$image_tag \
+    && docker compose up
 
 else
     echo "Starting the API service"
-    UID=$(id -u) GID=$(id -g) docker compose up api
+    LOCAL_UID=$(id -u) \
+    && LOCAL_GID=$(id -g) \
+    && IMAGE_NAME=$image_name \
+    && IMAGE_TAG=$image_tag \
+    && docker compose up api
 fi

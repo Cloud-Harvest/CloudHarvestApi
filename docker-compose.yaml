@@ -5,7 +5,7 @@
 
 services:                           # Defines the services that make up your application
   api:                              # The first service is the API
-    image: cloud-harvest-api        # The Docker image to use for this service
+    image: "${IMAGE_NAME-cloud-harvest-api}:${IMAGE_TAG:-latest}"   # The Docker image to use for this service
     build:                          # Specifies the build configuration
       dockerfile: Dockerfile        # The name of the Dockerfile
       ssh:                          # Specifies SSH configurations
@@ -17,7 +17,7 @@ services:                           # Defines the services that make up your app
       - "~/.ssh:/root/.ssh"
       - "./app/:/src/app/"
     working_dir: /src               # The working directory inside the container
-    user: "${UID}:${GID}"           # The user that runs the command inside the container
+    user: "${LOCAL_UID}:${LOCAL_GID}"           # The user that runs the command inside the container
     expose:                         # Specifies the ports that should be accessible from linked services
       - "8000"
     networks:                       # Specifies the networks the container should connect to
@@ -36,7 +36,7 @@ services:                           # Defines the services that make up your app
     image: mongo                    # The Docker image to use for this service
     container_name: harvest-mongo   # The name of the container
     restart: always                 # Specifies the restart policy
-    user: "${UID}:${GID}"           # The user that runs the command inside the container
+    user: "${LOCAL_UID}:${LOCAL_GID}"           # The user that runs the command inside the container
     ports:                          # Maps the port inside the Docker container to the host
       - "27017:27017"
     volumes:                        # Specifies the paths that should be mounted into the container
@@ -74,5 +74,5 @@ services:                           # Defines the services that make up your app
       /mongo-seed/mongo-seed.js'
 
 networks:                           # Defines the networks to be used by the services
-  harvest-network:                      # The name of the network
+  harvest-network:                  # The name of the network
     driver: bridge                  # The network driver to be used
