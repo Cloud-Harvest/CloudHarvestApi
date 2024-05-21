@@ -116,7 +116,7 @@ class HarvestConfiguration:
 
     @staticmethod
     def startup() -> None:
-        with open('meta.json', 'w') as meta_file_stream:
+        with open('meta.json', 'r') as meta_file_stream:
             from json import load
             meta = load(meta_file_stream)
 
