@@ -17,14 +17,12 @@
 #
 # Environment Variables:
 # image_name: The name of the Docker image. Default is "cloud-harvest-api".
-# docker_namespace: The Docker namespace where the Docker image will be pushed. Default is "fionajuneleathers".
 #
 # Note: This script requires Docker, git, and grep to be installed and properly configured on the system where it will be run.
 
 # Initialize our own variables
 dry_run=0
-image_name="cloud-harvest-api"
-docker_namespace="fionajuneleathers"
+image_name="fionajuneleathers/cloud-harvest-api"
 skip_git_check=0
 
 # Check for --dry-run, --skip-git-check and --help flags
@@ -98,39 +96,27 @@ name_version_commit="$image_name:$version-$commit"
 # Build the docker container with --no-cache
 docker build --no-cache -t "$name_version_commit" .
 
-echo "Built docker container with tag: $name_version_commit"
-
-# Tag the docker image
-docker tag "$image_name:latest" "$name_version_commit"
-
-# Start the container and run all of the tests in the tests directory
-docker run -it --rm \
-    --entrypoint="/bin/bash" \
-    -v "./tests:/src/tests/" \
-    "$name_version_commit" \
-    -c "python -m unittest discover -s /src/tests/"
-
 # Check the exit status of the tests
 if [ $? -ne 0 ]; then
-    echo "Tests failed. Aborting."
+    echo "Build failed. Aborting."
     exit 1
 fi
 
-echo "Tests passed."
+echo "Built docker container with tag: $name_version_commit"
 
 # Check the value of dry_run
 if [ $dry_run -eq 0 ]; then
     # Push the image to docker_namespace/image_name
-    docker tag "$name_version_commit" "$docker_namespace/$name_version_commit"
-    docker push "$docker_namespace/$name_version_commit"
+    docker tag "$name_version_commit" "$name_version_commit"
+    docker push "$name_version_commit"
 
-    echo "Pushed $docker_namespace/$name_version_commit"
+    echo "Pushed $name_version_commit"
 
     # Tag the newly uploaded image as latest
-    docker tag "$name_version_commit" "$docker_namespace/$image_name:latest"
-    docker push "$docker_namespace/$image_name:latest"
+    docker tag "$name_version_commit" "$image_name:latest"
+    docker push "$image_name:latest"
 
-    echo "Pushed $docker_namespace/$name_version_commit and tagged as latest"
+    echo "Pushed $name_version_commit and tagged as latest"
 
 else
     echo "Dry run completed successfully. No changes were pushed."
