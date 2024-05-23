@@ -94,7 +94,7 @@ echo "Git commit's short name: $commit"
 name_version_commit="$image_name:$version-$commit"
 
 # Build the docker container with --no-cache
-docker build --no-cache -t "$name_version_commit" .
+docker build --no-cache --progress plain -t "$name_version_commit" .
 
 # Check the exit status of the tests
 if [ $? -ne 0 ]; then
