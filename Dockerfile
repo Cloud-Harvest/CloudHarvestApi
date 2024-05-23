@@ -6,8 +6,13 @@ ENV PIP_ROOT_USER_ACTION=ignore
 
 COPY . .
 
-# TODO: add pytest tests/ to the RUN command
-RUN pip install setuptools \
-    && pip install -r requirements.txt
+RUN /bin/bash -c " \
+        python -m venv /venv \
+        && source /venv/bin/activate \
+        && pip install --upgrade pip \
+        && pip install setuptools \
+        && pip install -r requirements.txt \
+        && python -m unittest discover -s /src/tests/ \
+    "
 
-ENTRYPOINT python CloudHarvestApi/wsgi.py
+ENTRYPOINT /bin/bash -c "source /venv/bin/activate && python ./CloudHarvestApi/wsgi.py"
