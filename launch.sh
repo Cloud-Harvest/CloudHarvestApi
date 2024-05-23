@@ -64,21 +64,20 @@ if [ ! -f "./app/harvest.json" ] || [ $harvest_config -eq 1 ]; then
     fi
 fi
 
+export LOCAL_UID=$(id -u)
+export LOCAL_GID=$(id -g)
+export IMAGE_NAME=$image_name
+export IMAGE_TAG=$image_tag
+
 # Check the value of with_mongo
 if [ $with_mongo -eq 1 ]; then
     echo "Starting the application with MongoDB"
     mkdir -p ./app/mongo/data ./app/mongo/logs
-    LOCAL_UID=$(id -u) \
-    && LOCAL_GID=$(id -g) \
-    && IMAGE_NAME=$image_name \
-    && IMAGE_TAG=$image_tag \
-    && docker compose up
+
+    docker compose up
 
 else
     echo "Starting the API service"
-    LOCAL_UID=$(id -u) \
-    && LOCAL_GID=$(id -g) \
-    && IMAGE_NAME=$image_name \
-    && IMAGE_TAG=$image_tag \
-    && docker compose up api
+    docker compose up api
+
 fi
