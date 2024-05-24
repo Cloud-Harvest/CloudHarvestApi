@@ -2,12 +2,12 @@
 
 # Initialize our own variables
 with_mongo=0
-harvest_config=0
+config=0
 version=0
-image_name="fionajuneleathers/cloud-harvest-api"
+image="fionajuneleathers/cloud-harvest-api"
 image_tag="latest"
 
-# Check for --with-mongo, --harvest-config, --tag, --image and --help flags
+# Check for --with-mongo, --config, --tag, --image and --help flags
 for arg in "$@"
 do
     case $arg in
@@ -15,9 +15,9 @@ do
         with_mongo=1
         shift # Remove --with-mongo from processing
         ;;
-        --harvest-config)
-        harvest_config=1
-        shift # Remove --harvest-config from processing
+        --config)
+        config=1
+        shift # Remove --config from processing
         ;;
         --tag)
         shift # Remove --tag from processing
@@ -26,7 +26,7 @@ do
         ;;
         --image)
         shift # Remove --image from processing
-        image_name="$1"  # Assign the next argument as the image name
+        image="$1"  # Assign the next argument as the image name
         shift # Remove the image name from processing
         ;;
         --version)
@@ -34,14 +34,22 @@ do
         shift # Remove --version from processing
         ;;
         --help)
-        echo "Usage: ./launch.sh [--with-mongo] [--harvest-config] [--tag] [--image] [--help]"
-        echo ""
-        echo "Options:"
+        echo
+        echo "Cloud Harvest API"
+        echo "Usage: ./launcher.sh [--with-mongo] [--image] [--tag] [--config] [--rebuild] [--version] [--help]"
+        echo
         echo "--with-mongo: Start the application with MongoDB."
-        echo "--harvest-config: Start config.py using docker run."
-        echo "--tag: Specify the Docker image tag."
-        echo "--image: Specify the Docker image name."
-        echo "--help: Show this help message."
+        echo "--help: Displays this help message and exits."
+        echo
+        echo "Image Options:"
+        echo "--image image: Allows you to specify the Docker image name."
+        echo "--tag tag: Allows you to specify the Docker image tag."
+        echo
+        echo "Configuration:"
+        echo "--config: Run the configuration script to create the harvest.json file."
+        echo "--rebuild: Deletes the entire contents of the './app' directory. Implies --config."
+        echo "--version: Prints the version, commit hash, and branch name then exits."
+        echo
         exit 0
         ;;
         *)
@@ -54,7 +62,7 @@ done
 if [ $version -eq 1 ]; then
     version_info=$(docker run --rm \
     --entrypoint=/bin/bash \
-    "$image_name:$image_tag" \
+    "$image:$image_tag" \
     -c "version_number=\$(grep '\"version\"' /src/meta.json | cut -d '\"' -f 4 | tr -d '\n'); \
         commit_hash=\$(cd /src && git rev-parse --short HEAD); \
         branch_name=\$(cd /src && git rev-parse --abbrev-ref HEAD); \
@@ -63,14 +71,14 @@ if [ $version -eq 1 ]; then
     exit 0
 fi
 
-# Check if the app/harvest.json file exists or --harvest-config is provided
-if [ ! -f "./app/harvest.json" ] || [ $harvest_config -eq 1 ]; then
-    # If the file does not exist or --harvest-config is provided, start config.py using docker run
+# Check if the app/harvest.json file exists or --config is provided
+if [ ! -f "./app/harvest.json" ] || [ $config -eq 1 ]; then
+    # If the file does not exist or --config is provided, start config.py using docker run
     docker run -it --rm \
         -v "./app:/src/app" \
         --entrypoint=/bin/bash \
         --user "$(id -u):$(id -g)" \
-        "$image_name:$image_tag" \
+        "$image:$image_tag" \
         -c "
           source /venv/bin/activate &&
           python3 config.py
@@ -85,9 +93,9 @@ if [ ! -f "./app/harvest.json" ] || [ $harvest_config -eq 1 ]; then
         exit 1
     fi
 
-    # If --harvest-config was provided, exit with a status code of 0
-    if [ $harvest_config -eq 1 ]; then
-        echo "--harvest-config was specified. Exiting."
+    # If --config was provided, exit with a status code of 0
+    if [ $config -eq 1 ]; then
+        echo "--config was specified. Exiting."
         exit 0
     fi
 fi
@@ -100,18 +108,17 @@ fi
 
 export LOCAL_UID=$(id -u)
 export LOCAL_GID=$(id -g)
-export IMAGE_NAME=$image_name
+export IMAGE_NAME=$image
 export IMAGE_TAG=$image_tag
+
+echo "Starting CloudHarvestApi with image $image:$image_tag"
 
 # Check the value of with_mongo
 if [ $with_mongo -eq 1 ]; then
-    echo "Starting the application with MongoDB"
     mkdir -p ./app/mongo/data ./app/mongo/logs
-
     docker compose up
 
 else
-    echo "Starting the API service"
     docker compose up api
 
 fi
