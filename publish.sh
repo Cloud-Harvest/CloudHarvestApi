@@ -4,19 +4,6 @@
 # This script is used to build, test, and publish a Docker image for the Cloud Harvest API.
 # It fetches the version number from meta.json and uses it along with the git commit's short name to tag the Docker image.
 # The script also checks that all commits have been pushed to git and that the current branch is main.
-# If the --dry-run or --skip-git-check flags are provided, the script will perform all steps except pushing the Docker image to the Docker registry and checking git status respectively.
-# After pushing the Docker image to the Docker registry, the script tags the image as latest and pushes this tag to the Docker registry.
-# The Docker namespace is configurable via the docker_namespace variable.
-#
-# Usage:
-# ./publish.sh [--dry-run] [--skip-git-check]
-#
-# Options:
-# --dry-run: Perform all steps except pushing the Docker image to the Docker registry.
-# --skip-git-check: Skip the checks for the main branch and that all commits have been pushed.
-#
-# Environment Variables:
-# image_name: The name of the Docker image. Default is "cloud-harvest-api".
 #
 # Note: This script requires Docker, git, and grep to be installed and properly configured on the system where it will be run.
 
@@ -33,16 +20,11 @@ do
         dry_run=1
         shift # Remove --dry-run from processing
         ;;
-        --skip-git-check)
-        skip_git_check=1
-        shift # Remove --skip-git-check from processing
-        ;;
         --help)
         echo "Usage: ./publish.sh [--dry-run] [--skip-git-check] [--help]"
         echo ""
         echo "Options:"
         echo "--dry-run: Perform all steps except pushing the Docker image to the Docker registry."
-        echo "--skip-git-check: Skip the checks for the main branch and that all commits have been pushed."
         echo "--help: Show this help message."
         exit 0
         ;;
@@ -71,7 +53,7 @@ version=$(grep -oP '(?<="version": ")[^"]*' meta.json)
 echo "Version number fetched from meta.json: $version"
 
 # Check that all commits have been pushed to git
-if [ $skip_git_check -eq 0 ]; then
+if [ $dry_run -eq 0 ]; then
     if [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
         echo "Not on main branch. Aborting."
         exit 1
