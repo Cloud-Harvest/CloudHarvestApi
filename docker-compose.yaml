@@ -65,7 +65,7 @@ services:                           # Defines the services that make up your app
       - harvest-network
     command: >
       /bin/bash -c '
-      sleep 5
+      sleep 10
       && mongosh harvest-mongo/harvest
       --username ${MONGO_INITDB_ROOT_USERNAME-admin}
       --password ${MONGO_INITDB_ROOT_PASSWORD-default-harvest-password}
