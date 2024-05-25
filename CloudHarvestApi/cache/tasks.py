@@ -276,7 +276,7 @@ class CacheAggregateTask(BaseCacheTask):
 
         super().__init__(*args, **kwargs)
 
-    def run(self) -> 'BaseTask':
+    def method(self) -> 'BaseTask':
         """
         Executes the CacheAggregateTask. This method will block until the task is completed.
 
@@ -286,27 +286,22 @@ class CacheAggregateTask(BaseCacheTask):
             The instance of the task.
         """
 
-        try:
-            self.status = TaskStatusCodes.running
+        from cache.connection import HarvestCacheConnection
+        from configuration import HarvestConfiguration
+        self.connection = HarvestCacheConnection(**HarvestConfiguration.cache)
 
-            from cache.connection import HarvestCacheConnection
-            from configuration import HarvestConfiguration
-            self.connection = HarvestCacheConnection(**HarvestConfiguration.cache)
+        result = self.aggregate()
 
-            result = self.aggregate()
+        self.data = result.get('data')
+        self.meta = result.get('meta', {}) | {'headers': self.get_headers()}
 
-            self.data = result.get('data')
-            self.meta = result.get('meta', {}) | {'headers': self.get_headers()}
+        return self
 
-        except Exception as ex:
-            self.on_error(ex)
+    def on_complete(self) -> 'BaseCacheTask':
+        super().on_complete()
 
-        else:
-            self.on_complete()
-
-        finally:
-            if self.connection:
-                self.connection.close()
+        if self.connection:
+            self.connection.close()
 
         return self
 
