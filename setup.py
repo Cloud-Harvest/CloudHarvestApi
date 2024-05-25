@@ -9,7 +9,9 @@ with open('meta.json') as meta_file_stream:
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
-config = dict(packages=find_packages(include=['CloudHarvestApi']),
+config = dict(packages=find_packages(include=['CloudHarvestApi', 'CloudHarvestApi.*']),
+              package_data={'CloudHarvestApi': ['reports/**/*.yaml']},
+              include_package_data=True,
               install_requires=required)
 
 config = config | meta
