@@ -119,6 +119,6 @@ if [ $with_mongo -eq 1 ]; then
     docker compose up
 
 else
-    docker compose up api
+    docker compose up harvest-api
 
 fi
