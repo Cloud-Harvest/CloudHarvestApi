@@ -14,10 +14,10 @@ def init_app():
         from CloudHarvestCorePluginManager import PluginRegistry
 
         # Add this program's Task classes to the PluginRegistry
-        PluginRegistry.register_all_classes_by_path('./CloudHarvestApi/cache/', override_package_name='CloudHarvestApi')
+        PluginRegistry.register_all_classes_by_path('./CloudHarvestApi/', override_package_name='CloudHarvestApi')
 
         # Register the instantiated classes in the blueprints directory
-        PluginRegistry.register_instantiated_classes_by_path('./api/blueprints', override_package_name='CloudHarvestApi')
+        PluginRegistry.register_instantiated_classes_by_path('./CloudHarvestApi/', override_package_name='CloudHarvestApi')
 
         # Register Blueprints added from plugins
         from flask.blueprints import Blueprint

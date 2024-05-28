@@ -1,7 +1,13 @@
-from api.launch import init_app
-from configuration import HarvestConfiguration
+class CloudHarvestApi:
+    app = None
 
-app = init_app()
+    @staticmethod
+    def run(**kwargs):
+        CloudHarvestApi.app.run(**kwargs)
+
 
 if __name__ == '__main__':
-    app.run(**HarvestConfiguration.api)
+    from api.launch import init_app
+    from configuration import HarvestConfiguration
+    CloudHarvestApi.app = init_app()
+    CloudHarvestApi.run(**HarvestConfiguration.api)
