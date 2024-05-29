@@ -15,4 +15,4 @@ RUN /bin/bash -c " \
         && python -m unittest discover --verbose -s /src/tests/ \
     "
 
-ENTRYPOINT /bin/bash -c "source /venv/bin/activate && python ./CloudHarvestApi/wsgi.py"
+ENTRYPOINT /bin/bash /src/docker/docker-entrypoint.sh
