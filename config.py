@@ -73,8 +73,8 @@ def main(reset: bool = False):
             table.add_column('Plugin URL', overflow='fold')
             table.add_column('Branch', overflow='fold')
 
-            for plugin_url, plugin_branch in defaults['plugins'].items():
-                table.add_row(plugin_url, plugin_branch)
+            for plugin_url_or_name, plugin_branch_or_version in defaults['plugins'].items():
+                table.add_row(plugin_url_or_name, plugin_branch_or_version)
 
             console.print()
             console.print(table)
@@ -88,19 +88,38 @@ def main(reset: bool = False):
 
         if add_plugins.lower() == 'y':
             while True:
-                plugin_url = ask('Please enter the plugin URL or leave empty to stop adding plugins: ')
+                plugin_url_or_name = ask('Please enter the plugin URL / package name or leave empty to stop '
+                                         'adding plugins: ', default=None)
 
-                if plugin_url == '':
+                if plugin_url_or_name is None:
                     break
 
-                elif not plugin_url.endswith('.git'):
-                    console.print('Invalid plugin URL provided. Plugin URL must end with .git. Please try again',
-                                  style='bold red')
-                    continue
+                if plugin_url_or_name.startswith('http'):
+                    plugin_branch_or_version_default = 'main'
 
-                plugin_branch = ask('Please enter the plugin branch', default='main')
+                else:
+                    plugin_branch_or_version_default = None
 
-                defaults['plugins'][plugin_url] = plugin_branch
+                plugin_branch_or_version = ask('Please enter the plugin branch / version restriction',
+                                               default=plugin_branch_or_version_default)
+
+                defaults['plugins'][plugin_url_or_name] = plugin_branch_or_version
+
+        if defaults['plugins']:
+            plugins_txt = []
+            for plugin_url_or_name, plugin_branch_or_version in defaults['plugins'].items():
+                if plugin_url_or_name.startswith('http'):
+                    plugin_syntax = f'git+{plugin_url_or_name}@{plugin_branch_or_version or "main"}'
+
+                else:
+                    plugin_syntax = plugin_url_or_name + (f'@{plugin_branch_or_version}' if plugin_branch_or_version else '')
+
+                plugins_txt.append(plugin_syntax)
+
+            with open('./app/plugins.txt', 'w') as plugins_file_stream:
+                plugins_file_stream.writelines(plugins_txt)
+
+            console.print('Plugins saved to ./app/plugins.txt', style='blue')
 
     except KeyboardInterrupt:
         console.print('\nExiting...', style='bold red')
