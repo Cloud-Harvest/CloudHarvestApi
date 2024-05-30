@@ -1,5 +1,6 @@
 from typing import List
 
+from CloudHarvestCorePluginManager.decorators import register_definition
 from CloudHarvestCoreTasks.tasks import BaseTask, TaskStatusCodes
 from logging import getLogger
 
@@ -250,6 +251,7 @@ class BaseCacheTask(BaseTask):
         return result
 
 
+@register_definition
 class CacheAggregateTask(BaseCacheTask):
     """
     A class used to represent a Cache Aggregate Task.

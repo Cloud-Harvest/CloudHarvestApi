@@ -11,22 +11,14 @@ def init_app():
     HarvestConfiguration.startup()
 
     with app.app_context():
-        from CloudHarvestCorePluginManager import PluginRegistry
 
-        # Add this program's Task classes to the PluginRegistry
-        PluginRegistry.register_all_classes_by_path('./CloudHarvestApi/', override_package_name='CloudHarvestApi')
-
-        # Register the instantiated classes in the blueprints directory
-        PluginRegistry.register_instantiated_classes_by_path('./CloudHarvestApi/', override_package_name='CloudHarvestApi')
-
-        # Register Blueprints added from plugins
-        from flask.blueprints import Blueprint
+        # Register the Blueprints
+        from CloudHarvestCorePluginManager.registry import Registry
+        from flask import Blueprint
         [
-            app.register_blueprint(blueprint)
-            for blueprint in PluginRegistry.find_classes(is_instance_of=Blueprint,
-                                                         return_all_matching=True,
-                                                         return_type='instantiated') or []
-            if blueprint is not None
+            app.register_blueprint(cache_blueprint)
+            for cache_blueprint in Registry.find_instance(is_subclass_of=Blueprint, return_all_matching=True)
+            if cache_blueprint is not None
         ]
 
         # index the backend database

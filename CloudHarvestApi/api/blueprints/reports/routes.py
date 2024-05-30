@@ -1,14 +1,15 @@
-from flask import Blueprint, Response, jsonify, request
+from api.blueprints.base import HarvestBlueprint
+from flask import Response, jsonify, request
 from json import loads
 
 # Blueprint Configuration
-blueprint = Blueprint(
+report_blueprint = HarvestBlueprint(
     'reporting_bp', __name__,
     url_prefix='/reports'
 )
 
 
-@blueprint.route(rule='list', methods=['GET'])
+@report_blueprint.route(rule='list', methods=['GET'])
 def reports_list() -> Response:
     from configuration import HarvestConfiguration
 
@@ -30,7 +31,7 @@ def reports_list() -> Response:
     return jsonify(result)
 
 
-@blueprint.route(rule='reload', methods=['GET'])
+@report_blueprint.route(rule='reload', methods=['GET'])
 def reports_reload() -> Response:
     from configuration import HarvestConfiguration
 
@@ -39,7 +40,7 @@ def reports_reload() -> Response:
     return reports_list()
 
 
-@blueprint.route(rule='run', methods=['GET'])
+@report_blueprint.route(rule='run', methods=['GET'])
 def reports_run() -> Response:
     from configuration import HarvestConfiguration
 

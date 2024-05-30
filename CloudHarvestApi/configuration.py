@@ -1,11 +1,11 @@
 from logging import Logger, DEBUG
-from cache.heartbeat import HarvestCacheHeartBeatThread
+
 
 
 class HarvestConfiguration:
     api = {}
     cache = {}
-    heartbeat: HarvestCacheHeartBeatThread = None
+    heartbeat = None
     indexes = {}
     logging = {}
     meta = {}
@@ -24,6 +24,7 @@ class HarvestConfiguration:
 
         from cache.connection import HarvestCacheConnection
 
+        from cache.heartbeat import HarvestCacheHeartBeatThread
         HarvestConfiguration.heartbeat = HarvestCacheHeartBeatThread(cache=HarvestCacheConnection(**HarvestConfiguration.cache),
                                                                      version=HarvestConfiguration.meta['version'])
 
@@ -127,11 +128,6 @@ class HarvestConfiguration:
 
         # configures logging
         HarvestConfiguration.load_logger()
-
-        # installs plugins
-        from CloudHarvestCorePluginManager import PluginRegistry
-        PluginRegistry.plugins = HarvestConfiguration.plugins
-        PluginRegistry.install()
 
         # locates reports
         HarvestConfiguration.load_reports()

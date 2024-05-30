@@ -20,9 +20,16 @@ class HarvestCacheHeartBeatThread:
         import platform
         from socket import getfqdn, gethostbyname
         from datetime import datetime, timezone
-        from CloudHarvestCorePluginManager import PluginRegistry
 
         start_datetime = datetime.now(tz=timezone.utc)
+
+        from os.path import exists
+        plugins_txt = 'app/plugins.txt'
+        plugins = []
+        if exists(plugins_txt):
+            with open(plugins_txt, 'r') as plugins_txt_stream:
+                plugins = plugins_txt_stream.readlines()
+
 
         while True:
             message = 'OK'
@@ -36,7 +43,7 @@ class HarvestCacheHeartBeatThread:
                                                                update={"$set": {"hostname": getfqdn(),
                                                                                 "ip": gethostbyname(getfqdn()),
                                                                                 "os": platform.system(),
-                                                                                "plugins": list(PluginRegistry.modules.keys()),
+                                                                                "plugins": plugins,
                                                                                 "version": self._version,
                                                                                 "start": start_datetime,
                                                                                 "last": datetime.now(tz=timezone.utc)

@@ -1,21 +1,21 @@
-from flask import Blueprint, Response, jsonify, request
-from typing import List, Literal
+from api.blueprints.base import HarvestBlueprint
+from flask import Response, jsonify, request
 from json import loads
 
 # Blueprint Configuration
-blueprint = Blueprint(
+cache_blueprint = HarvestBlueprint(
     'cache_bp', __name__,
     url_prefix='/cache'
 )
 
 
-@blueprint.route(rule='collect', methods=['GET'])
+@cache_blueprint.route(rule='collect', methods=['GET'])
 def cache_collect() -> Response:
     request_json = loads(request.get_json())
     pass
 
 
-@blueprint.route(rule='map', methods=['GET'])
+@cache_blueprint.route(rule='map', methods=['GET'])
 def cache_map() -> Response:
     request_json = loads(request.get_json())
 
@@ -61,7 +61,7 @@ def cache_map() -> Response:
     })
 
 
-@blueprint.route(rule='upload', methods=['POST'])
+@cache_blueprint.route(rule='upload', methods=['POST'])
 def cache_upload() -> Response:
     """
 
@@ -82,7 +82,7 @@ def cache_upload() -> Response:
         return jsonify(len(results))
 
 
-@blueprint.route(rule='get/data_collections', methods=['GET'])
+@cache_blueprint.route(rule='get/data_collections', methods=['GET'])
 def cache_get_platforms() -> Response:
     from cache.connection import HarvestCacheConnection
     from configuration import HarvestConfiguration
