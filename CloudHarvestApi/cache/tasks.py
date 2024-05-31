@@ -19,6 +19,7 @@ class BaseCacheTask(BaseTask):
                  limit: int = None,
                  matches: List[List[str]] = None,
                  sort: List[str] = None,
+                 title: str = None,
                  *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -37,6 +38,7 @@ class BaseCacheTask(BaseTask):
         self.limit = limit
         self.matches = matches or []
         self.sort = sort
+        self.title = title
 
         if self.ignore_user_filters:
             pipeline_to_execute = self.pipeline
@@ -156,7 +158,8 @@ class BaseCacheTask(BaseTask):
             'start': start,
             'end': end,
             'duration': (end - start).total_seconds(),
-            'pipeline': self.pipeline_to_execute
+            'pipeline': self.pipeline_to_execute,
+            'title': self.title
         }
 
         return {
