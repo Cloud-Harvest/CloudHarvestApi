@@ -17,8 +17,6 @@ services:                           # Defines the services that make up your app
       - "~/.ssh:/root/.ssh"
       - "./app/:/src/app/"
     working_dir: /src               # The working directory inside the container
-#    expose:                         # Specifies the ports that should be accessible from linked services
-#      - "8000"
     networks:                       # Specifies the networks the container should connect to
       - harvest-network
     environment:                     # Add environment variables
@@ -40,8 +38,6 @@ services:                           # Defines the services that make up your app
       - "27017:27017"
     volumes:                        # Specifies the paths that should be mounted into the container
       - "./app/mongo/:/mongo/"
-#    expose:                         # Specifies the ports that should be accessible from linked services
-#      - "27017"
     command: >                      # The command to run inside the container 
       /bin/bash -c "
         mkdir -p /mongo/data /mongo/log &&
