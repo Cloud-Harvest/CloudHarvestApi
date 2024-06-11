@@ -14,19 +14,21 @@ def reports_list() -> Response:
     from configuration import HarvestConfiguration
 
     # local api reports
-    result = {
-        'data': [
-            {
-                'Name': k,
-                'Description': v.get('report', {}).get('description', 'no description'),
-                'Headers': v.get('report', {}).get('headers', [])
+    result = [
+        {
+            'data': [
+                {
+                    'Name': k,
+                    'Description': v.get('report', {}).get('description', 'no description'),
+                    'Headers': v.get('report', {}).get('headers', [])
+                }
+                for k, v in HarvestConfiguration.reports.items()
+            ],
+            'meta': {
+                'headers': ['Name', 'Description']
             }
-            for k, v in HarvestConfiguration.reports.items()
-        ],
-        'meta': {
-            'headers': ['Name', 'Description']
         }
-    }
+    ]
 
     return jsonify(result)
 
@@ -96,7 +98,7 @@ def reports_run() -> Response:
     from CloudHarvestCoreTasks.factories import task_chain_from_dict
 
     if request_json.get('describe'):
-        return jsonify({'data': report_configuration})
+        return jsonify([{'data': report_configuration}])
 
     results = []
 
@@ -107,9 +109,9 @@ def reports_run() -> Response:
                                      **request_json)
         chain.run()
 
-        results.extend(chain.result)
+        results.append(chain.result)
         if request_json.get('performance'):
-            chain.extend(chain.performance_metrics())
+            results.extend(chain.performance_metrics)
 
     return jsonify(results)
 
