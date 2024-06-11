@@ -1,3 +1,8 @@
+# 0.1.8
+- Added log output for HarvestBlueprint
+- Updated the report output to include the performance report
+- Added custom JSONProvider which returns datetime objects in ISO format 
+
 # 0.1.7
 - Added `/` route and error codes.
 - Removed some unused lines from `docker-compose.yaml`
