@@ -1,3 +1,7 @@
+# 0.1.7
+- Added `/` route and error codes.
+- Removed some unused lines from `docker-compose.yaml`
+
 # 0.1.6
 - Changed the output of the [`report_run()`](CloudHarvestApi/api/blueprints/reports/routes.py) method from `dict` to `List[dict]`
 - Updated `BaseCacheTask` to accept the `title` parameter in the constructor
