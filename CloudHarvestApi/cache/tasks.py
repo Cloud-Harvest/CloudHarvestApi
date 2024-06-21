@@ -254,7 +254,7 @@ class BaseCacheTask(BaseTask):
         return result
 
 
-@register_definition
+@register_definition(name='cache_aggregate')
 class CacheAggregateTask(BaseCacheTask):
     """
     A class used to represent a Cache Aggregate Task.

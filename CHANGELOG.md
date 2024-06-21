@@ -1,3 +1,6 @@
+# 0.1.9
+- Updated to conform with CloudHarvestCorePluginManager 0.2.4
+
 # 0.1.8
 - Added log output for HarvestBlueprint
 - Updated the report output to include the performance report
