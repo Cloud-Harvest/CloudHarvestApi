@@ -1,3 +1,7 @@
+# 0.1.11
+- Updated `docker-compose` so that `mongo` manages its own data volume
+- Fixed invalid `task_chain_from_dict()` arguments in `reports/routes.py`
+
 # 0.1.10
 - Updated to conform with CloudHarvestCoreTasks 0.3.0
 

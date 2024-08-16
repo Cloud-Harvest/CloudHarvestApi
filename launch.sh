@@ -115,7 +115,6 @@ echo "Starting CloudHarvestApi with image $image:$image_tag"
 
 # Check the value of with_mongo
 if [ $with_mongo -eq 1 ]; then
-    mkdir -p ./app/mongo/data ./app/mongo/logs
     docker compose up
 
 else

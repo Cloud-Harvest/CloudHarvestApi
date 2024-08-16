@@ -33,15 +33,13 @@ services:                           # Defines the services that make up your app
     image: mongo                    # The Docker image to use for this service
     container_name: harvest-mongo   # The name of the container
     restart: always                 # Specifies the restart policy
-    user: "${LOCAL_UID}:${LOCAL_GID}"           # The user that runs the command inside the container
     ports:                          # Maps the port inside the Docker container to the host
       - "27017:27017"
     volumes:                        # Specifies the paths that should be mounted into the container
-      - "./app/mongo/:/mongo/"
+      - mongo-data:/data/db
     command: >                      # The command to run inside the container 
       /bin/bash -c "
-        mkdir -p /mongo/data /mongo/log &&
-        docker-entrypoint.sh --bind_ip_all --dbpath /mongo/data --logpath /mongo/log/mongod.log --logappend
+        docker-entrypoint.sh --bind_ip_all --logappend
       "
     networks:                       # Specifies the networks the container should connect to
       - harvest-network
@@ -71,3 +69,6 @@ services:                           # Defines the services that make up your app
 networks:                           # Defines the networks to be used by the services
   harvest-network:                  # The name of the network
     driver: bridge                  # The network driver to be used
+
+volumes:
+  mongo-data:  # Define the persistent volume

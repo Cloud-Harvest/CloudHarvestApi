@@ -103,9 +103,8 @@ def reports_run() -> Response:
     results = []
 
     for chain_class, chain_configuration in report_configuration.items():
-        chain = task_chain_from_dict(task_chain_name=chain_class,
+        chain = task_chain_from_dict(task_chain_registered_class_name=chain_class,
                                      task_chain=chain_configuration,
-                                     chain_class_name=chain_class,
                                      **request_json)
         chain.run()
 
