@@ -66,6 +66,18 @@ services:                           # Defines the services that make up your app
       --authenticationDatabase admin
       /mongo-seed/mongo-seed.js'
 
+  redis:
+    image: redis:latest
+    container_name: harvest-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - harvest-network
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+
+
 networks:                           # Defines the networks to be used by the services
   harvest-network:                  # The name of the network
     driver: bridge                  # The network driver to be used
