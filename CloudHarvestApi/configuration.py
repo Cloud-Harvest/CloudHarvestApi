@@ -66,7 +66,7 @@ class HarvestConfiguration:
 
         # Persistent Silo (MongoDB) - API Retrieval
         from CloudHarvestCoreTasks.silos.persistent import connect
-        HarvestConfiguration.api = connect(**HarvestConfiguration.api)
+        connect(**HarvestConfiguration.silos.get('persistent'))
 
         return HarvestConfiguration
 
