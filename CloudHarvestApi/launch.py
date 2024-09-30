@@ -1,3 +1,7 @@
+"""
+This module is the entry point for the CloudHarvestApi application.
+"""
+
 from flask import Flask
 from logging import getLogger
 logger = getLogger('harvest')
@@ -5,7 +9,7 @@ logger = getLogger('harvest')
 
 def init_app():
     """Initialize the core application."""
-    app = Flask('CloudHarvestApi', instance_relative_config=False)
+    app = Flask('CloudHarvestApi')
 
     from configuration import HarvestConfiguration
     HarvestConfiguration.startup()
@@ -23,12 +27,8 @@ def init_app():
 
         # index the backend database
         try:
-            # TODO: this should be a thread service which is passed through a quorum system
-            from cache.connection import HarvestCacheConnection
-            from cache.data import add_indexes
-            from configuration import HarvestConfiguration
-            add_indexes(client=HarvestCacheConnection(**HarvestConfiguration.cache),
-                        indexes=HarvestConfiguration.indexes)
+            from CloudHarvestCoreTasks.silos.persistent import add_indexes
+            add_indexes(indexes=HarvestConfiguration.indexes)
 
         except Exception as e:
             logger.error(f'Could not index the backend database: {e.args}')

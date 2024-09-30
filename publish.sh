@@ -75,7 +75,7 @@ echo "Git commit's short name: $commit"
 
 name_version_commit="$image_name:$version-$commit"
 
-# Build the docker container with --no-cache
+# Build the docker container with --no-persistent_silo
 docker build --no-cache --progress plain -t "$name_version_commit" .
 
 # Check the exit status of the tests

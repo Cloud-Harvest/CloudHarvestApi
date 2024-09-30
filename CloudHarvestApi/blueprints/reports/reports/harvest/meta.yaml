@@ -14,7 +14,7 @@ report:
     - LastSeen
 
   tasks:
-    - cache_aggregate:
+    - auger:
         name: get meta collection
         result_as: result
         collection: meta

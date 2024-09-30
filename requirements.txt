@@ -10,4 +10,5 @@ pymongo
 python-dateutil
 pytest
 rich
+rich_argparse
 setuptools

@@ -18,7 +18,7 @@ report:
     - Errors
   
   tasks:
-    - cache_aggregate:  
+    - auger:
         collection: pstar
         pipeline: 
           "$project": 

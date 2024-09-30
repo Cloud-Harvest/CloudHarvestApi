@@ -9,7 +9,7 @@ report:
     - Last
 
   tasks:
-    - cache_aggregate:
+    - auger:
         name: query harvest.api_nodes
         description: ''
         result_as: result

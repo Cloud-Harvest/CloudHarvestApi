@@ -1,4 +1,4 @@
-from api.blueprints.base import HarvestBlueprint
+from blueprints.base import HarvestBlueprint
 from flask import Response, jsonify, request
 from json import loads
 
@@ -66,7 +66,7 @@ def reports_run() -> Response:
     - "exclude_keys" is a list of keys to exclude from the headers.
     - "sort" is a list of keys to sort the results by.
 
-    The function first checks if the report specified in "report_name" exists in the HarvestConfiguration.reports
+    The function first checks if the report specified in "report_name" exists in the `HarvestConfiguration.reports`
     dictionary. If it doesn't, it returns an error.
 
     If the "describe" parameter is set to true, the function returns the configuration of the report.
@@ -95,7 +95,7 @@ def reports_run() -> Response:
 
     report_configuration = reports.get(report_name)
 
-    from CloudHarvestCoreTasks.factories import task_chain_from_dict
+    from CloudHarvestCoreTasks.tasks.factories import task_chain_from_dict
 
     if request_json.get('describe'):
         return jsonify([{'data': report_configuration}])

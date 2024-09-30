@@ -1,9 +1,35 @@
+"""
+Cloud Harvest API Configuration Tool
+
+This script assists in setting up the Cloud Harvest API by generating a configuration file (`harvest.json`)
+based on user input. It also provides options to reset the configuration to defaults and to add plugins.
+
+Functions:
+    main(reset: bool = False): Main function to run the configuration tool.
+    ask(prompt: str, default: str = None, style: str = 'white', **kwargs) -> Any: Helper function to prompt user input.
+
+Usage:
+    Run the script with the following command:
+        python config.py
+    To reset the configuration to defaults, use the `--reset` flag:
+        python config.py --reset
+"""
 #!/bin/env python3
 
 from typing import Any
 
 
 def main(reset: bool = False):
+    """
+    Main function to run the Cloud Harvest API Configuration Tool.
+
+    Parameters:
+    reset (bool): If True, resets the configuration file to defaults. Default is False.
+
+    This function guides the user through a series of prompts to set up the configuration for the Cloud Harvest API.
+    It updates or creates the `harvest.json` file with the provided settings.
+    """
+
     from rich.console import Console
 
     console = Console()
@@ -13,12 +39,19 @@ def main(reset: bool = False):
             'host': '0.0.0.0',
             'port': 8000
         },
-        'cache': {
-            'host': 'harvest-mongo',
-            'port': 27017,
-            'username': 'harvest-api',
-            'password': 'default-harvest-password',
-            'authsource': 'harvest'         # tells MongoDB which database to authenticate against
+        'silos': {
+            'ephemeral': {
+                'host': 'harvest-redis',
+                'port': 6379,
+                'password': 'default-harvest-password'
+            },
+            'persistent': {
+                'host': 'harvest-mongo',
+                'port': 27017,
+                'username': 'harvest-api',
+                'password': 'default-harvest-password',
+                'authsource': 'harvest'         # tells MongoDB which database to authenticate against
+            }
         },
         'logging': {
             'level': 'debug',
@@ -41,7 +74,7 @@ def main(reset: bool = False):
     if exists('./app/harvest.json') and reset is False:
         console.print('Loading existing configuration at `./app/harvest.json`', style='bold yellow')
 
-        with open('./app/harvest.json', 'r') as existing_config_file_stream:
+        with open('./app/harvest.json') as existing_config_file_stream:
             from json import load
             existing_config = load(existing_config_file_stream)
             defaults.update(existing_config)
@@ -49,17 +82,25 @@ def main(reset: bool = False):
     try:
         defaults['api']['host'] = ask('Please enter the binding address for the API',
                                       default=defaults['api']['host'])
-        defaults['api']['port'] = int(ask('Please enter the API port',
-                                          default=defaults['api']['port']))
-        defaults['cache']['host'] = ask('Please enter the cache host IP address or hostname',
-                                        default=defaults['cache']['host'])
-        defaults['cache']['port'] = int(ask('Please enter the cache port',
-                                            default=defaults['cache']['port']))
-        defaults['cache']['username'] = ask('Please enter the cache username',
-                                            default=defaults['cache']['username'])
-        defaults['cache']['password'] = ask('Please enter the cache password',
-                                            default=defaults['cache']['password'],
+        defaults['api']['port'] = int(ask('Please enter the API port', default=defaults['api']['port']))
+        defaults['silos']['persistent']['host'] = ask('Please enter the persistent_silo host IP address or hostname',
+                                        default=defaults['silos']['persistent']['host'])
+        defaults['silos']['persistent']['port'] = int(ask('Please enter the persistent_silo port',
+                                                      default=defaults['silos']['persistent']['port']))
+        defaults['silos']['persistent']['username'] = ask('Please enter the persistent_silo username',
+                                            default=defaults['silos']['persistent']['username'])
+        defaults['silos']['persistent']['password'] = ask('Please enter the persistent_silo password',
+                                            default=defaults['silos']['persistent']['password'],
                                             password=True)
+        defaults['silos']['persistent']['authsource'] = ask('Please enter the persistent_silo authsource',
+                                            default=defaults['silos']['persistent']['authsource'])
+        defaults['silos']['ephemeral']['host'] = ask('Please enter the ephemeral_silo host IP address or hostname',
+                                                 default=defaults['silos']['ephemeral']['host'])
+        defaults['silos']['ephemeral']['port'] = int(ask('Please enter the ephemeral_silo port',
+                                                     default=defaults['silos']['ephemeral']['port']))
+        defaults['silos']['ephemeral']['password'] = ask('Please enter the ephemeral_silo password',
+                                                     default=defaults['silos']['ephemeral']['password'],
+                                                     password=True)
         defaults['logging']['level'] = ask('Please enter the logging level',
                                            choices=['debug', 'info', 'warning', 'error', 'critical'],
                                            default=defaults['logging']['level'])

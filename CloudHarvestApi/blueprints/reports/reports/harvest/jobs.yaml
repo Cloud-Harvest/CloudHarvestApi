@@ -15,7 +15,7 @@ report:
     - Errors
 
   tasks:
-    - cache_aggregate:
+    - auger:
         name: query harvest.data-collection-jobs
         description: ''
         result_as: result
