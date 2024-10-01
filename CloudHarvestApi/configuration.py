@@ -40,26 +40,26 @@ class HarvestConfiguration:
     silos = {}
 
     @staticmethod
-    def load(filename: str = 'app/harvest.json'):
+    def _load(filename: str = 'app/harvest.json'):
         """
         This method loads the configuration from the 'harvest.json' file and stores it in the HarvestConfiguration class.
         """
 
         from json import load
 
-        with open(filename, 'r') as f:
+        with open(filename) as f:
             config = load(f)
 
         for key, value in config.items():
             setattr(HarvestConfiguration, key, value)
 
-        # Setup the backend silo connections
+        # Set up the backend silo connections
 
         # Ephemeral Silo (Redis) - API Heartbeat and Cache
         from CloudHarvestCoreTasks.silos.ephemeral import connect, start_heartbeat
 
         # Establish a connection to the Redis cache
-        redis_connection = connect(**HarvestConfiguration.silos.get('ephemeral') | {'database': 'api'})
+        connect(**HarvestConfiguration.silos.get('ephemeral') | {'database': 'api'})
 
         # Start the heartbeat process using the 'api' heartbeat type
         HarvestConfiguration.heartbeat = start_heartbeat(heartbeat_type='api', database='api')
@@ -90,7 +90,7 @@ class HarvestConfiguration:
             for file in report_files:
                 if 'reports' in file and 'CloudHarvest' in file:
                     from yaml import load, FullLoader
-                    with open(file, 'r') as stream:
+                    with open(file) as stream:
                         report_contents = load(stream, Loader=FullLoader)
 
                     file_separated = file.split(os.sep)
@@ -103,7 +103,7 @@ class HarvestConfiguration:
         return results
 
     @staticmethod
-    def load_logger() -> Logger:
+    def _load_logger() -> Logger:
         """
         This method configures the logging for the CloudHarvest API using the configuration from the 'harvest.json' file.
         The logging level and location are set in the configuration file. The logger is returned for use in the API.
@@ -162,7 +162,7 @@ class HarvestConfiguration:
         This method loads the indexes from the 'indexes.yaml' file and stores them in the HarvestConfiguration class.
         """
 
-        with open('CloudHarvestApi/indexes.yaml', 'r') as f:
+        with open('CloudHarvestApi/indexes.yaml') as f:
             from yaml import load, FullLoader
             indexes = load(f, Loader=FullLoader)
 
@@ -182,10 +182,10 @@ class HarvestConfiguration:
         HarvestConfiguration.meta = meta
 
         # loads configuration files
-        HarvestConfiguration.load()
+        HarvestConfiguration._load()
 
         # configures logging
-        HarvestConfiguration.load_logger()
+        HarvestConfiguration._load_logger()
 
         # locates reports
         HarvestConfiguration.load_reports()
