@@ -14,10 +14,13 @@ report:
     - LastSeen
 
   tasks:
-    - auger:
+    - mongo:
         name: get meta collection
         result_as: result
         collection: meta
+        user_filters:
+          accepted: '*'
+
         pipeline:
           - $project:
               Active: "$Harvest.Active"

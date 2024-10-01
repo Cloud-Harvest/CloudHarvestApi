@@ -15,11 +15,13 @@ report:
     - Errors
 
   tasks:
-    - auger:
+    - mongo:
         name: query harvest.data-collection-jobs
         description: ''
         result_as: result
         collection: data-collection-jobs
+        user_filters:
+          accepted: '*'
 
         pipeline:
           - $unwind:
