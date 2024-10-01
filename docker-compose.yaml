@@ -44,8 +44,8 @@ services:                           # Defines the services that make up your app
     networks:                       # Specifies the networks the container should connect to
       - harvest-network
     environment:                     # Add environment variables
-      MONGO_INITDB_ROOT_USERNAME: "${MONGO_INITDB_ROOT_USERNAME-admin}"
-      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_INITDB_ROOT_PASSWORD-default-harvest-password}"
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_INITDB_ROOT_USERNAME:-admin}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_INITDB_ROOT_PASSWORD:-default-harvest-password}"
       HTTPS_PROXY: "${HTTPS_PROXY}"
       NO_PROXY: "${NO_PROXY}"
 
@@ -61,8 +61,8 @@ services:                           # Defines the services that make up your app
       /bin/bash -c '
       sleep 10
       && mongosh harvest-mongo/harvest
-      --username ${MONGO_INITDB_ROOT_USERNAME-admin}
-      --password ${MONGO_INITDB_ROOT_PASSWORD-default-harvest-password}
+      --username ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      --password ${MONGO_INITDB_ROOT_PASSWORD:-default-harvest-password}
       --authenticationDatabase admin
       /mongo-seed/mongo-seed.js'
 
@@ -75,8 +75,8 @@ services:                           # Defines the services that make up your app
     networks:
       - harvest-network
     environment:
-      REDIS_PASSWORD: "${REDIS_PASSWORD}"
-
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-default-harvest-password}"
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-default-harvest-password}", "--maxmemory", "256mb"]
 
 networks:                           # Defines the networks to be used by the services
   harvest-network:                  # The name of the network
