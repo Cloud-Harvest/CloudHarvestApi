@@ -2,18 +2,23 @@
 
 # Initialize our own variables
 with_mongo=0
+with_redis=0
 config=0
 version=0
 image="fionajuneleathers/cloud-harvest-api"
 image_tag="latest"
 
-# Check for --with-mongo, --config, --tag, --image and --help flags
+# Check for --with-mongo, --with-redis, --config, --tag, --image and --help flags
 for arg in "$@"
 do
     case $arg in
         --with-mongo)
         with_mongo=1
         shift # Remove --with-mongo from processing
+        ;;
+        --with-redis)
+        with_redis=1
+        shift # Remove --with-redis from processing
         ;;
         --config)
         config=1
@@ -36,9 +41,10 @@ do
         --help)
         echo
         echo "Cloud Harvest API"
-        echo "Usage: ./launcher.sh [--with-mongo] [--image] [--tag] [--config] [--rebuild] [--version] [--help]"
+        echo "Usage: ./launcher.sh [--with-mongo] [--with-redis] [--image] [--tag] [--config] [--rebuild] [--version] [--help]"
         echo
         echo "--with-mongo: Start the application with MongoDB."
+        echo "--with-redis: Start the application with Redis."
         echo "--help: Displays this help message and exits."
         echo
         echo "Image Options:"
@@ -113,11 +119,13 @@ export IMAGE_TAG=$image_tag
 
 echo "Starting CloudHarvestApi with image $image:$image_tag"
 
-# Check the value of with_mongo
-if [ $with_mongo -eq 1 ]; then
+# Check the value of with_mongo and with_redis
+if [ $with_mongo -eq 1 ] && [ $with_redis -eq 1 ]; then
     docker compose up
-
+elif [ $with_mongo -eq 1 ]; then
+    docker compose up harvest-api mongo
+elif [ $with_redis -eq 1 ]; then
+    docker compose up harvest-api redis
 else
     docker compose up harvest-api
-
 fi
