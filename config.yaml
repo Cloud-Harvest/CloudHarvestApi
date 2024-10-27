@@ -1,0 +1,154 @@
+# Default configuration for the Harvest API.
+.default-mongo-host: &default-mongo-host
+  default: harvest-mongo
+.default-mongo-port: &default-mongo-port
+  default: 27017
+.default-mongo-database: &default-mongo-database
+  default: harvest
+.default-mongo-username: &default-mongo-username
+  default: harvest-api
+.default-mongo-password: &default-mongo-password
+  default: default-harvest-password
+.default-mongo-authentication-database: &default-mongo-authentication-database
+  default: harvest
+.default-redis-host: &default-redis-host
+  default: harvest-redis
+.default-redis-port: &default-redis-port
+  default: 6379
+.default-redis-database: &default-redis-database
+  default: 0
+.default-redis-password: &default-redis-password
+  default: default-harvest-password
+
+# Api Configuration
+api:
+  .description: This section provides configurations specific to the binding address and port for the API.
+
+  host:
+    prompt: Please enter the binding address for the API,
+    default: 0.0.0.0
+  port:
+    prompt: Please enter the binding API port,
+    default: 8000
+
+# Logging Configuration
+logging:
+    .description: This section provides configurations specific to the logging level and file path for the API.
+    level:
+      prompt: Please enter the logging level for the API.
+      choices: [DEBUG, INFO, WARNING, ERROR, CRITICAL]
+      default: DEBUG
+    file:
+      prompt: Please enter the directory path for the API log file.
+      default: ./app/logs/
+
+# Silo Configuration
+# There are 5 standard silos:
+# Name                   | Engine | Purpose
+# -----------------------|--------|---------
+# `harvest-agents`       | Redis  | Where task executors are listed, monitored, and used.
+# `harvest-core`         | Mongo  | Defines the location of the database used to administer the application and its metadata.
+# `harvest-jobs`         | Redis  | This shows active and queued tasks that executors process.
+# `harvest-tokens`       | Redis  | Ephemeral user tokens.
+# `harvest-users`        | Mongo  | Defines the location of the Harvest user accounts and their associated privileges.
+
+silos:
+  .description: |
+    This section provides configurations specific to data silos used by the API. Each silo holds a piece of Harvest's 
+    data and can be colocated (by default) or distributed across different hosts. The operator is responsible for 
+    ensuring the accessibility, reliability, and scalability of each silo.
+    
+    Later in this setup, you'll be given the opportunity to configure custom data silos for your specific needs. Once
+    stored in the API configuration, Harvest will attempt to connect and monitor the health of each silo.
+
+  harvest-agents:
+    host:
+      prompt: |
+        Please enter the hostname or IP address for the Redis instance which will store information about agents.
+        The default is {{name}}, which is the hostname of the Redis instance in the Docker network.
+      <<: *default-redis-host
+    port:
+      prompt: Please enter the port for the `harvest-agents` Redis silo.
+      <<: *default-redis-port
+    password:
+      prompt: Please enter the password for the `harvest-agents` Redis silo.
+      <<: *default-redis-password
+    database:
+      prompt: Please enter the database number for the `harvest-agents` Redis silo.
+      <<: *default-redis-database
+
+  harvest-core:
+    host:
+      prompt: |
+        Please enter the hostname or IP address for the Mongo instance which will store core application data.
+        The default is {{name}}, which is the hostname of the Mongo instance in the Docker network.
+      <<: *default-mongo-host
+    port:
+      prompt: Please enter the port for the {{name}} Mongo silo.
+      <<: *default-mongo-port
+    username:
+      prompt: Please enter the username for the {{name}} Mongo silo.
+      <<: *default-mongo-username
+    password:
+      prompt: Please enter the password for the {{name}} Mongo silo.
+      <<: *default-mongo-password
+    authentication-database:
+      prompt: Please enter the authentication database for the {{name}} Mongo silo.
+      <<: *default-mongo-authentication-database
+    database:
+      prompt: Please enter the database name for the {{name}} Mongo silo.
+      <<: *default-mongo-database
+
+  harvest-jobs:
+    host:
+      prompt: |
+        Please enter the hostname or IP address for the Redis instance which will store job information.
+        The default is `harvest-redis`, which is the hostname of the Redis instance in the Docker network.
+      <<: *default-redis-host
+    port:
+      prompt: Please enter the port for the {{name}} Redis instance.
+      <<: *default-redis-port
+    password:
+      prompt: Please enter the password for the {{name}} Redis instance.
+      <<: *default-redis-password
+    database:
+      prompt: Please enter the database number for the {{name}} Redis instance.
+      <<: *default-redis-database
+
+  harvest-tokens:
+    host:
+      prompt: |
+        Please enter the hostname or IP address for the Redis instance which will store ephemeral user tokens.
+        The default is `harvest-redis`, which is the hostname of the Redis instance in the Docker network.
+      <<: *default-redis-host
+    port:
+      prompt: Please enter the port for the {{name}} Redis instance.
+      <<: *default-redis-port
+    password:
+      prompt: Please enter the password for the {{name}} Redis instance.
+      <<: *default-redis-password
+    database:
+      prompt: Please enter the database number for the {{name}} Redis instance.
+      <<: *default-redis-database
+
+  harvest-users:
+    host:
+      prompt: |
+        Please enter the hostname or IP address for the Mongo instance which will store user accounts and privileges.
+        The default is `harvest-mongo`, which is the hostname of the Mongo instance in the Docker network.
+      <<: *default-mongo-host
+    port:
+      prompt: Please enter the port for the {{name}} Mongo instance.
+      <<: *default-mongo-port
+    username:
+      prompt: Please enter the username for the {{name}} Mongo instance.
+      <<: *default-mongo-username
+    password:
+      prompt: Please enter the password for the {{name}} Mongo instance.
+      <<: *default-mongo-password
+    authentication-database:
+      prompt: Please enter the authentication database for the {{name}} Mongo instance.
+      <<: *default-mongo-authentication-database
+    database:
+      prompt: Please enter the database name for the {{name}} Mongo instance.
+      <<: *default-mongo-database
