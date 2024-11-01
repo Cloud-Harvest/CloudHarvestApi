@@ -75,9 +75,16 @@ def main(reset: bool = False):
     def ask_part(name, **kwargs) -> Any:
         default = flat_existing_config.get(name) or flat_ask_config.get(f'{name}.default')
 
-        kwargs['default'] = default
-        kwargs['prompt'] = f'{name}: {kwargs["prompt"]}'
-        result = ask(name=name, **kwargs)
+        # If the silo has a prompt, ask the user for input
+        if kwargs.get('prompt'):
+            kwargs['default'] = default
+            kwargs['prompt'] = f'{name}: {kwargs["prompt"]}'
+            result = ask(name=name, **kwargs)
+
+        # If no prompt is provided, record the default value. This is useful for keys like 'engine' which cannot be
+        # changed by the user.
+        else:
+            result = silo_config.get('default')
 
         return result
 
@@ -106,6 +113,7 @@ def main(reset: bool = False):
                 if root_key == 'silos':
                     for silo_name, silo_config in part_value.items():
                         flat_key = f'{root_key}.{part_key}.{silo_name}'
+
                         flat_results[flat_key] = ask_part(name=flat_key, **silo_config)
 
                 # Non-silo keys are not nested beyond root_value

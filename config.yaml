@@ -9,10 +9,7 @@
 # Each MongoDB instance configuration includes prompts for the user to input necessary details.
 .default-mongo: &default-mongo
   engine:
-    prompt: Note that the database engine for this endpoint must be a MongoDB instance
     default: mongo
-    choices:
-      - mongo
   host:
     prompt: |
       Please enter the hostname or IP address for the Mongo instance which will store core application data.
@@ -40,10 +37,7 @@
 # Each Redis instance configuration includes prompts for the user to input necessary details.
 .default-redis: &default-redis
   engine:
-      prompt: Note that the database engine for this endpoint must be a Redis instance
       default: redis
-      choices:
-        - redis
   host:
     prompt: |
       Please enter the hostname or IP address for the Redis instance which will store information.
