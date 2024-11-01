@@ -83,11 +83,11 @@ logging:
 # There are 5 standard silos:
 # Name                   | Engine | Purpose
 # -----------------------|--------|---------
-# `harvest-agents`       | Redis  | Where task executors are listed, monitored, and used.
-# `harvest-apis`         | Redis  | Where task executors are listed, monitored, and used.
 # `harvest-core`         | Mongo  | This is the primary data store for the Harvest API.
 # `harvest-jobs`         | Redis  | This shows active and queued tasks that executors process.
+# `harvest-nodes`        | Redis  | Where task executors and API nodes register themselves.
 # `harvest-tokens`       | Redis  | Ephemeral user tokens.
+
 silos:
   # Mongo - these backends are used to store persistent data
   harvest-core:
@@ -95,30 +95,24 @@ silos:
     <<: *default-mongo
 
   # Redis - these backends are used to store ephemeral data
-  harvest-agents:
-    .description: This silo is used to store information about task executors. It is used to monitor and manage the agents.
+
+  harvest-nodes:
+    .description: This silo is used to store information about agent and api nodes.
     <<: *default-redis
     database:
       prompt: Please enter the database number for the Redis instance
       default: 0
-
-  harvest-apis:
-    .description: This silo is used to store information about api nodes. It is used to monitor and manage the api nodes.
-    <<: *default-redis
-    database:
-      prompt: Please enter the database number for the Redis instance
-      default: 1
 
   harvest-jobs:
     .description: This silo is used to store information about active and queued tasks.
     <<: *default-redis
     database:
       prompt: Please enter the database number for the Redis instance
-      default: 2
+      default: 1
 
   harvest-tokens:
     .description: This silo is used to store ephemeral user tokens.
     <<: *default-redis
     database:
       prompt: Please enter the database number for the Redis instance
-      default: 3
+      default: 2

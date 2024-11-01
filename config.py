@@ -201,7 +201,7 @@ def main(reset: bool = False):
     # If the user chooses to add plugins, prompt for the plugin configuration
     if do_plugins == 'y':
         plugin_config = {
-            'url_or_package_name': {'prompt': 'Please enter the plugin package name or git URL for {{name}}.'},
+            'url_or_package_name': {'prompt': 'Please enter the plugin package name or git URL for {{name}}'},
             'branch': {'prompt': 'Please enter the version restriction (python) or tag name (git) for {{name}}', 'default': 'main'},
         }
 
