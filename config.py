@@ -72,11 +72,23 @@ def main(reset: bool = False):
     flat_results = {}
 
     # Helper function to ask for a part of the configuration
-    def ask_part(name, **kwargs) -> Any:
+    def ask_part(do: str, name, **kwargs) -> Any:
+        """
+        Helper function to ask for a part of the configuration.
+
+        Arguments
+        do (str): The user's choice to configure the part.
+        name (str): The name of the part.
+        kwargs (Any): Additional keyword arguments to pass to the prompt.
+
+        Returns
+        Any: The user input.
+        """
+
         default = flat_existing_config.get(name) or flat_ask_config.get(f'{name}.default')
 
-        # If the silo has a prompt, ask the user for input
-        if kwargs.get('prompt'):
+        # If the silo has a prompt, ask the user for input but only if the user has indicated they want to be prompted.
+        if kwargs.get('prompt') and do == 'y':
             kwargs['default'] = default
             kwargs['prompt'] = f'{name}: {kwargs["prompt"]}'
             result = ask(name=name, **kwargs)
@@ -84,7 +96,7 @@ def main(reset: bool = False):
         # If no prompt is provided, record the default value. This is useful for keys like 'engine' which cannot be
         # changed by the user.
         else:
-            result = silo_config.get('default')
+            result = default
 
         return result
 
@@ -103,26 +115,30 @@ def main(reset: bool = False):
         do_root = ask(f'Would you like to configure {root_key.title()}?', choices=['y', 'n'], default='y').lower()
 
         # If the user chooses to configure the root_key, loop through the parts of the root_value
-        if do_root == 'y':
-            for part_key, part_value in root_value.items():
-                # Skip hidden keys which begin with '.'
-                if part_key.startswith('.'):
-                    continue
+        for part_key, part_value in root_value.items():
+            # Skip hidden keys which begin with '.'
+            if part_key.startswith('.'):
+                continue
 
-                # Silos are nested beyond root_value
-                if root_key == 'silos':
-                    for silo_name, silo_config in part_value.items():
-                        flat_key = f'{root_key}.{part_key}.{silo_name}'
+            # Silos are nested beyond root_value
+            if root_key == 'silos':
+                for silo_name, silo_config in part_value.items():
 
-                        flat_results[flat_key] = ask_part(name=flat_key, **silo_config)
+                    # Print the silo name and description if available
+                    if silo_name == '.description':
+                        if do_root == 'y':
+                            console.print(f'{part_key}: {silo_config}', style='italic')
 
-                # Non-silo keys are not nested beyond root_value
-                else:
-                    flat_key = f'{root_key}.{part_key}'
-                    flat_results[flat_key] = ask_part(name=flat_key, **part_value)
+                        continue
 
-                # Add a new line after each part
-                console.print()
+                    flat_key = f'{root_key}.{part_key}.{silo_name}'
+
+                    flat_results[flat_key] = ask_part(do=do_root, name=flat_key, **silo_config)
+
+            # Non-silo keys are not nested beyond root_value
+            else:
+                flat_key = f'{root_key}.{part_key}'
+                flat_results[flat_key] = ask_part(do=do_root, name=flat_key, **part_value)
 
     # Custom Silo Prompts
     # This section allows the user to add custom silos to the configuration.
@@ -213,14 +229,25 @@ def main(reset: bool = False):
                 break
 
     # Convert the flat_results into a table where the key is the 'Name' and the value is the 'Value'
-    table_data = [{'Name': k, 'Value': v} for k, v in flat_results.items()]
-    print_table(data=table_data, keys=['Name', 'Value'], title='Configuration Preview')
+    table_data = [{'Name': k, 'New Value': v} for k, v in flat_results.items()]
+
+    # Add the existing record to the table data
+    [
+        table_row.update({'Existing Value': '' if flat_existing_config.get(table_row['Name']) is None else flat_existing_config[table_row['Name']]})
+        for table_row in table_data
+    ]
+
+    print_table(data=table_data,
+                keys=['Name', 'Existing Value', 'New Value'],
+                compare=['Existing Value', 'New Value'],
+                title='Configuration Preview')
 
     # Ask the user if they would like to save the configuration
     if ask('Would you like to save this configuration?', choices=['y', 'n'], default='n') == 'y':
 
-        # Combine the new configuration with the existing configuration and unflatten the results. This allows us to
-        # merge the existing configuration with the new configuration while maintaining the nested structure.
+        # Combine the new configuration with the default and existing configuration and unflatten the results.
+        # This allows us to merge the existing configuration with the new configuration while maintaining the
+        # nested structure.
         results = unflatten(flat_existing_config | flat_results, separator='.')
 
         # Make sure the app directory exists
@@ -320,13 +347,14 @@ def ask(prompt: str, name: str = None, choices: list = None, default: str = None
     # Returns the user's input
     return result
 
-def print_table(data: List[dict], keys: list = None, title:str = None):
+def print_table(data: List[dict], keys: list = None, compare: list = None, title:str = None):
     """
     Helper function to print a list of dictionaries as a table.
 
     Parameters
     data (List[dict]): The list of dictionaries to print as a table.
     keys (list, optional): The list of keys to use as columns. When not provided, the union of all keys in the data is used. Defaults to None.
+    compare (list, optional): The list of keys to compare when printing the table. Defaults to None.
     title (str, optional): The title of the table. Defaults to None.
 
     Returns
@@ -348,7 +376,13 @@ def print_table(data: List[dict], keys: list = None, title:str = None):
 
     # Add the rows to the table, converting all values into string.
     for row in data:
-        table.add_row(*[str(row.get(key, '')) for key in k])
+        style = 'white'
+
+        if compare:
+            if row.get(compare[0]) != row.get(compare[1]):
+                style = 'red'
+
+        table.add_row(*[str(row.get(key, '')) for key in k], style=style)
 
     # Writes the table to the rich console.
     console.print(table)
