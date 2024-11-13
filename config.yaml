@@ -11,24 +11,22 @@
   engine:
     default: mongo
   host:
-    prompt: |
-      Please enter the hostname or IP address for the Mongo instance which will store core application data.
-      The default is `harvest-mongo`, which is the hostname of the Mongo instance in the Docker network
+    prompt: Hostname or IP address
     default: harvest-mongo
   port:
-    prompt: Please enter the port for the Mongo instance
+    prompt: Mongo port
     default: 27017
   database:
-    prompt: Please enter the database name for the Mongo instance
+    prompt: Database name
     default: harvest
   username:
-    prompt: Please enter the username for the Mongo instance
+    prompt: Username
     default: harvest-api
   password:
-    prompt: Please enter the password for the Mongo instance
+    prompt: Password
     default: default-harvest-password
   authentication-database:
-    prompt: Please enter the authentication database for the Mongo instance
+    prompt: Auth database
     default: harvest
 
 # Default Redis Configuration
@@ -39,18 +37,16 @@
   engine:
       default: redis
   host:
-    prompt: |
-      Please enter the hostname or IP address for the Redis instance which will store information.
-      The default is `harvest-redis`, which is the hostname of the Redis instance in the Docker network
+    prompt: Hostname or IP address
     default: harvest-redis
   port:
-    prompt: Please enter the port for the Redis instance
+    prompt: Redis port
     default: 6379
   database:
-    prompt: Please enter the database number for the Redis instance
+    prompt: Database number
     default: 0
   password:
-    prompt: Please enter the password for the Redis instance
+    prompt: Password
     default: default-harvest-password
 
 # API Configuration
@@ -60,10 +56,10 @@ api:
   .description: This section provides configurations specific to the binding address and port for the API.
 
   host:
-    prompt: Please enter the binding address for the API
+    prompt: Binding address
     default: 0.0.0.0
   port:
-    prompt: Please enter the binding API port
+    prompt: API port
     default: 8000
 
 # Logging Configuration
@@ -72,11 +68,11 @@ api:
 logging:
     .description: This section provides configurations specific to the logging level and file path for the API
     level:
-      prompt: Please enter the logging level for the API
+      prompt: Logging level
       choices: [DEBUG, INFO, WARNING, ERROR, CRITICAL]
       default: DEBUG
     file:
-      prompt: Please enter the directory path for the API log file
+      prompt: Log file directory
       default: ./app/logs/
 
 # Silo Configuration
@@ -87,6 +83,7 @@ logging:
 # `harvest-jobs`         | Redis  | This shows active and queued tasks that executors process.
 # `harvest-nodes`        | Redis  | Where task executors and API nodes register themselves.
 # `harvest-tokens`       | Redis  | Ephemeral user tokens.
+# `harvest-users`        | Mongo  | User and authentication configurations.
 
 silos:
   # Mongo - these backends are used to store persistent data
@@ -94,25 +91,31 @@ silos:
     .description: This silo is the primary data store for the Harvest API. It contains metadata records for information retrieved with data collection tasks.
     <<: *default-mongo
 
-  # Redis - these backends are used to store ephemeral data
+  harvest-users:
+    .description: This silo contains user information and authentication configurations.
+    <<: *default-mongo
+    database:
+      prompt: Database name
+      default: users
 
+  # Redis - these backends are used to store ephemeral data
   harvest-nodes:
     .description: This silo is used to store information about agent and api nodes.
     <<: *default-redis
     database:
-      prompt: Please enter the database number for the Redis instance
+      prompt: Database number
       default: 0
 
   harvest-jobs:
     .description: This silo is used to store information about active and queued tasks.
     <<: *default-redis
     database:
-      prompt: Please enter the database number for the Redis instance
+      prompt: Database number
       default: 1
 
   harvest-tokens:
     .description: This silo is used to store ephemeral user tokens.
     <<: *default-redis
     database:
-      prompt: Please enter the database number for the Redis instance
+      prompt: Database number
       default: 2
