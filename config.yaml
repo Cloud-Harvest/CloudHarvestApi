@@ -79,7 +79,7 @@ logging:
 # There are 5 standard silos:
 # Name                   | Engine | Purpose
 # -----------------------|--------|---------
-# `harvest-core`         | Mongo  | This is the primary data store for the Harvest API.
+# `harvest-core`         | Mongo  | Configuration and metadata from data collection tasks (HarvestTaskChain) are stored here.
 # `harvest-jobs`         | Redis  | This shows active and queued tasks that executors process.
 # `harvest-nodes`        | Redis  | Where task executors and API nodes register themselves.
 # `harvest-tokens`       | Redis  | Ephemeral user tokens.

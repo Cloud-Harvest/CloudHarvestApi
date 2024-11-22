@@ -20,6 +20,7 @@ Usage:
 """
 
 from logging import Logger, DEBUG
+from blueprints.base import logger
 
 
 class HarvestConfiguration:
@@ -38,6 +39,7 @@ class HarvestConfiguration:
     plugins = {}
     reports = {}
     silos = {}
+    version: str = None
 
     @staticmethod
     def _load(filename: str = 'app/harvest.json'):
@@ -53,54 +55,7 @@ class HarvestConfiguration:
         for key, value in config.items():
             setattr(HarvestConfiguration, key, value)
 
-        # Set up the backend silo connections
-
-        # Ephemeral Silo (Redis) - API Heartbeat and Cache
-        from CloudHarvestCoreTasks.silos.ephemeral import connect, start_heartbeat
-
-        # Establish a connection to the Redis cache
-        connect(**HarvestConfiguration.silos.get('ephemeral') | {'database': 'api'})
-
-        # Start the heartbeat process using the 'api' heartbeat type
-        HarvestConfiguration.heartbeat = start_heartbeat(heartbeat_type='api', database='api')
-
-        # Persistent Silo (MongoDB) - API Retrieval
-        from CloudHarvestCoreTasks.silos.persistent import connect
-        connect(**HarvestConfiguration.silos.get('persistent'))
-
         return HarvestConfiguration
-
-    @staticmethod
-    def load_reports() -> dict:
-        """
-        This method locates all the report files in the 'reports' directory and loads them into the HarvestConfiguration
-        class.
-        """
-        import os
-        import glob
-        import site
-
-        results = {}
-        site_packages_path = os.path.abspath(site.getsitepackages()[0])
-        local_path = os.path.abspath('.')
-
-        for path in [local_path, site_packages_path]:
-            report_files = glob.glob(os.path.join(path, '**/*.yaml'), recursive=True)
-
-            for file in report_files:
-                if 'reports' in file and 'CloudHarvest' in file:
-                    from yaml import load, FullLoader
-                    with open(file) as stream:
-                        report_contents = load(stream, Loader=FullLoader)
-
-                    file_separated = file.split(os.sep)
-                    root_report_dir_index = max([i for i in range(len(file_separated)) if file_separated[i] == 'reports'])
-                    report_name = '.'.join(file_separated[root_report_dir_index + 1:])[0:-5]
-
-                    results[report_name] = report_contents
-
-        HarvestConfiguration.reports = results
-        return results
 
     @staticmethod
     def _load_logger() -> Logger:
@@ -157,16 +112,93 @@ class HarvestConfiguration:
         return logger
 
     @staticmethod
+    def load_reports() -> dict:
+        """
+        This method locates all the report files in the 'reports' directory and loads them into the HarvestConfiguration
+        class.
+        """
+        import os
+        import glob
+        import site
+
+        results = {}
+        site_packages_path = os.path.abspath(site.getsitepackages()[0])
+        local_path = os.path.abspath('.')
+
+        for path in [local_path, site_packages_path]:
+            report_files = glob.glob(os.path.join(path, '**/*.yaml'), recursive=True)
+
+            for file in report_files:
+                if 'reports' in file and 'CloudHarvest' in file:
+                    from yaml import load, FullLoader
+                    with open(file) as stream:
+                        report_contents = load(stream, Loader=FullLoader)
+
+                    file_separated = file.split(os.sep)
+                    root_report_dir_index = max([i for i in range(len(file_separated)) if file_separated[i] == 'reports'])
+                    report_name = '.'.join(file_separated[root_report_dir_index + 1:])[0:-5]
+
+                    results[report_name] = report_contents
+
+        HarvestConfiguration.reports = results
+        return results
+
+    @staticmethod
+    def load_silos():
+        """
+        This method sets up the backend silo connections for the CloudHarvest API. It reads the configuration from the
+        'harvest.json' file and creates the connections to the silos. It also starts the heartbeat on the 'harvest-nodes'
+        silo, which tracks the status of all the agent and api nodes in the stack.
+        """
+
+        # Set up the backend silo connections
+        for silo, config in HarvestConfiguration.silos.items():
+            from CloudHarvestCoreTasks.silos import add_silo
+            add_silo(name=silo, **config)
+
+        # Terminate the heartbeat process if it is already running. This is because a change in the silo configuration
+        # may indicate a change in the heartbeat process.
+        if HarvestConfiguration.heartbeat:
+            HarvestConfiguration.heartbeat.stop()
+
+        # Start the api heartbeat on the appropriate silo, 'harvest-nodes'. This is the silo that tracks the status of
+        # all the agent and api nodes in the stack.
+        from CloudHarvestCoreTasks.silos import Heartbeat
+
+        # Instantiate the Heartbeat object
+        HarvestConfiguration.heartbeat = Heartbeat(silo_name='harvest-nodes',
+                                                   node_type='api',
+                                                   version=HarvestConfiguration.version)
+
+        # Begin the heartbeat process
+        HarvestConfiguration.heartbeat.start()
+
+    @staticmethod
     def load_indexes():
         """
         This method loads the indexes from the 'indexes.yaml' file and stores them in the HarvestConfiguration class.
         """
 
-        with open('CloudHarvestApi/indexes.yaml') as f:
+        with open('./indexes.yaml') as f:
             from yaml import load, FullLoader
             indexes = load(f, Loader=FullLoader)
 
         HarvestConfiguration.indexes = indexes or {}
+
+        for silo_name, indexes in indexes.items():
+            from CloudHarvestCoreTasks.silos import get_silo
+            try:
+                silo = get_silo(silo_name)
+
+                if silo:
+                    silo.add_indexes(indexes=indexes)
+
+                else:
+                    logger.warning(f'could not find silo: {silo_name}')
+
+            except NotImplementedError:
+                # Not every silo supports adding indexes, such as Redis
+                continue
 
     @staticmethod
     def startup() -> None:
@@ -181,11 +213,25 @@ class HarvestConfiguration:
 
         HarvestConfiguration.meta = meta
 
+        """
+        _load() methods - cannot be called by api endpoints
+        """
+
         # loads configuration files
         HarvestConfiguration._load()
 
         # configures logging
         HarvestConfiguration._load_logger()
+
+        """
+        load() methods - can be called by api endpoints; useful for dynamic configuration changes
+        """
+
+        # load silos and starts the heartbeat process
+        HarvestConfiguration.load_silos()
+
+        # load silo indexes
+        HarvestConfiguration.load_indexes()
 
         # locates reports
         HarvestConfiguration.load_reports()

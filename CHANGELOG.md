@@ -1,3 +1,8 @@
+# 0.1.13
+- Updated to conform with CloudHarvestCoreTasks 0.4.1
+- [`config.py`](./config.py)
+  - Most prompts are now derived from [`config.yaml`](./config.yaml) 
+
 # 0.1.12
 - Update to conform to CloudHarvestCoreTasks 0.4.0
 - Added the `redis` service to `docker-compose.yaml`
@@ -24,7 +29,7 @@
 - Removed some unused lines from `docker-compose.yaml`
 
 # 0.1.6
-- Changed the output of the [`report_run()`](CloudHarvestApi/blueprints/reports/routes.py) method from `dict` to `List[dict]`
+- Changed the output of the [`report_run()`](CloudHarvestApi/blueprints/reports.py) method from `dict` to `List[dict]`
 - Updated `BaseCacheTask` to accept the `title` parameter in the constructor
 
 # 0.1.5

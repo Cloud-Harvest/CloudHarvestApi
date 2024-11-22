@@ -11,6 +11,10 @@ report_blueprint = HarvestBlueprint(
 
 @report_blueprint.route(rule='list', methods=['GET'])
 def reports_list() -> Response:
+    """
+    This endpoint is used to list all available reports in this API node.
+    """
+
     from configuration import HarvestConfiguration
 
     # local api reports
@@ -35,6 +39,11 @@ def reports_list() -> Response:
 
 @report_blueprint.route(rule='reload', methods=['GET'])
 def reports_reload() -> Response:
+    """
+    This endpoint is used to reload the reports configuration from the reports directory. It is intended for use by
+    administrators who have made changes to the reports configuration and want to reload the reports without restarting
+    the API node.
+    """
     from configuration import HarvestConfiguration
 
     HarvestConfiguration.load_reports()

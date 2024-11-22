@@ -1,14 +1,11 @@
 from flask import Blueprint
-from CloudHarvestCorePluginManager.decorators import register_definition
+from CloudHarvestCorePluginManager.decorators import register_instance
 from logging import getLogger
 
 logger = getLogger('harvest')
 
-# Import the CloudHarvestApi to make it available to
-from ..configuration import HarvestConfiguration
 
-
-@register_definition(category='blueprint', name='blueprint', register_instances=True)
+@register_instance
 class HarvestBlueprint(Blueprint):
     def __init__(self, *args, **kwargs):
         logger.info(f'Initializing Blueprint: {args[0]}')
