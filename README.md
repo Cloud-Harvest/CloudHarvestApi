@@ -80,17 +80,16 @@ to perform tasks. Inconsistent Silo configurations can lead to task failures and
 ensure that all Api nodes have the same Silo configurations.
 
 ## Default Silos
-| Name                         | Engine | Purpose                                                                                   |
-|------------------------------|--------|-------------------------------------------------------------------------------------------|
-| `harvest-agents`             | Redis  | Where task executors are listed, monitored, and used.                                     |
-| `harvest-agent-queue-status` | Redis  | Where task executor queue status is stored.                                               |
-| `harvest-agent-results`      | Redis  | Where task executor results are stored.                                                   |
-| `harvest-core`               | Mongo  | Defines the location of the database used to administer the application and its metadata. |
-| `harvest-jobs`               | Redis  | This shows active and queued tasks that executors process.                                |
-| `harvest-plugin-aws`         | Mongo  | Where AWS data will live.                                                                 |
-| `harvest-plugin-azure`       | Mongo  | Where Azure data will live.                                                               |
-| `harvest-tokens`             | Redis  | Ephemeral user tokens.                                                                    |
-| `harvest-users`              | Mongo  | Defines the location of the Harvest user accounts and their associated privileges.        |
+| Name                   | Engine | Purpose                                                                                   |
+|------------------------|--------|-------------------------------------------------------------------------------------------|
+| `harvest-agents`       | Redis  | Where task executors are listed, monitored, and used.                                     |
+| `harvest-core`         | Mongo  | Defines the location of the database used to administer the application and its metadata. |
+| `harvest-plugin-aws`   | Mongo  | Where AWS data will live.                                                                 |
+| `harvest-plugin-azure` | Mongo  | Where Azure data will live.                                                               |
+| `harvest-tasks`        | Redis  | This shows active and queued tasks that executors process.                                |
+| `harvest-task-results` | Redis  | Where task executor results are stored.                                                   |
+| `harvest-tokens`       | Redis  | Ephemeral user tokens.                                                                    |
+| `harvest-users`        | Mongo  | Defines the location of the Harvest user accounts and their associated privileges.        |
 
 ## Custom Silos
 Deployers can also specify their own Silos in the `harvest.json` file. This is useful if you want to write TaskChains
