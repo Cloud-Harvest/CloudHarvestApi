@@ -8,8 +8,8 @@ logger = getLogger('harvest')
 from ..configuration import HarvestConfiguration
 
 
-@register_definition(category='blueprint', name='blueprint', register_instances=True)
-class HarvestBlueprint(Blueprint):
+@register_definition(category='api_blueprint', name='harvest_blueprint', register_instances=True)
+class HarvestApiBlueprint(Blueprint):
     def __init__(self, *args, **kwargs):
         logger.info(f'Initializing Blueprint: {args[0]}')
 
