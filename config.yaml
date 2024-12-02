@@ -80,7 +80,7 @@ logging:
 # Name                   | Engine | Purpose
 # -----------------------|--------|---------
 # `harvest-core`         | Mongo  | Configuration and metadata from data collection tasks (HarvestTaskChain) are stored here.
-# `harvest-jobs`         | Redis  | This shows active and queued tasks that executors process.
+# `harvest-tasks`         | Redis  | This shows active and queued tasks that executors process.
 # `harvest-nodes`        | Redis  | Where task executors and API nodes register themselves.
 # `harvest-tokens`       | Redis  | Ephemeral user tokens.
 # `harvest-users`        | Mongo  | User and authentication configurations.
@@ -106,14 +106,14 @@ silos:
       prompt: Database number
       default: 0
 
-  harvest-job-results:
+  harvest-task-results:
     .description: This silo is used to store finished results of tasks which will be made available to the user.
     <<: *default-redis
     database:
       prompt: Database number
       default: 1
 
-  harvest-jobs:
+  harvest-tasks:
     .description: This silo is used to store information about active and queued tasks.
     <<: *default-redis
     database:

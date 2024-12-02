@@ -25,4 +25,4 @@ def escalate(task_id: str) -> Response:
     :return: A response.
     """
     from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-jobs')
+    silo = get_silo('harvest-tasks')
