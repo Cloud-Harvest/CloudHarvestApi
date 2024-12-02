@@ -9,7 +9,7 @@ Classes:
     HarvestConfiguration: A singleton class that stores and manages the configuration for the Cloud Harvest API.
 
 Functions:
-    HarvestConfiguration.load(filename: str = 'app/harvest.json'): Loads the configuration from the specified JSON file.
+    HarvestConfiguration.load(filename: str = 'app/api/harvest.json'): Loads the configuration from the specified JSON file.
     HarvestConfiguration.load_reports() -> dict: Loads report files from the 'reports' directory.
     HarvestConfiguration.load_logger() -> Logger: Configures and returns the logger for the Cloud Harvest API.
     HarvestConfiguration.load_indexes(): Loads indexes from the 'indexes.yaml' file.
@@ -42,7 +42,7 @@ class HarvestConfiguration:
     version: str = None
 
     @staticmethod
-    def _load(filename: str = 'app/harvest.json'):
+    def _load(filename: str = 'app/api/harvest.json'):
         """
         This method loads the configuration from the 'harvest.json' file and stores it in the HarvestConfiguration class.
         """

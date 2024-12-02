@@ -73,7 +73,7 @@ logging:
       default: DEBUG
     file:
       prompt: Log file directory
-      default: ./app/logs/
+      default: ./app/api/logs/
 
 # Silo Configuration
 # There are 5 standard silos:

@@ -47,17 +47,17 @@ def main(reset: bool = False):
                              '',
                              'This tool will assist you in setting up your Cloud Harvest API.',
                              '* You can escape this process at any time with CTRL+C.',
-                             '* You may also edit the file manually once it is created in ./app/harvest.json',
-                             '* You can skip this process by copying an existing harvest.json to ./app/harvest.json',
+                             '* You may also edit the file manually once it is created in ./app/api/harvest.json',
+                             '* You can skip this process by copying an existing harvest.json to ./app/api/harvest.json',
                              '']))
 
     # Gathers the existing configurations if they exist
     from os.path import exists
     existing_config = {}
-    if exists('./app/harvest.json') and reset is False:
-        console.print('Loading existing configuration at `./app/harvest.json`', style='bold yellow')
+    if exists('./app/api/harvest.json') and reset is False:
+        console.print('Loading existing configuration at `./app/api/harvest.json`', style='bold yellow')
 
-        with open('./app/harvest.json') as existing_config_file_stream:
+        with open('./app/api/harvest.json') as existing_config_file_stream:
             from json import load
             try:
                 existing_config = load(existing_config_file_stream)
@@ -257,15 +257,15 @@ def main(reset: bool = False):
 
         # Dump the configuration to the file system
         from json import dumps
-        with open('./app/harvest.json', 'w') as config_file_stream:
+        with open('./app/api/harvest.json', 'w') as config_file_stream:
             config_file_stream.write(dumps(results, indent=4))
 
         # Notify the user the save operation completed
-        console.print('Configuration saved to ./app/harvest.json', style='blue')
+        console.print('Configuration saved to ./app/api/harvest.json', style='blue')
 
         # Write the plugins.txt file which allows us to install plugins via pip if plugins were provided.
         # Note that, for the purposes of plugin installation, the plugin entries stored in the plugins.txt file are
-        # formatted as pip installable packages. The records stored in ./app/harvest.json are referential, but are
+        # formatted as pip installable packages. The records stored in ./app/api/harvest.json are referential, but are
         # not used for installation. Only the contents of plugins.txt are used for installation.
         if results.get('plugins'):
             plugins_txt = []
@@ -287,11 +287,11 @@ def main(reset: bool = False):
                 plugins_txt.append(plugin_syntax)
 
             # Write the plugins_txt list to the plugins.txt file
-            with open('./app/plugins.txt', 'w') as plugins_file_stream:
+            with open('./app/api/plugins.txt', 'w') as plugins_file_stream:
                 plugins_file_stream.writelines(plugins_txt)
 
             # Notify the user that the plugins were saved
-            console.print('Plugins saved to ./app/plugins.txt', style='blue')
+            console.print('Plugins saved to ./app/api/plugins.txt', style='blue')
 
     # Print the outro message
     from rich.text import Text

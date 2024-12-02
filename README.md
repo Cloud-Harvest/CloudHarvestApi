@@ -11,10 +11,10 @@ This repository provides an interface between clients, the server cache, and oth
 
 
 # config.py
-First-time users are strongly encouraged to use the [config.py](config.py) script to generate a configuration file. This script will prompt for the necessary information and create a `harvest.json` file in `./app/harvest.json`.
+First-time users are strongly encouraged to use the [config.py](config.py) script to generate a configuration file. This script will prompt for the necessary information and create a `harvest.json` file in `./app/api/harvest.json`.
 
 ## Location
-A compiled configuration file is located at `./app/harvest.json` and has this basic structure:
+A compiled configuration file is located at `./app/api/harvest.json` and has this basic structure:
 ```json
 {
     "api": {

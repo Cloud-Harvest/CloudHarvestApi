@@ -35,7 +35,7 @@
 # 0.1.5
 - Added `__register__.py` to capture definitions and instances.
 - Added CloudHarvestCorePluginManager decorators to identify classes and instances to add to the Registry.
-- `config.py` will now store plugins in `./app/plugins.txt`. 
+- `config.py` will now store plugins in `./app/api/plugins.txt`. 
   - This list will be used to install plugins. 
   - One installed, they can be activated using CloudHarvestCorePluginManager.registry.Registry.register_objects()
 - Updated README

@@ -6,6 +6,6 @@
 # Run the application
 
 source /venv/bin/activate \
-&& touch -a /src/app/plugins.txt \
-&& pip install -r /src/app/plugins.txt \
+&& touch -a /src/app/api/plugins.txt \
+&& pip install -r /src/app/api/plugins.txt \
 && python /src/CloudHarvestApi/wsgi.py

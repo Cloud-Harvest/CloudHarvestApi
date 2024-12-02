@@ -77,8 +77,8 @@ if [ $version -eq 1 ]; then
     exit 0
 fi
 
-# Check if the app/harvest.json file exists or --config is provided
-if [ ! -f "./app/harvest.json" ] || [ $config -eq 1 ]; then
+# Check if the app/api/harvest.json file exists or --config is provided
+if [ ! -f "./app/api/harvest.json" ] || [ $config -eq 1 ]; then
     # If the file does not exist or --config is provided, start config.py using docker run
     docker run -it --rm \
         -v "./app:/src/app" \
