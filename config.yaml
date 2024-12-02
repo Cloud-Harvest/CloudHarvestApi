@@ -106,16 +106,23 @@ silos:
       prompt: Database number
       default: 0
 
+  harvest-job-results:
+    .description: This silo is used to store finished results of tasks which will be made available to the user.
+    <<: *default-redis
+    database:
+      prompt: Database number
+      default: 1
+
   harvest-jobs:
     .description: This silo is used to store information about active and queued tasks.
     <<: *default-redis
     database:
       prompt: Database number
-      default: 1
+      default: 2
 
   harvest-tokens:
     .description: This silo is used to store ephemeral user tokens.
     <<: *default-redis
     database:
       prompt: Database number
-      default: 2
+      default: 3
