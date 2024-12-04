@@ -1,10 +1,13 @@
+from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
 from flask import Response, jsonify, request
-from blueprints.base import HarvestBlueprint
 from logging import getLogger
+
+from .base import safe_request_get_json
+from .home import not_implemented_error
 
 logger = getLogger('harvest')
 
-tasks_blueprint = HarvestBlueprint(
+tasks_blueprint = HarvestApiBlueprint(
     'tasks_bp', __name__,
     url_prefix='/tasks'
 )
@@ -15,7 +18,8 @@ def list() -> Response:
     Lists all tasks.
     :return: A response.
     """
-    pass
+    return not_implemented_error()
+
 
 @tasks_blueprint.route(rule='escalate/<task_id>', methods=['GET'])
 def escalate(task_id: str) -> Response:
@@ -24,5 +28,18 @@ def escalate(task_id: str) -> Response:
     :param task_id: The task ID.
     :return: A response.
     """
-    from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-tasks')
+    return not_implemented_error()
+
+
+@tasks_blueprint.route(rule='queue/{task_model_name}', methods=['POST'])
+def queue(task_model_name: str) -> Response:
+    """
+    Queues a task.
+    :return: A response.
+    """
+    from CloudHarvestCorePluginManager.registry import Registry
+    request_json = safe_request_get_json(request)
+
+    task_model = Registry.find(name=task_model_name, category='model')
+
+    return not_implemented_error()

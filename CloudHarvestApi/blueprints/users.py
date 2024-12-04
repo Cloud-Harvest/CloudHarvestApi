@@ -1,11 +1,13 @@
-from blueprints.base import HarvestBlueprint
+from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
 from flask import Response, jsonify
 from logging import getLogger
+
+from .home import not_implemented_error
 
 logger = getLogger('harvest')
 
 
-users_blueprint = HarvestBlueprint(
+users_blueprint = HarvestApiBlueprint(
     'users_bp', __name__
 )
 
@@ -15,7 +17,7 @@ def list() -> Response:
     Lists all users.
     :return: A response.
     """
-    pass
+    return not_implemented_error()
 
 
 def lookup_user_by_token(token: str) -> str:

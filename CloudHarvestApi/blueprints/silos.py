@@ -1,8 +1,8 @@
+from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
 from flask import Response, jsonify, request
-from blueprints.base import HarvestBlueprint
 
 
-silos_blueprint = HarvestBlueprint(
+silos_blueprint = HarvestApiBlueprint(
     'silos_bp', __name__,
     url_prefix='/silos'
 )

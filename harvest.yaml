@@ -1,0 +1,95 @@
+.default_mongo_database: &default_mongo_database
+  database: harvest
+  engine: mongo
+  host: harvest-mongo
+  password: default-harvest-password
+  port: 27017
+  username: harvest-api
+
+.default_redis_database: &default_redis_database
+  database: 0
+  engine: redis
+  host: harvest-redis
+  password: default-harvest-password
+  port: 6379
+
+api:
+  connection:
+    # Hostname or IP address the agent should bind to
+    host: 127.0.0.1
+
+    # Port the agent should bind to
+    port: 8000
+
+  logging:
+    # Location where logs should be stored
+    location: ./app/logs/
+
+    # Logging level for the agent. Values are DEBUG, INFO, WARNING, ERROR, CRITICAL
+    level: DEBUG
+
+    # Suppress console output from the logging engine.
+    # quiet: true
+
+plugins:
+  aws:
+    branch: "main",
+    url_or_package_name: "https://github.com/Cloud-Harvest/CloudHarvestPluginAws.git"
+
+# Silos represent database backends for the application. Each silo fills a specific role in the application.
+# In addition to silo connection information, indexes can be defined for each silo to optimize query performance. The Api
+# will automatically create these indexes when the application starts up.
+silos:
+  harvest-core:
+    <<: *default_mongo_database
+    database: harvest
+    indexes:
+      pstar: # Collection name
+        - Platform    # A simple index on the `Platform` field
+        - Service     # A simple index on the `Service` field
+        - Type
+        - Account
+        - Region
+        - Records
+        - Errors
+        - keys:       # A compound index on multiple fields
+            - field: Platform
+            - field: Service
+            - field: Type
+            - field: Account
+            - field: Region
+          options:                                          # Additional options for the compound index
+            name: unique_pstar_idx                          # The name of the index
+            comment: unique identifier for pstar records    # A comment describing the index
+            unique: true                                    # The index enforces uniqueness
+      meta:
+        - [ Collection, CollectionId ]          # A compound index on the `Collection` and `CollectionId` fields
+        - keys:                                 # A single field index with complex options
+            - field: Harvest.UniqueIdentifier   # A simple index on the `Harvest.UniqueIdentifier` field
+          options:                              # Additional options for the compound index
+            unique: true                        # The index enforces uniqueness
+
+  harvest-nodes:
+    <<: *default_redis_database
+    database: 0
+
+  harvest-task-queue:
+    <<: *default_redis_database
+    database: 1
+
+  harvest-task-results:
+    <<: *default_redis_database
+    database: 2
+
+  harvest-tasks:
+    <<: *default_redis_database
+    database: 3
+
+  harvest-tokens:
+    <<: *default_redis_database
+    database: 4
+
+  harvest-users:
+    <<: *default_mongo_database
+    authentication-database: harvest
+    database: users

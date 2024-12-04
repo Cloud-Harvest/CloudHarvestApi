@@ -10,43 +10,34 @@ This repository provides an interface between clients, the server cache, and oth
 - [License](#license)
 
 
-# config.py
-First-time users are strongly encouraged to use the [config.py](config.py) script to generate a configuration file. This script will prompt for the necessary information and create a `harvest.json` file in `./app/api/harvest.json`.
+# Configuration
+A compiled configuration file is located at `./app/harvest.yaml` and has this basic structure:
+```yaml
+.default_mongo_database: &default_mongo_database
+  database: harvest
+  engine: mongo
+  host: harvest-mongo
+  password: default-harvest-password
+  port: 27017
+  username: harvest-api
 
-## Location
-A compiled configuration file is located at `./app/api/harvest.json` and has this basic structure:
-```json
-{
-    "api": {
-        "host": "0.0.0.0",
-        "port": 8000
-    },
-    "cache": {
-        "host": "cloudharvestapi-mongo-1",
-        "password": "eoisjndfkvnzkdfjnbk",
-        "port": 27017,
-        "username": "harvest-api",
-        "authsource": "harvest"
-    },
-    "logging": {
-        "level": "debug",
-        "location": "./app/logs/"
-    },
-    "plugins": {
-        "https://github.com/Cloud-Harvest/CloudHarvestPluginAws.git": "main"
-    }
-}
-```
+api:
+  connection:
+    host: 127.0.0.1
+    port: 8000
+  logging:
+    location: ./app/logs/
+    level: DEBUG
+    quiet: false
 
-## Config Tool Usage
-```
-Usage: config.py [-h] [--reset]
+plugins:
+    - branch: "main",
+      url_or_package_name: "https://github.com/Cloud-Harvest/CloudHarvestPluginAws.git"
 
-Cloud Harvest API Configuration Tool
-
-Options:
-  -h, --help  show this help message and exit
-  --reset     Reset the configuration file to defaults
+silos:
+  harvest-core:
+    <<: *default_mongo_database
+    database: harvest
 ```
 
 # Building
@@ -82,12 +73,13 @@ ensure that all Api nodes have the same Silo configurations.
 ## Default Silos
 | Name                   | Engine | Purpose                                                                                   |
 |------------------------|--------|-------------------------------------------------------------------------------------------|
-| `harvest-agents`       | Redis  | Where task executors are listed, monitored, and used.                                     |
 | `harvest-core`         | Mongo  | Defines the location of the database used to administer the application and its metadata. |
+| `harvest-nodes`        | Redis  | Stores information about Agent and Api instances in the stack.                            |
 | `harvest-plugin-aws`   | Mongo  | Where AWS data will live.                                                                 |
 | `harvest-plugin-azure` | Mongo  | Where Azure data will live.                                                               |
-| `harvest-tasks`        | Redis  | This shows active and queued tasks that executors process.                                |
+| `harvest-task-queue`   | Redis  | This shows queued tasks that agents have yet to pick up.                                  |
 | `harvest-task-results` | Redis  | Where task executor results are stored.                                                   |
+| `harvest-tasks`        | Redis  | This shows active tasks that executors are processing or have recently completed.         |
 | `harvest-tokens`       | Redis  | Ephemeral user tokens.                                                                    |
 | `harvest-users`        | Mongo  | Defines the location of the Harvest user accounts and their associated privileges.        |
 

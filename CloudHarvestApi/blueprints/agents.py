@@ -1,25 +1,27 @@
-from blueprints.base import HarvestBlueprint
+from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
 from flask import Response, jsonify
 from logging import getLogger
 
+from .home import not_implemented_error
+
 logger = getLogger('harvest')
 
-agents_blueprint = HarvestBlueprint(
+agents_blueprint = HarvestApiBlueprint(
     'agents_bp', __name__
 )
 
 @agents_blueprint.route(rule='shutdown', methods=['GET'])
 def shutdown() -> Response:
-    pass
+    return not_implemented_error()
 
 @agents_blueprint.route(rule='start', methods=['GET'])
 def start():
-    pass
+    return not_implemented_error()
 
 @agents_blueprint.route(rule='status', methods=['GET'])
 def status():
-    pass
+    return not_implemented_error()
 
 @agents_blueprint.route(rule='stop', methods=['GET'])
 def stop():
-    pass
+    return not_implemented_error()

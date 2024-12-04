@@ -1,77 +1,39 @@
 """
-This module is the entry point for the CloudHarvestApi application.
+Entrypoint for the CloudHarvestApi
 """
-
-from flask import Flask
-from flask.json.provider import DefaultJSONProvider
-from logging import getLogger
-from datetime import datetime, date
-
-logger = getLogger('harvest')
+# Imports objects which need to be registered by the CloudHarvestCorePluginManager
+from __register__ import *
 
 
-class CloudHarvestApi:
-    """
-    This class is the entry point for the CloudHarvestApi application.
-    """
+def main(**kwargs):
+    from app import CloudHarvestApi
 
-    app = None
+    # Raw configuration for the agent
+    CloudHarvestApi.config = kwargs
 
-    @staticmethod
-    def run(**kwargs):
-        """
-        This method runs the CloudHarvestApi application.
-        """
+    # Instantiate the Flask object
+    from flask import Flask
+    CloudHarvestApi.flask = Flask('CloudHarvestApi')
 
-        CloudHarvestApi.app.json = UpdatedJSONProvider(CloudHarvestApi.app)
-        CloudHarvestApi.app.run(**kwargs)
+    # Find all plugins and register their objects
+    from CloudHarvestCorePluginManager.functions import register_objects
+    register_objects()
 
-
-class UpdatedJSONProvider(DefaultJSONProvider):
-    # adopted from https://stackoverflow.com/a/74618781
-    def default(self, o):
-        if isinstance(o, (date, datetime)):
-            return o.strftime("%Y-%m-%d %H:%M:%S.%f")
-
-        return super().default(o)
-
-
-def init_app():
-    """Initialize the core application."""
-    app = Flask('CloudHarvestApi')
-
-    from configuration import HarvestConfiguration
-    HarvestConfiguration.startup()
-
-    with app.app_context():
-
-        # Register the Blueprints
-        from CloudHarvestCorePluginManager.registry import Registry
+    # Register the blueprints from this app and all plugins
+    from CloudHarvestCorePluginManager.registry import Registry
+    with CloudHarvestApi.flask.app_context():
         [
-            app.register_blueprint(api_blueprint)
-            for api_blueprint in Registry.find(result_key='instances', name='blueprint')
+            CloudHarvestApi.flask.register_blueprint(api_blueprint)
+            for api_blueprint in Registry.find(result_key='instances',
+                                               name='harvest_blueprint',
+                                               category='harvest_agent_blueprint')
             if api_blueprint is not None
         ]
 
-        # index the backend database
-        try:
-            from CloudHarvestCoreTasks.silos.persistent import add_indexes
-            add_indexes(indexes=HarvestConfiguration.indexes)
+    CloudHarvestApi.run(**kwargs)
 
-        except Exception as e:
-            logger.error(f'Could not index the backend database: {e.args}')
-
-        return app
-
+    print('Agent stopped')
 
 if __name__ == '__main__':
-    from configuration import HarvestConfiguration
-    from CloudHarvestCorePluginManager.functions import register_objects
-
-    # This __register__ module is necessary to load objects which should be placed in the
-    # CloudHarvestCorePluginManager.registry; do not remove it
-    from __register__ import *
-    register_objects()
-
-    CloudHarvestApi.app = init_app()
-    CloudHarvestApi.run(**HarvestConfiguration.api)
+    from app import load_configuration_from_file
+    main(**load_configuration_from_file())
