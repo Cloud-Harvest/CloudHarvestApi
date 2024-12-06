@@ -1,5 +1,6 @@
 # 0.1.13
 - Updated to conform with CloudHarvestCoreTasks 0.4.1
+- Updated to Python 3.13
 - [`config.py`](./config.py)
   - Most prompts are now derived from [`config.yaml`](./config.yaml) 
 
