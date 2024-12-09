@@ -35,6 +35,8 @@ class CloudHarvestApi:
 
         logger.info(f'Api startup complete. Will serve requests on {flat_kwargs.get("api.connection.host")}:{flat_kwargs["api.connection.port"]}.')
 
+        logger.debug(CloudHarvestApi.flask.url_map)
+
         # Start the Flask application
         CloudHarvestApi.flask.run(host=flat_kwargs.get('api.connection.host', 'localhost'),
                                     port=flat_kwargs.get('api.connection.port', 8000))

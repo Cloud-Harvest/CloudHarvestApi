@@ -26,9 +26,10 @@ def main(**kwargs):
             CloudHarvestApi.flask.register_blueprint(api_blueprint)
             for api_blueprint in Registry.find(result_key='instances',
                                                name='harvest_blueprint',
-                                               category='harvest_agent_blueprint')
+                                               category='harvest_api_blueprint')
             if api_blueprint is not None
         ]
+
 
     CloudHarvestApi.run(**kwargs)
 

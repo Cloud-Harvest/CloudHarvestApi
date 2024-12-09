@@ -12,7 +12,7 @@ tasks_blueprint = HarvestApiBlueprint(
     url_prefix='/tasks'
 )
 
-@tasks_blueprint.route(rule='list', methods=['GET'])
+@tasks_blueprint.route(rule='/list', methods=['GET'])
 def list() -> Response:
     """
     Lists all tasks.
@@ -21,7 +21,7 @@ def list() -> Response:
     return not_implemented_error()
 
 
-@tasks_blueprint.route(rule='escalate/<task_id>', methods=['GET'])
+@tasks_blueprint.route(rule='/escalate/<task_id>', methods=['GET'])
 def escalate(task_id: str) -> Response:
     """
     Escalates a task to the highest priority.
@@ -31,7 +31,7 @@ def escalate(task_id: str) -> Response:
     return not_implemented_error()
 
 
-@tasks_blueprint.route(rule='queue/{task_model_name}', methods=['POST'])
+@tasks_blueprint.route(rule='/queue/<task_model_name>', methods=['POST'])
 def queue(task_model_name: str) -> Response:
     """
     Queues a task.

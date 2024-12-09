@@ -11,7 +11,7 @@ users_blueprint = HarvestApiBlueprint(
     'users_bp', __name__
 )
 
-@users_blueprint.route(rule='list', methods=['GET'])
+@users_blueprint.route(rule='/list', methods=['GET'])
 def list() -> Response:
     """
     Lists all users.
