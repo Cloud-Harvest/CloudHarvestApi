@@ -33,7 +33,7 @@ api:
 
 plugins:
   aws:
-    branch: "main",
+    branch: "main"
     url_or_package_name: "https://github.com/Cloud-Harvest/CloudHarvestPluginAws.git"
 
 # Silos represent database backends for the application. Each silo fills a specific role in the application.
