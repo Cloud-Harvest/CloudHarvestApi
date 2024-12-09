@@ -13,6 +13,6 @@ cp -nv /src/harvest.yaml /src/app/harvest.yaml
 # 4. Start the application
 source /venv/bin/activate \
 && /src/docker/make_plugins.txt.py \
-&& touch -a /src/app/api/plugins.txt \
-&& pip install -r /src/app/api/plugins.txt \
+&& touch -a /src/app/plugins.txt \
+&& pip install -r /src/app/plugins.txt \
 && python /src/CloudHarvestApi
