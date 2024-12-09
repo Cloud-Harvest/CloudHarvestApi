@@ -32,9 +32,8 @@ api:
     # quiet: true
 
 plugins:
-  aws:
-    branch: "main"
-    url_or_package_name: "https://github.com/Cloud-Harvest/CloudHarvestPluginAws.git"
+#  - branch: "main"
+#    url_or_package_name: "https://github.com/Cloud-Harvest/CloudHarvestPluginAws.git"
 
 # Silos represent database backends for the application. Each silo fills a specific role in the application.
 # In addition to silo connection information, indexes can be defined for each silo to optimize query performance. The Api
