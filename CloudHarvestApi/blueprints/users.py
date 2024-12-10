@@ -12,20 +12,23 @@ users_blueprint = HarvestApiBlueprint(
 )
 
 @users_blueprint.route(rule='/list', methods=['GET'])
-def list() -> Response:
+def list_users() -> Response:
     """
     Lists all users.
     :return: A response.
     """
     return not_implemented_error()
 
-
+@users_blueprint.route(rule='/lookup_by_token/<token>', methods=['GET'])
 def lookup_user_by_token(token: str) -> str:
     """
     Looks up a user by their token. Tokens are stored in the Redis `harvest-tokens` Silo.
     :param token: The token to look up.
     :return: The username.
     """
+
+    # TODO: Implement this method and remove the not_implemented_error() call
+    return not_implemented_error()
 
     from CloudHarvestCoreTasks.silos import get_silo
 

@@ -13,7 +13,7 @@ tasks_blueprint = HarvestApiBlueprint(
 )
 
 @tasks_blueprint.route(rule='/list', methods=['GET'])
-def list() -> Response:
+def list_tasks() -> Response:
     """
     Lists all tasks.
     :return: A response.
@@ -22,7 +22,7 @@ def list() -> Response:
 
 
 @tasks_blueprint.route(rule='/escalate/<task_id>', methods=['GET'])
-def escalate(task_id: str) -> Response:
+def escalate_task(task_id: str) -> Response:
     """
     Escalates a task to the highest priority.
     :param task_id: The task ID.
@@ -32,14 +32,17 @@ def escalate(task_id: str) -> Response:
 
 
 @tasks_blueprint.route(rule='/queue/<task_model_name>', methods=['POST'])
-def queue(task_model_name: str) -> Response:
+def queue_task(task_model_name: str) -> Response:
     """
     Queues a task.
     :return: A response.
     """
+    # TODO: Implement this method and remove the not_implemented_error() call
+    return not_implemented_error()
+
     from CloudHarvestCorePluginManager.registry import Registry
     request_json = safe_request_get_json(request)
 
     task_model = Registry.find(name=task_model_name, category='model')
 
-    return not_implemented_error()
+

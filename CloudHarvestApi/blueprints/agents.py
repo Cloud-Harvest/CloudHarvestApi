@@ -11,18 +11,18 @@ agents_blueprint = HarvestApiBlueprint(
     url_prefix='/agents'
 )
 
+@agents_blueprint.route(rule='/get_status', methods=['GET'])
+def get_agent_status():
+    return not_implemented_error()
+
 @agents_blueprint.route(rule='/shutdown', methods=['GET'])
-def shutdown() -> Response:
+def shutdown_agent() -> Response:
     return not_implemented_error()
 
 @agents_blueprint.route(rule='/start', methods=['GET'])
-def start():
-    return not_implemented_error()
-
-@agents_blueprint.route(rule='/status', methods=['GET'])
-def status():
+def start_agent():
     return not_implemented_error()
 
 @agents_blueprint.route(rule='/stop', methods=['GET'])
-def stop():
+def stop_agent():
     return not_implemented_error()
