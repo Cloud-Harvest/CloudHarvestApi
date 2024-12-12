@@ -39,7 +39,11 @@ class CloudHarvestApi:
 
         # Start the Flask application
         CloudHarvestApi.flask.run(host=flat_kwargs.get('api.connection.host', 'localhost'),
-                                    port=flat_kwargs.get('api.connection.port', 8000))
+                                  port=flat_kwargs.get('api.connection.port', 8000),
+                                  ssl_context=(
+                                      flat_kwargs.get('api.connection.ssl.certificate'),
+                                      flat_kwargs.get('api.connection.ssl.key')
+                                  ))
 
 
 def flatten_dict_preserve_lists(d, parent_key='', sep='.') -> dict:

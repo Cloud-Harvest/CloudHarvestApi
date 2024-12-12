@@ -7,7 +7,10 @@ if [ ! -d "$base_path" ]; then
 fi
 
 # Make the configuration directory for the app
-mkdir -pv "$base_path/app/logs"
+subdirs=("certs" "logs")
+for subdir in "${subdirs[@]}"; do
+    mkdir -pv "$base_path/app/$subdir"
+done
 
 # Copy the configuration file to the app directory
 # Use the -n flag to prevent overwriting the file

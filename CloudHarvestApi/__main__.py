@@ -30,7 +30,6 @@ def main(**kwargs):
             if api_blueprint is not None
         ]
 
-
     CloudHarvestApi.run(**kwargs)
 
     print('Agent stopped')

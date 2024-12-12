@@ -3,6 +3,7 @@
 - Updated to Python 3.13
 - [`config.py`](./config.py)
   - Most prompts are now derived from [`config.yaml`](./config.yaml) 
+- Implemented certificates in `harvest.yaml` with a default location of `harvest/certs`
 
 # 0.1.12
 - Update to conform to CloudHarvestCoreTasks 0.4.0

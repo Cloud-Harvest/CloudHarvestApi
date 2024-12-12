@@ -15,17 +15,22 @@
 
 api:
   connection:
-    # Hostname or IP address the agent should bind to
+    # Hostname or IP address the api should bind to
     host: 127.0.0.1
 
-    # Port the agent should bind to
+    # Port the api should bind to
     port: 8000
+
+    # SSL configuration for the api
+    ssl:
+      certificate: ./app/certs/harvest-self-signed.crt
+      key: ./app/certs/harvest-self-signed.key
 
   logging:
     # Location where logs should be stored
     location: ./app/logs/
 
-    # Logging level for the agent. Values are DEBUG, INFO, WARNING, ERROR, CRITICAL
+    # Logging level for the api. Values are DEBUG, INFO, WARNING, ERROR, CRITICAL
     level: DEBUG
 
     # Suppress console output from the logging engine.
