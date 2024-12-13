@@ -1,7 +1,21 @@
+########################################################################################################################
+# Database Connection Configuration
+# Note that we use the Harvest Silo parameters to configure the database connection, not the native driver, except
+# for parameters not otherwise stated here:
+#
+# database: the database to run queries against
+# engine: the database engine to use (mongo, redis)
+# host: the hostname or IP address of the database server
+# password: the password to use when connecting to the database
+# port: the port to connect to on the database server
+# username: the username to use when connecting to the database
+########################################################################################################################
+
 .default_mongo_database: &default_mongo_database
+  authSource: harvest                     # The authSource must be provided unless the authSource is the 'admin' database
   database: harvest
   engine: mongo
-  host: harvest-mongo
+  host: 127.0.0.1
   password: default-harvest-password
   port: 27017
   username: harvest-api
@@ -9,10 +23,13 @@
 .default_redis_database: &default_redis_database
   database: 0
   engine: redis
-  host: harvest-redis
+  host: 127.0.0.1
   password: default-harvest-password
   port: 6379
 
+########################################################################################################################
+# API Configuration
+########################################################################################################################
 api:
   connection:
     # Hostname or IP address the api should bind to
@@ -36,15 +53,22 @@ api:
     # Suppress console output from the logging engine.
     # quiet: true
 
+########################################################################################################################
+# Plugin Configuration
+########################################################################################################################
 plugins:
 #  - branch: "main"
 #    url_or_package_name: "https://github.com/Cloud-Harvest/CloudHarvestPluginAws.git"
 
-# Silos represent database backends for the application. Each silo fills a specific role in the application.
-# In addition to silo connection information, indexes can be defined for each silo to optimize query performance. The Api
-# will automatically create these indexes when the application starts up.
+########################################################################################################################
+# Silo Configuration
+# Silos represent database backends for the application. Each silo fills a specific role in the application. In addition
+# to silo connection information, indexes can be defined for each silo to optimize query performance. The Api will
+# automatically create these indexes when the application starts up.
+########################################################################################################################
 silos:
   harvest-core:
+    # Provides core functionality for the Harvest application.
     <<: *default_mongo_database
     database: harvest
     indexes:
@@ -74,26 +98,31 @@ silos:
             unique: true                        # The index enforces uniqueness
 
   harvest-nodes:
+    # Stores information about Agent and API nodes.
     <<: *default_redis_database
     database: 0
 
   harvest-task-queue:
+    # Stores TaskChains that are waiting to be processed.
     <<: *default_redis_database
     database: 1
 
   harvest-task-results:
+    # Stores the results of TaskChains that have been processed and awaiting retrieval by an API.
     <<: *default_redis_database
     database: 2
 
   harvest-tasks:
+    # Stores the progress reports of ongoing and recently completed TaskChains.
     <<: *default_redis_database
     database: 3
 
   harvest-tokens:
+    # Stores ephemeral tokens for API authentication.
     <<: *default_redis_database
     database: 4
 
   harvest-users:
+    # Stores user information for authentication and authorization.
     <<: *default_mongo_database
-    authentication-database: harvest
     database: users
