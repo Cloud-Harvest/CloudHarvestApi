@@ -32,7 +32,8 @@ class CloudHarvestApi:
         logger.info('Api configuration loaded successfully.')
 
         load_silos(kwargs.get('silos', {}))
-        start_node_heartbeat()
+        start_node_heartbeat(expiration_multiplier=flat_kwargs.get('api.heartbeat.expiration_multiplier', 5),
+                             heartbeat_check_rate=flat_kwargs.get('api.heartbeat.check_rate', 1))
 
         logger.info('Api starting')
 
@@ -120,6 +121,7 @@ def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: f
             app_metadata = json.load(meta_file)
 
             node_name = platform.node()
+            node_role = 'api'
 
             node_info = {
                 "architecture": f'{platform.machine()}/{platform.architecture()[0]}',
@@ -129,7 +131,7 @@ def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: f
                 "os": platform.freedesktop_os_release(),
                 "plugins": CloudHarvestApi.config.get('plugins', []),
                 "python": platform.python_version(),
-                "role": 'api',
+                "role": node_role,
                 "start": start_datetime.isoformat(),
                 "version": app_metadata.get('version')
             }
@@ -142,7 +144,7 @@ def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: f
 
             # Update the node status in the Redis cache
             try:
-                client.setex(name=f'api::{node_name}',
+                client.setex(name=f'{node_role}::{node_name}',
                              value=json.dumps(node_info, default=str),
                              time=int(expiration_multiplier * heartbeat_check_rate))
 
