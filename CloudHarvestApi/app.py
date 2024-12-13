@@ -6,13 +6,16 @@ JobQueue instance, and configuration for the api. The run method is used to star
 from logging import Logger
 
 
-class CloudHarvestApi:
+class CloudHarvestNode:
     """
     A static class which contains the Flask application, JobQueue instance, and configuration for the api.
     """
+    ROLE = 'api'
+
     from flask import Flask
     flask: Flask = None
     config = {}
+
 
 
     @staticmethod
@@ -39,12 +42,12 @@ class CloudHarvestApi:
 
         logger.info(f'Api startup complete. Will serve requests on {flat_kwargs.get("api.connection.host")}:{flat_kwargs["api.connection.port"]}.')
 
-        logger.debug(CloudHarvestApi.flask.url_map)
+        logger.debug(CloudHarvestNode.flask.url_map)
 
         # Start the Flask application
-        CloudHarvestApi.flask.run(host=flat_kwargs.get('api.connection.host', 'localhost'),
-                                  port=flat_kwargs.get('api.connection.port', 8000),
-                                  ssl_context=(
+        CloudHarvestNode.flask.run(host=flat_kwargs.get('api.connection.host', 'localhost'),
+                                   port=flat_kwargs.get('api.connection.port', 8000),
+                                   ssl_context=(
                                       flat_kwargs.get('api.connection.ssl.certificate'),
                                       flat_kwargs.get('api.connection.ssl.key')
                                   ))
@@ -121,7 +124,7 @@ def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: f
             app_metadata = json.load(meta_file)
 
             node_name = platform.node()
-            node_role = 'api'
+            node_role = CloudHarvestNode.ROLE
 
             node_info = {
                 "architecture": f'{platform.machine()}/{platform.architecture()[0]}',
@@ -129,7 +132,7 @@ def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: f
                 "heartbeat_seconds": heartbeat_check_rate,
                 "name": node_name,
                 "os": platform.freedesktop_os_release(),
-                "plugins": CloudHarvestApi.config.get('plugins', []),
+                "plugins": CloudHarvestNode.config.get('plugins', []),
                 "python": platform.python_version(),
                 "role": node_role,
                 "start": start_datetime.isoformat(),

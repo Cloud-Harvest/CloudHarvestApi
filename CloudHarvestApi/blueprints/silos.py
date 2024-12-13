@@ -9,16 +9,16 @@ silos_blueprint = HarvestApiBlueprint(
 
 @silos_blueprint.route(rule='/get', methods=['GET'])
 def get_silos() -> Response:
-    from app import CloudHarvestApi
+    from app import CloudHarvestNode
 
-    result = CloudHarvestApi.config.get('silos', {})
+    result = CloudHarvestNode.config.get('silos', {})
 
     return jsonify(result)
 
 @silos_blueprint.route(rule='/list', methods=['GET'])
 def list_silos() -> Response:
-    from app import CloudHarvestApi
+    from app import CloudHarvestNode
 
-    result = list(CloudHarvestApi.config.get('silos', {}).keys())
+    result = list(CloudHarvestNode.config.get('silos', {}).keys())
 
     return jsonify(result)

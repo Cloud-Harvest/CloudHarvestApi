@@ -6,14 +6,14 @@ from __register__ import *
 
 
 def main(**kwargs):
-    from app import CloudHarvestApi
+    from app import CloudHarvestNode
 
     # Raw configuration for the agent
-    CloudHarvestApi.config = kwargs
+    CloudHarvestNode.config = kwargs
 
     # Instantiate the Flask object
     from flask import Flask
-    CloudHarvestApi.flask = Flask('CloudHarvestApi')
+    CloudHarvestNode.flask = Flask('CloudHarvestApi')
 
     # Find all plugins and register their objects
     from CloudHarvestCorePluginManager.functions import register_objects
@@ -21,16 +21,16 @@ def main(**kwargs):
 
     # Register the blueprints from this app and all plugins
     from CloudHarvestCorePluginManager.registry import Registry
-    with CloudHarvestApi.flask.app_context():
+    with CloudHarvestNode.flask.app_context():
         [
-            CloudHarvestApi.flask.register_blueprint(api_blueprint)
+            CloudHarvestNode.flask.register_blueprint(api_blueprint)
             for api_blueprint in Registry.find(result_key='instances',
                                                name='harvest_blueprint',
                                                category='harvest_api_blueprint')
             if api_blueprint is not None
         ]
 
-    CloudHarvestApi.run(**kwargs)
+    CloudHarvestNode.run(**kwargs)
 
     print('Agent stopped')
 
