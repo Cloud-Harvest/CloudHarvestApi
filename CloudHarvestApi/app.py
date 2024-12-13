@@ -31,6 +31,8 @@ class CloudHarvestApi:
 
         logger.info('Api configuration loaded successfully.')
 
+        load_silos(kwargs.get('silos', {}))
+
         logger.info('Api starting')
 
         logger.info(f'Api startup complete. Will serve requests on {flat_kwargs.get("api.connection.host")}:{flat_kwargs["api.connection.port"]}.')
