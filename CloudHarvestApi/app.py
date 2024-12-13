@@ -49,6 +49,31 @@ class CloudHarvestApi:
                                   ))
 
 
+def flatten_dict_preserve_lists(d, parent_key='', sep='.') -> dict:
+    """
+    Flattens a dictionary while preserving lists.
+
+    Arguments
+    d (dict): The dictionary to flatten.
+    parent_key (str, optional): The parent key. Defaults to ''.
+    sep (str, optional): The separator to use. Defaults to '.'.
+
+    Returns
+    dict: The flattened dictionary.
+    """
+    items = []
+
+    for k, v in d.items():
+        new_key = f'{parent_key}{sep}{k}' if parent_key else k
+
+        if isinstance(v, dict):
+            items.extend(flatten_dict_preserve_lists(v, new_key, sep=sep).items())
+
+        else:
+            items.append((new_key, v))
+
+    return dict(items)
+
 def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: float = 1):
     """
     Start the heartbeat process on the harvest-nodes silo. This process will update the node status in the Redis
@@ -133,33 +158,6 @@ def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: f
     thread.start()
 
     return thread
-
-
-def flatten_dict_preserve_lists(d, parent_key='', sep='.') -> dict:
-    """
-    Flattens a dictionary while preserving lists.
-
-    Arguments
-    d (dict): The dictionary to flatten.
-    parent_key (str, optional): The parent key. Defaults to ''.
-    sep (str, optional): The separator to use. Defaults to '.'.
-
-    Returns
-    dict: The flattened dictionary.
-    """
-    items = []
-
-    for k, v in d.items():
-        new_key = f'{parent_key}{sep}{k}' if parent_key else k
-
-        if isinstance(v, dict):
-            items.extend(flatten_dict_preserve_lists(v, new_key, sep=sep).items())
-
-        else:
-            items.append((new_key, v))
-
-    return dict(items)
-
 
 #############################################
 # Startup methods                           #
