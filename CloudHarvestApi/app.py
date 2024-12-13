@@ -32,6 +32,7 @@ class CloudHarvestApi:
         logger.info('Api configuration loaded successfully.')
 
         load_silos(kwargs.get('silos', {}))
+        start_node_heartbeat()
 
         logger.info('Api starting')
 
@@ -46,6 +47,92 @@ class CloudHarvestApi:
                                       flat_kwargs.get('api.connection.ssl.certificate'),
                                       flat_kwargs.get('api.connection.ssl.key')
                                   ))
+
+
+def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: float = 1):
+    """
+    Start the heartbeat process on the harvest-nodes silo. This process will update the node status in the Redis
+    cache at regular intervals.
+
+    Args:
+    expiration_multiplier (int): The multiplier to use when setting the expiration time for the node status in the
+                                 Redis cache, rounded up to the nearest integer.
+    heartbeat_check_rate (float): The rate at which the heartbeat process should check the node status.
+
+    Example:
+        >>> # Start the heartbeat process with a 5x expiration multiplier and a check rate of 1 second. The API will be
+        >>> # considered offline if it has not updated its status in 5 seconds.
+        >>> start_node_heartbeat(expiration_multiplier=5, heartbeat_check_rate=1)
+        >>>
+        >>> # Start the heartbeat process with an expiration multiplier of 10 and a check rate of 2 seconds. The API will
+        >>> # be considered offline if it has not updated its status in 10 seconds.
+        >>> start_node_heartbeat(expiration_multiplier=10, heartbeat_check_rate=2)
+
+    Returns: The thread object that is running the heartbeat process.
+    """
+
+    import platform
+
+    from CloudHarvestCoreTasks.silos import get_silo
+    from datetime import datetime, timezone
+    from logging import getLogger
+    from socket import getfqdn, gethostbyname
+    from time import sleep
+    from threading import Thread
+
+    logger = getLogger('harvest')
+
+    def _thread():
+        start_datetime = datetime.now(tz=timezone.utc)
+
+        # Get the Redis client
+        silo = get_silo('harvest-nodes')
+        client = silo.connect()     # A StrictRedis instance
+
+        # Get the application metadata
+        import json
+        with open('./meta.json') as meta_file:
+            app_metadata = json.load(meta_file)
+
+            node_name = platform.node()
+
+            node_info = {
+                "architecture": f'{platform.machine()}/{platform.architecture()[0]}',
+                "ip": gethostbyname(getfqdn()),
+                "heartbeat_seconds": heartbeat_check_rate,
+                "name": node_name,
+                "os": platform.freedesktop_os_release(),
+                "plugins": CloudHarvestApi.config.get('plugins', []),
+                "python": platform.python_version(),
+                "role": 'api',
+                "start": start_datetime.isoformat(),
+                "version": app_metadata.get('version')
+            }
+
+        while True:
+            # Update the last heartbeat time
+            last_datetime = datetime.now(tz=timezone.utc)
+            node_info['last'] = last_datetime.isoformat()
+            node_info['duration'] = (last_datetime - start_datetime).total_seconds()
+
+            # Update the node status in the Redis cache
+            try:
+                client.setex(name=f'api::{node_name}',
+                             value=json.dumps(node_info, default=str),
+                             time=int(expiration_multiplier * heartbeat_check_rate))
+
+                logger.debug(f'heartbeat: OK')
+
+            except Exception as e:
+                logger.error(f'heartbeat: Could not update silo `harvest-nodes`: {e.args}')
+
+            sleep(heartbeat_check_rate)
+
+    # Start the heartbeat thread
+    thread = Thread(target=_thread, daemon=True)
+    thread.start()
+
+    return thread
 
 
 def flatten_dict_preserve_lists(d, parent_key='', sep='.') -> dict:
