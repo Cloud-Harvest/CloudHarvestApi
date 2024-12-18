@@ -2,13 +2,18 @@
 This repository provides an interface between clients, the server cache, and other apis. This program is intended to operation individually or as part of a cluster of API nodes. 
 
 # Table of Contents
-- [Configuration](#configpy)
-  - [Location](#location) 
+- [Configuration](#configuration)
+  - [Location](#location)
   - [Config Tool Usage](#config-tool-usage)
+  - [Default Silos](#default-silos)
+  - [Custom Silos](#custom-silos)
+  - [Read Only vs Read Write Silos](#read-only-vs-read-write-silos)
+  - [Historical Context](#historical-context)
 - [Building](#building)
 - [Run](#run)
+  - [launch.sh Usage](#launchsh-usage)
+  - [Arguments](#arguments)
 - [License](#license)
-
 
 # Configuration
 A compiled configuration file is located at `./app/harvest.yaml` and has this basic structure:
