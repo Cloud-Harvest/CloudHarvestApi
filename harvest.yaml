@@ -39,9 +39,7 @@ api:
     port: 8000
 
     # SSL configuration for the api
-    ssl:
-      certificate: ./app/certs/harvest-self-signed.crt
-      key: ./app/certs/harvest-self-signed.key
+    pem: ./app/harvest-self-signed.pem
 
   heartbeat:
     # The interval in seconds at which the node will report its status to the harvest-nodes silo.

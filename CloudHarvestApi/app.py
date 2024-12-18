@@ -44,13 +44,16 @@ class CloudHarvestNode:
 
         logger.debug(CloudHarvestNode.flask.url_map)
 
+        import ssl
+        # Create SSL context using the PEM file
+        pemfile = flat_kwargs.get('api.connection.pem')
+        ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_context.load_cert_chain(pemfile)
+
         # Start the Flask application
         CloudHarvestNode.flask.run(host=flat_kwargs.get('api.connection.host', 'localhost'),
                                    port=flat_kwargs.get('api.connection.port', 8000),
-                                   ssl_context=(
-                                      flat_kwargs.get('api.connection.ssl.certificate'),
-                                      flat_kwargs.get('api.connection.ssl.key')
-                                  ))
+                                   ssl_context=ssl_context)
 
 
 def flatten_dict_preserve_lists(d, parent_key='', sep='.') -> dict:
