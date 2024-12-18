@@ -25,14 +25,14 @@ def main(**kwargs):
         [
             CloudHarvestNode.flask.register_blueprint(api_blueprint)
             for api_blueprint in Registry.find(result_key='instances',
-                                               name='harvest_blueprint',
-                                               category='harvest_api_blueprint')
+                                               category='blueprint',
+                                               name='api')
             if api_blueprint is not None
         ]
 
     CloudHarvestNode.run(**kwargs)
 
-    print('Agent stopped')
+    print('Node stopped')
 
 if __name__ == '__main__':
     from app import load_configuration_from_file
