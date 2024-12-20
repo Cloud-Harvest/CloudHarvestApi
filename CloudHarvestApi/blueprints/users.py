@@ -17,10 +17,22 @@ def list_users() -> Response:
     Lists all users.
     :return: A response.
     """
-    return not_implemented_error()
+    from CloudHarvestCoreTasks.silos import get_silo
+    silo = get_silo('harvest-users')
+
+    # Returns a MongoClient object
+    client = silo.connect()
+
+    result = client[silo.database]['users'].find()
+
+    return jsonify({
+        'success': bool(result),
+        'message': 'No users found' if not result else 'OK',
+        'result': result
+    })
 
 @users_blueprint.route(rule='/lookup_by_token/<token>', methods=['GET'])
-def lookup_user_by_token(token: str) -> str:
+def lookup_user_by_token(token: str) -> Response:
     """
     Looks up a user by their token. Tokens are stored in the Redis `harvest-tokens` Silo.
     :param token: The token to look up.
@@ -30,13 +42,13 @@ def lookup_user_by_token(token: str) -> str:
     # TODO: Implement this method and remove the not_implemented_error() call
     return not_implemented_error()
 
-    from CloudHarvestCoreTasks.silos import get_silo
-
-    silo = get_silo('harvest-tokens')
-
-    connection = silo.connect()
-
-    result = connection.hget(name=token, key='username')
-
-    if result:
-        return result
+    # from CloudHarvestCoreTasks.silos import get_silo
+    #
+    # silo = get_silo('harvest-tokens')
+    #
+    # connection = silo.connect()
+    #
+    # result = connection.hget(name=token, key='username')
+    #
+    # if result:
+    #     return result

@@ -12,13 +12,56 @@ tasks_blueprint = HarvestApiBlueprint(
     url_prefix='/tasks'
 )
 
+
+@tasks_blueprint.route(rule='/get/<silo_name>/<task_identifier>', methods=['GET'])
+def get_silo(silo_name: str, task_identifier: str) -> Response:
+    """
+    Gets the configuration of a single task.
+    Arguments
+    ---------
+    silo_name (str) The name of the silo.
+    task_identifier (str) The task identifier.
+
+    Returns
+    -------
+        The configuration of the retrieved task.
+    """
+
+    from CloudHarvestCoreTasks.silos import get_silo
+
+    client = get_silo(silo_name).connect()
+
+    result = client.get(task_identifier)
+
+    return jsonify({
+        'success': bool(result),
+        'message': f'Task {task_identifier} not found' if not result else 'OK',
+        'result': result
+    })
+
 @tasks_blueprint.route(rule='/list', methods=['GET'])
 def list_tasks() -> Response:
     """
     Lists all tasks.
     :return: A response.
     """
-    return not_implemented_error()
+
+    silo_names = ('harvest-task-queue', 'harvest-tasks', 'harvest-task-results')
+
+    from CloudHarvestCoreTasks.silos import get_silo
+
+    results = []
+    for silo_name in silo_names:
+        client = get_silo(silo_name).connect()
+        keys = client.keys()
+
+        for key in keys:
+            results.append({'silo': silo_name, 'task_chain_id': key})
+
+    return jsonify({
+        'success': True,
+        'result': results
+    })
 
 
 @tasks_blueprint.route(rule='/escalate/<task_id>', methods=['GET'])
@@ -46,11 +89,7 @@ def queue_task(priority: int, task_category: str, task_name: str, task_config = 
 
     :return: A response.
     """
-    # TODO: Implement this method and remove the not_implemented_error() call
-    # return not_implemented_error()
-
     from CloudHarvestCorePluginManager import Registry
-    # request_json = safe_request_get_json(request)
 
     task_model = Registry.find(name=task_name, category=f'template_{task_category}', result_key='cls')
 
@@ -82,8 +121,8 @@ def queue_task(priority: int, task_category: str, task_name: str, task_config = 
         client.setex(name=f"{priority}::{task['id']}", value=payload, time=3600)
 
         result = {
-            'status': 'success',
-            'response': {
+            'success': True,
+            'result': {
                 'id': task['id'],
                 'priority': task['priority'],
                 'created': task['created'],
@@ -92,9 +131,9 @@ def queue_task(priority: int, task_category: str, task_name: str, task_config = 
 
     else:
         result = {
-            'status_code': 500,
-            'reason': 'Task not found',
-            'response': {}
+            'success': False,
+            'reason': f'TaskChain {task_name} not found',
+            'result': {}
         }
 
     return jsonify(result)
