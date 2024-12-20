@@ -11,6 +11,14 @@ def home() -> Response:
         'message': 'Welcome to the CloudHarvest API.'
     })
 
+@home_blueprint.route('/favicon.ico')
+def favicon():
+    """
+    The favicon endpoint.
+    :return: No content
+    """
+    return '', 204
+
 def not_implemented_error() -> Response:
     return jsonify({
         'error': 'Not implemented.'
