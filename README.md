@@ -1,14 +1,9 @@
 # Cloud Harvest API
-This repository provides an interface between clients, the server cache, and other apis. This program is intended to operation individually or as part of a cluster of API nodes. 
+This repository provides an interface between clients, the server cache, and other apis. This program is intended to 
+operate individually or as part of a cluster of API nodes. 
 
 # Table of Contents
 - [Configuration](#configuration)
-  - [Location](#location)
-  - [Config Tool Usage](#config-tool-usage)
-  - [Default Silos](#default-silos)
-  - [Custom Silos](#custom-silos)
-  - [Read Only vs Read Write Silos](#read-only-vs-read-write-silos)
-  - [Historical Context](#historical-context)
 - [Building](#building)
 - [Run](#run)
   - [launch.sh Usage](#launchsh-usage)
@@ -16,55 +11,25 @@ This repository provides an interface between clients, the server cache, and oth
 - [Silos](#silos)
 - [License](#license)
 
-# Configuration
+## Configuration
 A compiled configuration file is located at `./app/harvest.yaml` and has this basic structure:
-```yaml
-.default_mongo_database: &default_mongo_database
-  database: harvest
-  engine: mongo
-  host: harvest-mongo
-  password: default-harvest-password
-  port: 27017
-  username: harvest-api
 
-api:
-  connection:
-    host: 127.0.0.1
-    port: 8000
-  logging:
-    location: ./app/logs/
-    level: DEBUG
-    quiet: false
-
-plugins:
-    - branch: "main",
-      url_or_package_name: "https://github.com/Cloud-Harvest/CloudHarvestPluginAws.git"
-
-silos:
-  harvest-core:
-    <<: *default_mongo_database
-    database: harvest
-```
-
-# Building
+## Building
 The API can be built locally using the following command:
 ```
 docker compose build api
 ```
 
-# Run
-The API can be run by executing [`launch.sh`](launch.sh). The [configuration tool](#config-tool-usage) is automatically run if a configuration file is not found.
+## Run
+The API can be run by executing [the `launch` shell script](launch). 
 
-## launch.sh Usage
+Executing the script will also create the `app` directory. This directory will contain a copy of the `harvest.yaml` 
+configuration file and the `logs` directory. You can accomplish these same steps with:
+
 ```bash
-./launch.sh [--with-mongo]
+mkdir -p app/logs
+cp -vn harvest.yaml app/harvest.yaml
 ```
-
-## Arguments
-| Argument       | Description                                                                                                                                                                                                                                                                                    |
-|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--with-mongo` | Starts a local MongoDB instance using the `mongo:latest` image. This is useful for testing and development purposes but also if you just want to run Harvest locally. For the purposes of using Harvest locally, leave the usernames and passwords as the defaults in the `harvest.json` file. |
-
 
 # Silos
 Silos are data storage locations that Harvest uses for various operations. See the [SILOS.md](SILOS.md) file for more information.
