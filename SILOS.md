@@ -1,14 +1,128 @@
 # Silos
 
+## Introduction
+Silos are a fundamental concept in the Harvest API. They are used to organize and store data in a structured manner.
+Although the data storage location can be customized, the default silos are hard-coded into the application to provide
+a consistent and reliable data storage solution. Silos are defined in the API configuration and are used internally to
+do work. They are also retrieved by [CloudHarvestAgents](https://github.com/Cloud-Harvest/CloudHarvestAgent) to do 
+various task queueing and reporting operations. 
+
+## Custom Silos
+_Custom_ Silos can also be added to the system to provide additional data storage locations. This can be useful for
+building TaskChains which collect, store, and report data from different sources. For example, one may create a Custom
+Silo to connect to a PostgreSQL database, collect data using TaskChain, store that data in a structured manner, and then
+write a report TaskChain to retrieve and display that data. Since the Cloud Harvest team can't know what kind of Custom
+Silos you may use, we cannot provide documentation on their configuration. However, we provide the following general guidance:
+* Ensure that the database is accessible from the Harvest API / Agent.
+* Use the most limited possible permissions for the user connecting to the database.
+* Use a secure connection to the database.
+* Ensure that the database is properly indexed for the queries you will be running. Use `EXPLAIN` plans (or your engine equivalent) to verify that your queries are efficient.
+* Utilize read-only connections where possible to prevent data corruption.
+
+## Table of Contents
+- [Silos](#silos)
+  - [Introduction](#introduction)
+  - [Custom Silos](#custom-silos)
+  - [Harvest Silos](#harvest-silos)
+  - [Silo Configuration](#silo-configuration)
+  - [Read Only vs Read Write Silos](#read-only-vs-read-write-silos)
+  - [harvest-core](#harvest-core)
+  - [harvest-nodes](#harvest-nodes)
+  - [harvest-plugin-aws](#harvest-plugin-aws)
+  - [harvest-plugin-azure](#harvest-plugin-azure)
+  - [harvest-task-queue](#harvest-task-queue)
+  - [harvest-task-results](#harvest-task-results)
+  - [harvest-tasks](#harvest-tasks)
+  - [harvest-tokens](#harvest-tokens)
+  - [harvest-users](#harvest-users)
+
+## Harvest Silos
+| Name                   | Engine | Purpose                                                                                   |
+|------------------------|--------|-------------------------------------------------------------------------------------------|
+| `harvest-core`         | Mongo  | Defines the location of the database used to administer the application and its metadata. |
+| `harvest-nodes`        | Redis  | Stores information about Agent and Api instances in the stack.                            |
+| `harvest-plugin-aws`   | Mongo  | Where AWS data will live.                                                                 |
+| `harvest-plugin-azure` | Mongo  | Where Azure data will live.                                                               |
+| `harvest-task-queue`   | Redis  | This shows queued tasks that agents have yet to pick up.                                  |
+| `harvest-task-results` | Redis  | Where task executor results are stored.                                                   |
+| `harvest-tasks`        | Redis  | This shows active tasks that executors are processing or have recently completed.         |
+| `harvest-tokens`       | Redis  | Ephemeral user tokens.                                                                    |
+| `harvest-users`        | Mongo  | Defines the location of the Harvest user accounts and their associated privileges.        |
+
+## Silo Configuration
+Every Silo uses the same configuration format. The following keys are required for each Silo:
+
+| Key        | Description                                                                                                   |
+|------------|---------------------------------------------------------------------------------------------------------------|
+| `database` | The name of the database to connect to. This can be a string or an integer, depending on the database engine. |
+| `engine`   | The database engine to use. This can be any of the following: `mongodb`, `redis`.                             |
+| `host`     | The hostname or IP address of the database server.                                                            |
+| `password` | The password to use when connecting to the database.                                                          |
+| `port`     | The port number to connect to the database on.                                                                |
+| `username` | The username to use when connecting to the database.                                                          |
+
+Additional fields can be provided based on the database engine being used. The available parameters for each engine are:
+
+### Additional Mongo Parameters
+| Key           | Description                                               |
+|---------------|-----------------------------------------------------------|
+| `authSource`  | The database to authenticate against.                     |
+| `maxPoolSize` | The maximum number of connections in the connection pool. |
+| `minPoolSize` | The minimum number of connections in the connection pool. |
+
+### Additional Redis Parameters
+| Key                | Description                                               |
+|--------------------|-----------------------------------------------------------|
+| `decode_responses` | Whether to decode responses from Redis.                   |
+| `max_connections`  | The maximum number of connections in the connection pool. |
+
+### Example
+```yaml
+silos:
+  my-silo-identifier:
+    database: db_name
+    engine: mysql
+    host: my-mysql-host
+    password: my-mysql-password
+    port: 3306
+    username: my-mysql-username
+```
+
+## Read Only vs Read Write Silos
+Silos do not provide any native read-only or read-write functionality. Instead, deployers are responsible for ensuring
+that their Silos are configured correctly. For example, if you want to use a read-only database for a specific report,
+you must create a Silo which uses read only endpoints and user credentials. Similarly, if you want to use a read-write
+database for a specific report, you must create a Silo which uses read-write endpoints and user credentials. The following
+is an example of two custom Silo configurations which go to the same physical resource, but one is read-only and the other
+is read-write:
+
+```yaml
+silos:
+  # Read-Write Silo
+  my-silo-identifier:
+    database: db_name
+    engine: mysql
+    host: my-mysql-host
+    password: my-mysql-password
+    port: 3306
+    username: my-mysql-username
+    
+  # Read-Only Silo targeting the same resource
+  my-silo-identifier-ro:
+    database: db_name
+    engine: mysql
+    host: my-mysql-host
+    password: my-mysql-read-only-password
+    port: 3306
+    username: my-mysql-read-only-username
+```
+
 ## harvest-core
 The `harvest-core` silo is essential for the administration of the application. It houses the primary database that 
 contains all the metadata and configuration details necessary for the smooth operation of the system. This silo uses 
 `MongoDB` as its database engine, ensuring a robust, persistent, and scalable storage solution.
 
-### Schema
-```json
-
-```
+The schema for this Silo is variable based on the collection in question.
 
 ## harvest-nodes
 The `harvest-nodes` silo is responsible for storing detailed information about the various Agent and API instances 
@@ -182,9 +296,23 @@ The `harvest-tokens` silo is responsible for storing ephemeral user tokens. Thes
 authentication and authorization purposes. `Redis` serves as the database engine for this silo, offering fast and 
 efficient token management.
 
+| Field   | Format   | Description                                     |
+|---------|----------|-------------------------------------------------|
+| `name`  | `string` | The token's identifier.                         |
+| `token` | `string` | The token's value.                              |
+| `user`  | `string` | The Harvest username associated with the token. |
+
 ### Schema
 ```json
+{
+  "name": {
+    "token": "string",
+    "user": "string"
+  }
+}
 ```
+
+> This silo has not been implemented. It is planned for future development.
 
 ## harvest-users
 The `harvest-users` silo defines the location of the Harvest user accounts and their associated privileges. This silo is 
@@ -194,3 +322,5 @@ silo, providing a secure, persistent, and scalable storage solution for user dat
 ### Schema
 ```json
 ```
+
+> This silo has not been implemented. It is planned for future development.
