@@ -32,12 +32,14 @@ def escalate_task(task_id: str) -> Response:
     return not_implemented_error()
 
 
-@tasks_blueprint.route(rule='/queue/<task_category>/<task_name>/<task_config>', methods=['POST'])
-def queue_task(task_category: str, task_name: str, task_config = None) -> Response:
+@tasks_blueprint.route(rule='/queue/<priority>/<task_category>/<task_name>/<task_config>', methods=['POST'])
+def queue_task(priority: int, task_category: str, task_name: str, task_config = None) -> Response:
     """
     Queues a task.
 
     Arguments
+    ---------
+    priority: (int) The priority of the task. Lower numbers are higher priority.
     task_category: (str) The name of the task. Typically, 'report' or 'service'.
     task_model_name: (str) The name of the task model. Usually something like 'harvest.nodes'.
     task_config: (dict) Additional configuration of the task.
@@ -65,6 +67,7 @@ def queue_task(task_category: str, task_name: str, task_config = None) -> Respon
 
         task = {
             'id': str(uuid4()),
+            'priority': priority,
             'name': task_name,
             'category': task_category,
             'model': task_model,
@@ -76,12 +79,13 @@ def queue_task(task_category: str, task_name: str, task_config = None) -> Respon
         payload = dumps(task, default=str)
 
         # Store the task in the Redis cache and expire it from the queue after 1 hour
-        client.setex(name=task['id'], value=payload, time=3600)
+        client.setex(name=f"{priority}::{task['id']}", value=payload, time=3600)
 
         result = {
             'status': 'success',
             'response': {
                 'id': task['id'],
+                'priority': task['priority'],
                 'created': task['created'],
             }
         }
