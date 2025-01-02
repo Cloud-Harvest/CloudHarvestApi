@@ -27,6 +27,24 @@ def get_silo(silo_name: str) -> Response:
         'result': result
     })
 
+@silos_blueprint.route(rule='/get_all', methods=['GET'])
+def get_all_silo() -> Response:
+    """
+    Gets the configuration of all silos registered in the node.
+    Returns:
+        A dictionary containing the configuration of all silos where the key is the silo name.
+    """
+
+    from app import CloudHarvestNode
+
+    result = CloudHarvestNode.config.get('silos', {})
+
+    return jsonify({
+        'success': bool(result),
+        'message': 'No silos found' if not result else 'OK',
+        'result': result
+    })
+
 @silos_blueprint.route(rule='/list', methods=['GET'])
 def list_silos() -> Response:
     from app import CloudHarvestNode
