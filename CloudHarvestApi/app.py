@@ -198,7 +198,7 @@ def load_configuration_from_file() -> dict:
     # Remove any keys that start with a period. This allows YAML anchors to be used in the configuration file.
     return {
         k:v
-        for k, v in configuration.items() or {}
+        for k, v in configuration.items() or {}.items()
         if not k.startswith('.')
     }
 
