@@ -4,6 +4,7 @@ JobQueue instance, and configuration for the api. The run method is used to star
 """
 
 from logging import Logger
+from os.path import expanduser
 
 
 class CloudHarvestNode:
@@ -176,15 +177,23 @@ def load_configuration_from_file() -> dict:
 
     configuration = {}
 
+    from os.path import abspath, expanduser, exists
+    config_paths = (
+        abspath(expanduser('./app/harvest.yaml')),
+        abspath(expanduser('./harvest.yaml')),
+    )
+
     # Select the first file of the list
-    for filename in ('./app/harvest.yaml', './harvest.yaml'):
-        from os.path import exists
+    for filename in config_paths:
 
         if exists(filename):
             with open(filename) as agent_file:
                 configuration = load(agent_file, Loader=FullLoader)
 
             break
+
+    if not configuration:
+        raise FileNotFoundError(f'No configuration file found in {config_paths}.')
 
     # Remove any keys that start with a period. This allows YAML anchors to be used in the configuration file.
     return {
