@@ -75,8 +75,8 @@ def escalate_task(task_id: str) -> Response:
     return not_implemented_error()
 
 
-@tasks_blueprint.route(rule='/queue/<priority>/<task_category>/<task_name>/<task_config>', methods=['POST'])
-def queue_task(priority: int, task_category: str, task_name: str, task_config = None) -> Response:
+@tasks_blueprint.route(rule='/queue/<priority>/<task_category>/<task_name>', methods=['POST'])
+def queue_task(priority: int, task_category: str, task_name: str) -> Response:
     """
     Queues a task.
 
@@ -85,7 +85,6 @@ def queue_task(priority: int, task_category: str, task_name: str, task_config = 
     priority: (int) The priority of the task. Lower numbers are higher priority.
     task_category: (str) The name of the task. Typically, 'report' or 'service'.
     task_model_name: (str) The name of the task model. Usually something like 'harvest.nodes'.
-    task_config: (dict) Additional configuration of the task.
 
     :return: A response.
     """
@@ -110,18 +109,37 @@ def queue_task(priority: int, task_category: str, task_name: str, task_config = 
             'name': task_name,
             'category': task_category,
             'model': task_model,
-            'config': task_config,
+            'config': request.json.get('user_config', {}),
             'created': datetime.now(timezone.utc)
         }
 
         from json import dumps
         payload = dumps(task, default=str)
 
-        # Store the task in the Redis cache and expire it from the queue after 1 hour
-        client.setex(name=f"{priority}::{task['id']}", value=payload, time=3600)
+        # Create a unique name for the task
+        task_redis_name = f"task::{task['id']}"
+
+        try:
+
+            # Create the task queue item
+            client.setex(name=task_redis_name, value=payload, time=3600)
+
+            # Now add the task to the queue
+            client.rpush(f"queue::{priority}", task_redis_name)
+
+        except Exception as ex:
+            reason = f'Failed to queue task {task_name} with error: {str(ex)}'
+
+            # ROlLBACK
+            client.delete(name=task_redis_name)
+            client.lrem(name=f"queue::{priority}", value=task_redis_name)
+
+        else:
+            reason = 'OK'
 
         result = {
-            'success': True,
+            'success': reason == 'OK',
+            'reason': reason,
             'result': {
                 'id': task['id'],
                 'priority': task['priority'],
