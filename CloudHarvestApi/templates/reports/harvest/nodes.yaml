@@ -1,63 +1,24 @@
 report:
   description: Generates a list of all Agent and API nodes
   headers:
-    - Active
-    - Type
-    - Hostname
-    - IP
-    - Version
-    - Start
-    - Last
+    - role
+    - name
+    - ip
+    - port
+    - version
+    - os
+    - python
+    - duration
+    - plugins
+    - start
+    - last
 
   tasks:
     - redis:
         name: Retrieve information on Agent nodes
-        result_as: agent_nodes
-        alias: ephemeral
-        database: agent
-        command: mget
+        result_as: harvest_nodes
+        silo: harvest-nodes
+        command: get
         arguments:
-          pattern: '*'
-
-    - recordset:
-        name: Deserialize the Agent Nodes
-        data: var.agent_nodes
-        result_as: agent_nodes    # Replace the data with the result_as
-        stages:
-          - deserialize:          # Convert the Redis result from a str to a dict
-          - modify_records:
-              function: add_key_values    # Add the 'Type' key to the dict with a value of 'agent'
-              arguments:
-                  key: Type
-                  value: 'agent'
-
-    - redis:
-        name: Retrieve information on Api nodes
-        result_as: api_nodes
-        command: mget
-        alias: ephemeral
-        database: api
-        arguments:
-          pattern: '*'
-
-    - recordset:
-        name: Deserialize the API Nodes
-        data: var.api_nodes
-        result_as: api_nodes    # Replace the data with the result_as
-        stages:
-          - deserialize:        # Convert the Redis result from a str to a dict
-          - modify_records:
-              function: add_key_values    # Add the 'Type' key to the dict with a value of 'api'
-              arguments:
-                  key: Type
-                  value: 'api'
-
-    - recordset:
-        name: Combine the Agent and API nodes
-        data: var.agent_nodes
-        result_as: result
-        user_filters:
-          accepted: '*'
-        stages:
-          - add:
-              data: var.api_nodes
+          pattern: "*"
+          serialization: true
