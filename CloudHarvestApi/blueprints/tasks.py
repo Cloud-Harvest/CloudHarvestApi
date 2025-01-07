@@ -12,32 +12,68 @@ tasks_blueprint = HarvestApiBlueprint(
     url_prefix='/tasks'
 )
 
-
-@tasks_blueprint.route(rule='/get/<silo_name>/<task_identifier>', methods=['GET'])
-def get_silo(silo_name: str, task_identifier: str) -> Response:
+@tasks_blueprint.route(rule='/get_task_results/<task_chain_id>', methods=['GET'])
+def get_task_results(task_chain_id: str) -> Response:
     """
-    Gets the configuration of a single task.
-    Arguments
-    ---------
-    silo_name (str) The name of the silo.
-    task_identifier (str) The task identifier.
+    Returns the results of a task chain.
+    Args:
+        task_chain_id: A task chain ID (uuid4)
 
-    Returns
-    -------
-        The configuration of the retrieved task.
+    Returns:
+        A response with the task chain results.
     """
 
     from CloudHarvestCoreTasks.silos import get_silo
+    silo = get_silo('harvest-task-results')
 
-    client = get_silo(silo_name).connect()
+    reason = 'OK'
+    results = {}
 
-    result = client.get(task_identifier)
+    try:
+        client = silo.connect()
+        results = client.get(task_chain_id)
 
-    return jsonify({
-        'success': bool(result),
-        'message': f'Task {task_identifier} not found' if not result else 'OK',
-        'result': result
-    })
+    except Exception as ex:
+        reason = f'Failed to get task results with error: {str(ex)}'
+        logger.error(reason)
+
+    finally:
+        return jsonify({
+            'success': reason == 'OK',
+            'reason': reason,
+            'result': results
+        })
+
+
+@tasks_blueprint.route(rule='/list_task_results', methods=['GET'])
+def list_task_results() -> Response:
+    """
+    Lists all task results.
+    :return: A response.
+    """
+
+    from CloudHarvestCoreTasks.silos import get_silo
+    silo = get_silo('harvest-task-results')
+
+    reason = 'OK'
+    results = []
+
+    try:
+        client = silo.connect()
+
+        results = client.keys() or []
+
+    except Exception as ex:
+        reason = f'Failed to list task results with error: {str(ex)}'
+        logger.error(reason)
+
+    finally:
+        return jsonify({
+            'success': reason == 'OK',
+            'reason': reason,
+            'result': results
+        })
+
 
 @tasks_blueprint.route(rule='/list', methods=['GET'])
 def list_tasks() -> Response:
