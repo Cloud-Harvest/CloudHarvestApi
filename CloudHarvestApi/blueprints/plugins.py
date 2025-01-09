@@ -8,7 +8,7 @@ logger = getLogger('harvest')
 
 plugins_blueprint = HarvestApiBlueprint(
     'plugins_bp', __name__,
-    url_prefix='/agents'
+    url_prefix='/plugins'
 )
 
 @plugins_blueprint.route(rule='/list', methods=['GET'])
