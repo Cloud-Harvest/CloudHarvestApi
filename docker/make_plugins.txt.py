@@ -29,7 +29,7 @@ with open(join(directory, 'plugins.txt'), 'w') as plugins_file:
             # Get the package name from the URL
             package_name = plugin['url_or_package_name'].split('/')[-1].split('.')[0]
             branch_name = plugin.get('branch') or 'master'
-            output_string = f'{package_name} @ {plugin["url_or_package_name"]}@{branch_name}\n'
+            output_string = f'{package_name} @ git+{plugin["url_or_package_name"]}@{branch_name}\n'
 
         else:
             output_string = plugin['url_or_package_name']
