@@ -6,6 +6,7 @@ listing users or looking up a user by token.
 
 from .agents import agents_blueprint
 from .home import home_blueprint
+from .plugins import plugins_blueprint
 from .silos import silos_blueprint
 from .tasks import tasks_blueprint
 from .users import users_blueprint
