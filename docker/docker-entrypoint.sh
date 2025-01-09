@@ -6,8 +6,10 @@ if [ ! -d "$base_path" ]; then
     base_path="."
 fi
 
+echo "Base path: $base_path"
+
 # Make the configuration directory for the app
-subdirs=("certs" "logs")
+subdirs=("logs")
 for subdir in "${subdirs[@]}"; do
     mkdir -pv "$base_path/app/$subdir"
 done
@@ -22,6 +24,7 @@ cp -nv "$base_path/harvest.yaml" "$base_path/app/harvest.yaml"
 # 3. Install the plugins
 # 4. Start the application
 source "$base_path/venv/bin/activate" \
+&& which python \
 && "$base_path/docker/make_plugins.txt.py" \
 && touch -a "$base_path/app/plugins.txt" \
 && pip install -r "$base_path/app/plugins.txt" \
