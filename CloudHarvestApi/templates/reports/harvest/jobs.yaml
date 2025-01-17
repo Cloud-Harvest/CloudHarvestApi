@@ -1,49 +1,97 @@
 report:
   description: Displays the data collection jobs and their status.
   headers:
-    - JobId
-    - Platform
-    - Service
-    - Type
-    - Account
-    - Region
-    - Completed
-    - Total
+    - Id
+    - Name
+    - Description
     - Status
+    - Records
+    - Duration
     - Start
     - End
-    - Errors
 
   tasks:
-    - mongo:
-        name: query harvest.data-collection-jobs
-        description: ''
-        result_as: result
-        collection: data-collection-jobs
-        user_filters:
-          accepted: '*'
+    # Data retrieval tasks
+    - redis:
+        name: Enqueued tasks
+        description: Displays the status of the tasks that are currently awaiting processing.
+        result_as: harvest_task_queue
+        silo: harvest-task-queue
+        method: get
+        arguments:
+          pattern: "task::*"
+          serialization: true
 
-        pipeline:
-          - $unwind:
-              path: "$pstar"
-              preserveNullAndEmptyArrays: True
+    - redis:
+        name: Active tasks
+        description: Displays the status of the tasks that are currently being processed.
+        result_as: harvest_tasks
+        silo: harvest-tasks
+        method: get
+        arguments:
+          pattern: "task::*"
+          serialization: true
 
-          - $project:
-              JobId:
-                $toString: "$_id"
-              Platform: "$pstar.platform"
-              Service: "$pstar.service"
-              Type: "$pstar.type"
-              Account: "$pstar.account"
-              Region: "$pstar.region"
-              Completed: "$pstar.completed"
-              Total: "$pstar.total"
-              Status: "$pstar.status"
-              Start: "$pstar.start"
-              End: "$pstar.end"
-              Duration:
-                $dateDiff:
-                  startDate: "$pstar.start"
-                  endDate: "$pstar.end"
-                  unit: "second"
-              Errors: "$errors"
+    - redis:
+        name: Completed tasks
+        description: Displays the status of the tasks that have been completed.
+        result_as: harvest_task_results
+        silo: harvest-task-results
+        method: get
+        arguments:
+          pattern: "*"
+          serialization: true
+
+    # Data formatting tasks
+    - recordset:
+        name: Modify enqueued task data
+        description: Formats the data from the enqueued tasks.
+        result_as: harvest_task_queue
+        stages:
+          - assign_value_to_key:
+              key: Stage
+              value: enqueued
+              clobber: true
+          - substring:
+              source_key:
+
+    - recordset:
+        name: Modify processing task data
+        description: Formats the data from the processing tasks.
+        result_as: harvest_tasks
+        stages:
+          - assign_value_to_key:
+              key: Stage
+              value: processing
+              clobber: true
+
+    - recordset:
+        name: Modify completed task data
+        description: Formats the data from the completed tasks.
+        result_as: harvest_task_results
+        stages:
+          - assign_value_to_key:
+              key: Stage
+              value: completed
+              clobber: true
+          - unwind:
+              source_key: meta
+          - set_match_set:
+              syntax: 'Position==Total'
+          - remove_unmatched_records:
+          - clear_matches:
+
+    - recordset:
+        name: Consolidate data
+        description: Combines the data from the enqueued, active, and completed tasks.
+        result_as: harvest_jobs
+        stages:
+          - add:
+              data: harvest_task_queue
+          - add:
+              data: harvest_tasks
+          - add:
+              data: harvest_task_results
+          - title_keys:
+              remove_characters:
+                - "_"
