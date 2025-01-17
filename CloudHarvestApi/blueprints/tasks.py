@@ -31,7 +31,12 @@ def get_task_results(task_chain_id: str) -> Response:
 
     try:
         client = silo.connect()
-        results = client.get(task_chain_id)
+        results = client.hgetall(name=task_chain_id)
+
+        # Deserialize the results
+        from json import loads
+        for key, value in results.items():
+            results[key] = loads(value)
 
     except Exception as ex:
         reason = f'Failed to get task results with error: {str(ex)}'
