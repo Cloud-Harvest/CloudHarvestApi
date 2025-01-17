@@ -20,5 +20,5 @@ report:
         silo: harvest-nodes
         command: get
         arguments:
-          pattern: "*"
-          serialization: true
+          patterns: "*"
+        serialization: true
