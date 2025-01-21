@@ -13,39 +13,41 @@ report:
   tasks:
     # Data retrieval tasks
     - redis:
-        name: Enqueued tasks
+        name: Get Enqueued tasks
         description: Displays the status of the tasks that are currently awaiting processing.
         result_as: harvest_task_queue
         silo: harvest-task-queue
-        method: get
+        command: get
         arguments:
-          pattern: "task::*"
-          serialization: true
+          patterns: "task::*"
+        serialization: true
 
     - redis:
-        name: Active tasks
+        name: Get Active tasks
         description: Displays the status of the tasks that are currently being processed.
         result_as: harvest_tasks
         silo: harvest-tasks
-        method: get
+        command: get
         arguments:
-          pattern: "task::*"
-          serialization: true
+          patterns: "task::*"
+        serialization: true
 
     - redis:
-        name: Completed tasks
+        name: Get Completed tasks
         description: Displays the status of the tasks that have been completed.
         result_as: harvest_task_results
         silo: harvest-task-results
-        method: get
+        command: get
         arguments:
-          pattern: "*"
-          serialization: true
+          patterns: "*"
+          keys: "meta"
+        serialization: true
 
     # Data formatting tasks
     - recordset:
         name: Modify enqueued task data
         description: Formats the data from the enqueued tasks.
+        data: var.harvest_task_queue
         result_as: harvest_task_queue
         stages:
           - assign_value_to_key:
@@ -53,21 +55,28 @@ report:
               value: enqueued
               clobber: true
           - substring:
-              source_key:
+              source_key: _id
+              # task::
+              start: 6
 
     - recordset:
         name: Modify processing task data
         description: Formats the data from the processing tasks.
+        data: var.harvest_tasks
         result_as: harvest_tasks
         stages:
           - assign_value_to_key:
               key: Stage
               value: processing
               clobber: true
+          - substring:
+              source_key: _id
+              start: 6
 
     - recordset:
         name: Modify completed task data
         description: Formats the data from the completed tasks.
+        data: var.harvest_task_results
         result_as: harvest_task_results
         stages:
           - assign_value_to_key:
@@ -87,11 +96,14 @@ report:
         result_as: harvest_jobs
         stages:
           - add:
-              data: harvest_task_queue
+              data: var.harvest_task_queue
+
           - add:
-              data: harvest_tasks
+              data: var.harvest_tasks
+
           - add:
-              data: harvest_task_results
+              data: var.harvest_task_results
+
           - title_keys:
               remove_characters:
                 - "_"
