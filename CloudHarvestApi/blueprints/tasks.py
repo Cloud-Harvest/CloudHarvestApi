@@ -1,6 +1,7 @@
 from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
 from flask import Response, jsonify, request
 from logging import getLogger
+from typing import Literal
 
 from .base import safe_request_get_json
 from .home import not_implemented_error
@@ -50,6 +51,30 @@ def get_task_results(task_chain_id: str) -> Response:
         })
 
 
+@tasks_blueprint.route(rule='/list_available_tasks/<task_type>', methods=['GET'])
+def list_available_tasks(task_type: Literal['reports', 'services']) -> Response:
+    """
+    List the tasks available in the system.
+
+    Returns: A list of task models.
+    """
+
+    if task_type not in ('reports', 'services'):
+        return jsonify({
+            'success': False,
+            'reason': f'Invalid task type: {task_type}',
+            'result': []
+        })
+
+    from CloudHarvestCorePluginManager import Registry
+
+    task_models = Registry.find(category=f'template_{task_type}', result_key='name', limit=None)
+
+    return jsonify({
+        'success': True,
+        'result': task_models
+    })
+
 @tasks_blueprint.route(rule='/list_task_results', methods=['GET'])
 def list_task_results() -> Response:
     """
@@ -80,8 +105,8 @@ def list_task_results() -> Response:
         })
 
 
-@tasks_blueprint.route(rule='/list', methods=['GET'])
-def list_tasks() -> Response:
+@tasks_blueprint.route(rule='/list_task_queue', methods=['GET'])
+def list_task_queue() -> Response:
     """
     Lists all tasks.
     :return: A response.
