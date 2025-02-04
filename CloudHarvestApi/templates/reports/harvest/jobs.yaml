@@ -2,6 +2,7 @@ report:
   description: Displays the data collection jobs and their status.
   headers:
     - Id
+    - Stage
     - Name
     - Description
     - Status
@@ -44,66 +45,66 @@ report:
         serialization: true
 
     # Data formatting tasks
-    - recordset:
+    - dataset:
         name: Modify enqueued task data
         description: Formats the data from the enqueued tasks.
         data: var.harvest_task_queue
         result_as: harvest_task_queue
         stages:
-          - assign_value_to_key:
-              key: Stage
-              value: enqueued
-              clobber: true
-          - substring:
+          - add_keys:
+              keys: Stage
+              default_value:  enqueued
+          - splice_key:
               source_key: _id
-              # task::
-              start: 6
+              start: 6        # 'task::' is 6 characters long
 
-    - recordset:
+    - dataset:
         name: Modify processing task data
         description: Formats the data from the processing tasks.
         data: var.harvest_tasks
         result_as: harvest_tasks
         stages:
-          - assign_value_to_key:
-              key: Stage
-              value: processing
-              clobber: true
-          - substring:
+          - add_keys:
+              keys: Stage
+              default_value:  processing
+          - splice_key:
               source_key: _id
               start: 6
+          - unnest_records:
+              key_pattern: "meta.*"
+              nest_level: 1
 
-    - recordset:
+    - dataset:
         name: Modify completed task data
         description: Formats the data from the completed tasks.
         data: var.harvest_task_results
         result_as: harvest_task_results
         stages:
-          - assign_value_to_key:
-              key: Stage
-              value: completed
-              clobber: true
+          - add_keys:
+              keys: Stage
+              default_value:  completed
           - unwind:
               source_key: meta
-          - set_match_set:
-              syntax: 'Position==Total'
-          - remove_unmatched_records:
-          - clear_matches:
+          - unnest_records:
+              key_pattern: "meta.*"
+              nest_level: 1
+          - match_and_remove:
+              matching_expressions:
+                - 'Position==Total'
 
-    - recordset:
+    - dataset:
         name: Consolidate data
         description: Combines the data from the enqueued, active, and completed tasks.
         result_as: harvest_jobs
         stages:
-          - add:
-              data: var.harvest_task_queue
-
-          - add:
-              data: var.harvest_tasks
-
-          - add:
-              data: var.harvest_task_results
-
+          - add_records:
+              records:
+                - var.harvest_task_queue
+                - var.harvest_tasks
+                - var.harvest_task_results
+          - rename_keys:
+              mapping:
+                _id: Id
           - title_keys:
               remove_characters:
                 - "_"
