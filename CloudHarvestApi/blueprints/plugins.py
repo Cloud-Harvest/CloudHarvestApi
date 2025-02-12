@@ -1,8 +1,9 @@
 from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
-from flask import Response, jsonify
+from flask import Response
 from logging import getLogger
 
 from .home import not_implemented_error
+from .base import safe_jsonify
 
 logger = getLogger('harvest')
 
@@ -26,8 +27,8 @@ def list_all_plugins() -> Response:
     from app import CloudHarvestNode
 
 
-    return jsonify({
-        'success': True,
-        'reason': 'OK',
-        'result': CloudHarvestNode.config.get('plugins') or []
-    })
+    return safe_jsonify(
+        success=True,
+        reason='OK',
+        result=CloudHarvestNode.config.get('plugins') or []
+    )

@@ -1,9 +1,9 @@
 from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
-from flask import Response, jsonify, request
+from flask import Response, request
 from logging import getLogger
 from typing import Literal
 
-from .base import safe_request_get_json
+from .base import safe_jsonify
 from .home import not_implemented_error
 
 logger = getLogger('harvest')
@@ -32,7 +32,12 @@ def get_task_results(task_chain_id: str) -> Response:
 
     try:
         client = silo.connect()
-        results = client.hgetall(name=task_chain_id)
+
+        if client.exists(task_chain_id):
+            results = client.hgetall(name=task_chain_id)
+
+        else:
+            reason = 'NOT FOUND'
 
         # Deserialize the results
         from json import loads
@@ -44,12 +49,11 @@ def get_task_results(task_chain_id: str) -> Response:
         logger.error(reason)
 
     finally:
-        return jsonify({
-            'success': reason == 'OK',
-            'reason': reason,
-            'result': results
-        })
-
+        return safe_jsonify(
+            success=reason == 'OK',
+            reason=reason,
+            result=results
+        )
 
 @tasks_blueprint.route(rule='/list_available_tasks/<task_type>', methods=['GET'])
 def list_available_tasks(task_type: Literal['reports', 'services']) -> Response:
@@ -60,20 +64,30 @@ def list_available_tasks(task_type: Literal['reports', 'services']) -> Response:
     """
 
     if task_type not in ('reports', 'services'):
-        return jsonify({
-            'success': False,
-            'reason': f'Invalid task type: {task_type}',
-            'result': []
-        })
+        return safe_jsonify(success=False, reason=f'Invalid task type: {task_type}', result=[])
 
     from CloudHarvestCorePluginManager import Registry
 
-    task_models = Registry.find(category=f'template_{task_type}', result_key='name', limit=None)
+    task_models = Registry.find(category=f'template_{task_type}', result_key='*', limit=None)
 
-    return jsonify({
-        'success': True,
-        'result': task_models
-    })
+    result = {
+            'data': [
+                {
+                    'Name': model['name'],
+                    'Description': model['cls'][list(model['cls'].keys())[0]].get('description', 'Description not provided.'),
+                    'Tags': ', '.join(model.get('tags', []))
+                } for model in task_models
+            ],
+            'meta': {
+                'headers': ['Name', 'Tags', 'Description'],
+            },
+        }
+
+    return safe_jsonify(
+        success=True,
+        reason='OK',
+        result=result
+    )
 
 @tasks_blueprint.route(rule='/list_task_results', methods=['GET'])
 def list_task_results() -> Response:
@@ -98,11 +112,7 @@ def list_task_results() -> Response:
         logger.error(reason)
 
     finally:
-        return jsonify({
-            'success': reason == 'OK',
-            'reason': reason,
-            'result': results
-        })
+        return safe_jsonify(success=reason == 'OK', reason=reason, result=results)
 
 
 @tasks_blueprint.route(rule='/list_task_queue', methods=['GET'])
@@ -124,11 +134,11 @@ def list_task_queue() -> Response:
         for key in keys:
             results.append({'silo': silo_name, 'task_chain_id': key})
 
-    return jsonify({
-        'success': True,
-        'result': results
-    })
-
+    return safe_jsonify(
+        success=True,
+        reason='OK',
+        result=results
+    )
 
 @tasks_blueprint.route(rule='/escalate/<task_id>', methods=['GET'])
 def escalate_task(task_id: str) -> Response:
@@ -220,4 +230,9 @@ def queue_task(priority: int, task_category: str, task_name: str) -> Response:
             'result': {}
         }
 
-    return jsonify(result)
+    return safe_jsonify(
+        success=result['success'],
+        reason=result['reason'],
+        result=result['result'],
+        default={}
+    )

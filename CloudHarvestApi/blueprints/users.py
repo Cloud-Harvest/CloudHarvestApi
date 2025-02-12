@@ -1,7 +1,8 @@
 from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
-from flask import Response, jsonify
+from flask import Response
 from logging import getLogger
 
+from .base import safe_jsonify
 from .home import not_implemented_error
 
 logger = getLogger('harvest')
@@ -25,11 +26,11 @@ def list_users() -> Response:
 
     result = client[silo.database]['users'].find()
 
-    return jsonify({
-        'success': bool(result),
-        'message': 'No users found' if not result else 'OK',
-        'result': result
-    })
+    return safe_jsonify(
+        success=bool(result),
+        reason='OK' if result else 'No users found',
+        result=list(result)
+    )
 
 @users_blueprint.route(rule='/lookup_by_token/<token>', methods=['GET'])
 def lookup_user_by_token(token: str) -> Response:
@@ -39,16 +40,4 @@ def lookup_user_by_token(token: str) -> Response:
     :return: The username.
     """
 
-    # TODO: Implement this method and remove the not_implemented_error() call
     return not_implemented_error()
-
-    # from CloudHarvestCoreTasks.silos import get_silo
-    #
-    # silo = get_silo('harvest-tokens')
-    #
-    # connection = silo.connect()
-    #
-    # result = connection.hget(name=token, key='username')
-    #
-    # if result:
-    #     return result

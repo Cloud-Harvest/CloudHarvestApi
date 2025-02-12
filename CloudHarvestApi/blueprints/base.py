@@ -1,4 +1,5 @@
-from flask import Request
+from flask import Request, Response, jsonify
+from typing import Any
 
 def safe_request_get_json(request: Request) -> dict:
     """
@@ -11,3 +12,21 @@ def safe_request_get_json(request: Request) -> dict:
 
     except Exception as e:
         return {}
+
+
+def safe_jsonify(success: bool, reason: str, result: Any, default: Any = None) -> Response:
+    try:
+        try_result = jsonify({
+            'success': success,
+            'reason': reason,
+            'result': result
+        })
+
+    except Exception as ex:
+        try_result = jsonify({
+            'success': False,
+            'reason': 'Failed to jsonify the result: ' + str(ex),
+            'result': default
+        })
+
+    return try_result
