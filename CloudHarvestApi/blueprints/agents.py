@@ -2,7 +2,7 @@ from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
 from flask import Response, jsonify
 from logging import getLogger
 
-from .home import not_implemented_error
+from CloudHarvestApi.blueprints.home import not_implemented_error
 
 logger = getLogger('harvest')
 

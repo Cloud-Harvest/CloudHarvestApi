@@ -3,8 +3,8 @@ from flask import Response, request
 from logging import getLogger
 from typing import Literal
 
-from .base import safe_jsonify
-from .home import not_implemented_error
+from CloudHarvestApi.blueprints.base import safe_jsonify
+from CloudHarvestApi.blueprints.home import not_implemented_error
 
 logger = getLogger('harvest')
 

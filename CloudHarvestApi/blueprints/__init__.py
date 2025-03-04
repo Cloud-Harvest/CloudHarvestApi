@@ -4,9 +4,9 @@ specific part of the application. For example, the `users` blueprint contains ro
 listing users or looking up a user by token.
 """
 
-from .agents import agents_blueprint
-from .home import home_blueprint
-from .plugins import plugins_blueprint
-from .silos import silos_blueprint
-from .tasks import tasks_blueprint
-from .users import users_blueprint
+from CloudHarvestApi.blueprints.agents import agents_blueprint
+from CloudHarvestApi.blueprints.home import home_blueprint
+from CloudHarvestApi.blueprints.plugins import plugins_blueprint
+from CloudHarvestApi.blueprints.silos import silos_blueprint
+from CloudHarvestApi.blueprints.tasks import tasks_blueprint
+from CloudHarvestApi.blueprints.users import users_blueprint
