@@ -1,3 +1,21 @@
+# 0.1.14
+- Updated to conform with CloudHarvestCoreTasks 0.6.0
+
+# 0.1.13
+- Updated to conform with CloudHarvestCoreTasks 0.4.1
+- Updated to Python 3.13
+- [`config.py`](./config.py)
+  - Most prompts are now derived from [`config.yaml`](./config.yaml) 
+- Implemented certificates in `harvest.yaml` with a default location of `harvest/certs`
+- Added endpoint `tasks/list_available_tasks` to list all available tasks
+- Added port number to the heartbeat record identifier
+
+# 0.1.12
+- Update to conform to CloudHarvestCoreTasks 0.4.0
+- Added the `redis` service to `docker-compose.yaml`
+- Moved several persistent cache operations to the ephemeral cache
+- Moved `BaseCacheTask` and `CacheAggregateTask` to `CloudHarvestCoreTasks` as refactors inheriting `BaseDataTask`
+
 # 0.1.11
 - Updated `docker-compose` so that `mongo` manages its own data volume
 - Fixed invalid `task_chain_from_dict()` arguments in `reports/routes.py`
@@ -18,13 +36,13 @@
 - Removed some unused lines from `docker-compose.yaml`
 
 # 0.1.6
-- Changed the output of the [`report_run()`](CloudHarvestApi/api/blueprints/reports/routes.py) method from `dict` to `List[dict]`
+- Changed the output of the [`report_run()`](CloudHarvestApi/blueprints/reports.py) method from `dict` to `List[dict]`
 - Updated `BaseCacheTask` to accept the `title` parameter in the constructor
 
 # 0.1.5
 - Added `__register__.py` to capture definitions and instances.
 - Added CloudHarvestCorePluginManager decorators to identify classes and instances to add to the Registry.
-- `config.py` will now store plugins in `./app/plugins.txt`. 
+- `config.py` will now store plugins in `./app/api/plugins.txt`. 
   - This list will be used to install plugins. 
   - One installed, they can be activated using CloudHarvestCorePluginManager.registry.Registry.register_objects()
 - Updated README

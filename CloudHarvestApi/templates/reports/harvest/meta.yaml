@@ -14,10 +14,12 @@ report:
     - LastSeen
 
   tasks:
-    - cache_aggregate:
+    - mongo:
         name: get meta collection
         result_as: result
         collection: meta
+        filters: '*'
+
         pipeline:
           - $project:
               Active: "$Harvest.Active"

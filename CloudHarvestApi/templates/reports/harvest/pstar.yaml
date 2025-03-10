@@ -18,8 +18,10 @@ report:
     - Errors
   
   tasks:
-    - cache_aggregate:  
+    - mongo:
         collection: pstar
+        filters: '.*'
+
         pipeline: 
           "$project": 
             Platform: 1,

@@ -1,7 +1,7 @@
 {
   "author": "Cloud Harvest, Fiona June Leathers",
   "classifiers": [
-    "Programming Language :: Python :: 3.12"
+    "Programming Language :: Python :: 3.13"
   ],
   "description": "This is the API layer for CloudHarvest.",
   "keywords": [
@@ -10,5 +10,5 @@
   "license": "CC Attribution-NonCommercial-ShareAlike 4.0 International",
   "name": "CloudHarvestApi",
   "url": "https://github.com/Cloud-Harvest/CloudHarvestApi",
-  "version": "0.1.11"
+  "version": "0.1.14"
 }
