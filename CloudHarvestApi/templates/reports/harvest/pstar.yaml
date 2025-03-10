@@ -20,8 +20,7 @@ report:
   tasks:
     - mongo:
         collection: pstar
-        user_filters:
-          accepted: '*'
+        filters: '.*'
 
         pipeline: 
           "$project": 

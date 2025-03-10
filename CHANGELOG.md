@@ -1,3 +1,6 @@
+# 0.1.14
+- Updated to conform with CloudHarvestCoreTasks 0.6.0
+
 # 0.1.13
 - Updated to conform with CloudHarvestCoreTasks 0.4.1
 - Updated to Python 3.13

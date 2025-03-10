@@ -27,6 +27,7 @@ report:
     - dataset:
         name: Format the data
         data: var.harvest_nodes
+        filters: '.*'
         stages:
           - convert_list_to_string:
                 source_key: available_chains

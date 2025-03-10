@@ -185,7 +185,7 @@ def queue_task(priority: int, task_category: str, task_name: str) -> Response:
             'name': task_name,
             'category': task_category,
             'model': task_model,
-            'config': request.json.get('user_config', {}),
+            'config': dict(request.json),
             'created': datetime.now(timezone.utc)
         }
 

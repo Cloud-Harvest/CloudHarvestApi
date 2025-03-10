@@ -95,6 +95,7 @@ report:
     - dataset:
         name: Consolidate data
         description: Combines the data from the enqueued, active, and completed tasks.
+        filters: '.*'
         result_as: harvest_jobs
         stages:
           - add_records:

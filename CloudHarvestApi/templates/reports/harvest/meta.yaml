@@ -18,8 +18,7 @@ report:
         name: get meta collection
         result_as: result
         collection: meta
-        user_filters:
-          accepted: '*'
+        filters: '*'
 
         pipeline:
           - $project:
