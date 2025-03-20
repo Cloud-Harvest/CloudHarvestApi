@@ -21,7 +21,7 @@ report:
         silo: harvest-nodes
         command: get
         arguments:
-          patterns: "*"
+          patterns: "api*"
         serialization: true
 
     - dataset:
