@@ -1,7 +1,12 @@
 # 0.1.14
 - Updated to conform with CloudHarvestCoreTasks 0.6.0
 - Added error messages when failing to acquire silos
-- added `tasks/list_available_templates` endpoint
+- Added `tasks/list_available_templates` endpoint
+- Added `CachedData` class
+  - Stores any data time in the `data` attribute
+  - Stores when the data was recorded in the `recorded` attributes
+  - Offers a `is_valid()` method which returns `True` if the data was recorded before the `age` property exceeds the `valid_age` property
+- Added a `@use_cache_if_valid(cached_data: CachedData)` decorator which bypasses the method when the `CachedData.is_valid()` method returns `True`
 
 # 0.1.13
 - Updated to conform with CloudHarvestCoreTasks 0.4.1

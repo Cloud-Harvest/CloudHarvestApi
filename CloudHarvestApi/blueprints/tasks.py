@@ -1,9 +1,8 @@
 from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
 from flask import Response, request
 from logging import getLogger
-from typing import Literal
 
-from CloudHarvestApi.blueprints.base import safe_jsonify
+from CloudHarvestApi.blueprints.base import CachedData, safe_jsonify, use_cache_if_valid
 from CloudHarvestApi.blueprints.home import not_implemented_error
 
 logger = getLogger('harvest')
@@ -12,6 +11,9 @@ tasks_blueprint = HarvestApiBlueprint(
     'tasks_bp', __name__,
     url_prefix='/tasks'
 )
+
+CACHED_TEMPLATES = CachedData(data=[], valid_age=0)
+
 
 @tasks_blueprint.route(rule='/get_task_results/<task_chain_id>', methods=['GET'])
 def get_task_results(task_chain_id: str) -> Response:
@@ -55,46 +57,48 @@ def get_task_results(task_chain_id: str) -> Response:
             result=results
         )
 
-@tasks_blueprint.route(rule='/list_available_tasks/<task_type>', methods=['GET'])
-def list_available_tasks(task_type: Literal['reports', 'services']) -> Response:
-    """
-    List the tasks available in the system.
-
-    Returns: A list of task models.
-    """
-
-    if task_type not in ('reports', 'services'):
-        return safe_jsonify(success=False, reason=f'Invalid task type: {task_type}', result=[])
-
-    from CloudHarvestCorePluginManager import Registry
-
-    task_models = Registry.find(category=f'template_{task_type}', result_key='*', limit=None)
-
-    result = {
-            'data': [
-                {
-                    'Name': model['name'],
-                    'Description': model['cls'][list(model['cls'].keys())[0]].get('description', 'Description not provided.'),
-                    'Tags': ', '.join(model.get('tags', []))
-                } for model in task_models
-            ],
-            'meta': {
-                'headers': ['Name', 'Tags', 'Description'],
-            },
-        }
-
-    return safe_jsonify(
-        success=True,
-        reason='OK',
-        result=result
-    )
+# @tasks_blueprint.route(rule='/list_available_tasks/<task_type>', methods=['GET'])
+# def list_available_tasks(task_type: Literal['reports', 'services']) -> Response:
+#     """
+#     List the tasks available in the system.
+#
+#     Returns: A list of task models.
+#     """
+#
+#     if task_type not in ('reports', 'services'):
+#         return safe_jsonify(success=False, reason=f'Invalid task type: {task_type}', result=[])
+#
+#     from CloudHarvestCorePluginManager import Registry
+#
+#     task_models = Registry.find(category=f'template_{task_type}', result_key='*', limit=None)
+#
+#     result = {
+#             'data': [
+#                 {
+#                     'Name': model['name'],
+#                     'Description': model['cls'][list(model['cls'].keys())[0]].get('description', 'Description not provided.'),
+#                     'Tags': ', '.join(model.get('tags', []))
+#                 } for model in task_models
+#             ],
+#             'meta': {
+#                 'headers': ['Name', 'Tags', 'Description'],
+#             },
+#         }
+#
+#     return safe_jsonify(
+#         success=True,
+#         reason='OK',
+#         result=result
+#     )
 
 @tasks_blueprint.route(rule='/list_available_templates', methods=['GET'])
+@use_cache_if_valid(CACHED_TEMPLATES)
 def list_available_templates() -> Response:
     """
     List the available task templates.
     :return: A response.
     """
+
     from json import loads
     from CloudHarvestCoreTasks.silos import get_silo
     silo = get_silo('harvest-nodes')
@@ -121,6 +125,7 @@ def list_available_templates() -> Response:
 
     finally:
         results = sorted(list(set(results)))
+        CACHED_TEMPLATES.update(data=results, valid_age=300)
 
         return safe_jsonify(
             success=True,
