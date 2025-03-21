@@ -284,21 +284,26 @@ def load_silos(silo_config: dict) -> dict:
 
     # Create the silo objects
     for silo_name, silo_configuration in silo_config.items():
-        new_silo_indexes = silo_configuration.pop('indexes', None)
+        try:
+            new_silo_indexes = silo_configuration.pop('indexes', None)
 
-        new_silo = add_silo(name=silo_name, **silo_configuration)
+            new_silo = add_silo(name=silo_name, **silo_configuration)
 
-        if new_silo.is_connected:
-            logger.info(f'{silo_name}: Connected successfully.')
+            if new_silo.is_connected:
+                logger.info(f'{silo_name}: Connected successfully.')
 
-            if new_silo_indexes:
-                logger.info(f'{silo_name}: Adding indexes.')
-                new_silo.add_indexes(new_silo_indexes)
+                if new_silo_indexes:
+                    logger.info(f'{silo_name}: Adding indexes.')
+                    new_silo.add_indexes(new_silo_indexes)
 
-            results[silo_name] = 'success'
+                results[silo_name] = 'success'
 
-        else:
-            logger.error(f'Silo {silo_name} failed to connect.')
+            else:
+                logger.error(f'Silo {silo_name} failed to connect.')
+                results[silo_name] = 'failure'
+
+        except Exception as ex:
+            logger.error(f'Could not load silo {silo_name}: {ex.args[0]}')
             results[silo_name] = 'failure'
 
     return results
