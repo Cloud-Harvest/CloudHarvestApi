@@ -1,6 +1,7 @@
 # 0.1.14
 - Updated to conform with CloudHarvestCoreTasks 0.6.0
 - Added error messages when failing to acquire silos
+- added `tasks/list_available_templates` endpoint
 
 # 0.1.13
 - Updated to conform with CloudHarvestCoreTasks 0.4.1
