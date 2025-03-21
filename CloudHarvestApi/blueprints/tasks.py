@@ -89,6 +89,45 @@ def list_available_tasks(task_type: Literal['reports', 'services']) -> Response:
         result=result
     )
 
+@tasks_blueprint.route(rule='/list_available_templates', methods=['GET'])
+def list_available_templates() -> Response:
+    """
+    List the available task templates.
+    :return: A response.
+    """
+    from json import loads
+    from CloudHarvestCoreTasks.silos import get_silo
+    silo = get_silo('harvest-nodes')
+
+    client = silo.connect()
+
+    agents = client.keys('agent*')
+
+    reason = 'OK'
+    results = []
+
+    try:
+        for agent in agents:
+
+            agent_data = loads(client.get(name=agent))
+            agent_templates = agent_data.get('available_templates') or []
+
+            if isinstance(agent_templates, list):
+                results.extend(agent_templates)
+
+    except Exception as ex:
+        reason = f'Failed to list task results with error: {str(ex)}'
+        logger.error(reason)
+
+    finally:
+        results = sorted(list(set(results)))
+
+        return safe_jsonify(
+            success=True,
+            reason=reason,
+            result=results
+        )
+
 @tasks_blueprint.route(rule='/list_task_results', methods=['GET'])
 def list_task_results() -> Response:
     """
