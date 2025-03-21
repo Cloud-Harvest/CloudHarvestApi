@@ -7,6 +7,10 @@
   - Stores when the data was recorded in the `recorded` attributes
   - Offers a `is_valid()` method which returns `True` if the data was recorded before the `age` property exceeds the `valid_age` property
 - Added a `@use_cache_if_valid(cached_data: CachedData)` decorator which bypasses the method when the `CachedData.is_valid()` method returns `True`
+- The Api no longer validates tasks from its own registry
+  - Available tasks are now determined from `agent` node `available_templates` provided by the `agent` heartbeat
+  - If the task does not exist, the Api will return a `NOT FOUND` error
+  - 
 
 # 0.1.13
 - Updated to conform with CloudHarvestCoreTasks 0.4.1

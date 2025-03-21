@@ -125,6 +125,8 @@ def list_available_templates() -> Response:
 
     finally:
         results = sorted(list(set(results)))
+
+        # Update the CACHED_TEMPLATES so subsequent calls will be faster
         CACHED_TEMPLATES.update(data=results, valid_age=300)
 
         return safe_jsonify(
@@ -208,71 +210,73 @@ def queue_task(priority: int, task_category: str, task_name: str) -> Response:
 
     :return: A response.
     """
-    from CloudHarvestCorePluginManager import Registry
 
-    task_model = Registry.find(name=task_name, category=f'template_{task_category}', result_key='cls')
+    templates = list_available_templates().get_json().get('result')
 
-    if task_model:
-        task_model = task_model[0]
+    for template in templates:
+        category, name = template.split('/')
+        category = category.replace('template_', '')
 
-        from CloudHarvestCoreTasks.silos import get_silo
-        silo = get_silo('harvest-task-queue')
-        client = silo.connect()
-
-        from datetime import datetime, timezone
-
-        from uuid import uuid4
-
-        task = {
-            'id': str(uuid4()),
-            'priority': priority,
-            'name': task_name,
-            'category': task_category,
-            'model': task_model,
-            'config': dict(request.json),
-            'created': datetime.now(timezone.utc)
-        }
-
-        from json import dumps
-        payload = dumps(task, default=str)
-
-        # Create a unique name for the task
-        task_redis_name = f"task::{task['id']}"
-
-        try:
-
-            # Create the task queue item
-            client.setex(name=task_redis_name, value=payload, time=3600)
-
-            # Now add the task to the queue
-            client.rpush(f"queue::{priority}", task_redis_name)
-
-        except Exception as ex:
-            reason = f'Failed to queue task {task_name} with error: {str(ex)}'
-
-            # ROlLBACK
-            client.delete(name=task_redis_name)
-            client.lrem(name=f"queue::{priority}", value=task_redis_name)
-
-        else:
-            reason = 'OK'
-
-        result = {
-            'success': reason == 'OK',
-            'reason': reason,
-            'result': {
-                'id': task['id'],
-                'priority': task['priority'],
-                'created': task['created'],
-            }
-        }
+        if category == task_category and name == task_name:
+            break
 
     else:
-        result = {
-            'success': False,
-            'reason': f'TaskChain {task_name} not found',
-            'result': {}
+        return safe_jsonify(
+            success=False,
+            reason=f'TEMPLATE NOT FOUND',
+            result=None
+        )
+
+    # The task is known to exist on some agent, therefore it can be queued
+
+    from CloudHarvestCoreTasks.silos import get_silo
+    silo = get_silo('harvest-task-queue')
+    client = silo.connect()
+
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+    task = {
+        'id': str(uuid4()),
+        'priority': priority,
+        'name': task_name,
+        'category': f'template_{task_category}',
+        'config': dict(request.json),
+        'created': datetime.now(timezone.utc)
+    }
+
+    from json import dumps
+    payload = dumps(task, default=str)
+
+    # Create a unique name for the task
+    task_redis_name = f"task::{task['id']}"
+
+    try:
+        # Create the task queue item
+        client.setex(name=task_redis_name, value=payload, time=3600)
+
+        # Now add the task to the queue
+        client.rpush(f"queue::{priority}", task_redis_name)
+
+    except Exception as ex:
+        reason = f'Failed to queue task {task_name} with error: {str(ex)}'
+
+        # ROlLBACK
+        client.delete(name=task_redis_name)
+        client.lrem(name=f"queue::{priority}", value=task_redis_name)
+
+    else:
+        reason = 'OK'
+
+    result = {
+        'success': reason == 'OK',
+        'reason': reason,
+        'result': {
+            'id': task['id'],
+            'priority': task['priority'],
+            'created': task['created'],
         }
+    }
 
     return safe_jsonify(
         success=result['success'],
