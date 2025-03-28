@@ -1,3 +1,9 @@
+# 0.1.15
+- Updated to conform with CloudHarvestCoreTasks 0.6.2
+- Updated CloudHarvestCorePluginManager to 0.5.0
+- Added the `platforms` configuration option
+- Added the `list_available_accounts` endpoint
+
 # 0.1.14
 - Updated to conform with CloudHarvestCoreTasks 0.6.0
 - Added error messages when failing to acquire silos
@@ -10,7 +16,6 @@
 - The Api no longer validates tasks from its own registry
   - Available tasks are now determined from `agent` node `available_templates` provided by the `agent` heartbeat
   - If the task does not exist, the Api will return a `NOT FOUND` error
-  - 
 
 # 0.1.13
 - Updated to conform with CloudHarvestCoreTasks 0.4.1
