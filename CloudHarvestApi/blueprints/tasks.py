@@ -57,6 +57,7 @@ def get_task_results(task_chain_id: str) -> Response:
             result=results
         )
 
+
 # @tasks_blueprint.route(rule='/list_available_tasks/<task_type>', methods=['GET'])
 # def list_available_tasks(task_type: Literal['reports', 'services']) -> Response:
 #     """
@@ -90,6 +91,53 @@ def get_task_results(task_chain_id: str) -> Response:
 #         reason='OK',
 #         result=result
 #     )
+
+
+@tasks_blueprint.route(rule='/list_available_accounts', methods=['GET'])
+def list_available_accounts() -> Response:
+    """
+    List the available platforms and accounts by retrieving them from the agent configurations.
+    :return: A response.
+    """
+
+    from CloudHarvestCoreTasks.silos import get_silo
+    from json import loads
+
+    silo = get_silo('harvest-nodes')
+    client = silo.connect()
+    agents = client.keys('agent*')
+
+    result = []
+    message = 'OK'
+
+    try:
+        accounts = []
+        [
+            accounts.extend(loads(client.get(agent)).get('accounts') or [])
+            for agent in agents
+        ]
+
+        # Remove duplicates
+        accounts = sorted(list(set(accounts)))
+
+        result = [
+            {
+                'platform': account.split(':')[0], 'account': account.split(':')[1]
+            }
+            for account in accounts
+            if account is not None and ':' in account
+        ]
+
+    except Exception as ex:
+        message = f'Failed to list available accounts with error: {str(ex)}'
+
+    finally:
+        return safe_jsonify(
+            success=True if message == 'OK' else False,
+            reason=message,
+            result=result
+        )
+
 
 @tasks_blueprint.route(rule='/list_available_templates', methods=['GET'])
 @use_cache_if_valid(CACHED_TEMPLATES)
@@ -134,6 +182,7 @@ def list_available_templates() -> Response:
             reason=reason,
             result=results
         )
+
 
 @tasks_blueprint.route(rule='/list_task_results', methods=['GET'])
 def list_task_results() -> Response:
