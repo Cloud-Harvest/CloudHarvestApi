@@ -4,7 +4,6 @@ JobQueue instance, and configuration for the api. The run method is used to star
 """
 
 from logging import Logger
-from os.path import expanduser
 
 
 class CloudHarvestNode:
@@ -16,7 +15,6 @@ class CloudHarvestNode:
     from flask import Flask
     flask: Flask = None
     config = {}
-
 
 
     @staticmethod
@@ -51,6 +49,8 @@ class CloudHarvestNode:
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ssl_context.load_cert_chain(pemfile)
 
+        CloudHarvestNode.config = kwargs
+
         # Start the Flask application
         CloudHarvestNode.flask.run(host=flat_kwargs.get('api.connection.host', 'localhost'),
                                    port=flat_kwargs.get('api.connection.port', 8000),
@@ -81,6 +81,7 @@ def flatten_dict_preserve_lists(d, parent_key='', sep='.') -> dict:
             items.append((new_key, v))
 
     return dict(items)
+
 
 def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: float = 1):
     """
@@ -205,6 +206,7 @@ def load_configuration_from_file() -> dict:
         if not k.startswith('.')
     }
 
+
 def load_logging(log_destination: str = './app/logs/', log_level: str = 'info', quiet: bool = False, **kwargs) -> Logger:
     """
     This method configures logging for the api.
@@ -264,6 +266,7 @@ def load_logging(log_destination: str = './app/logs/', log_level: str = 'info', 
     new_logger.debug(f'Logging enabled successfully. Log location: {log_destination}')
 
     return new_logger
+
 
 def load_silos(silo_config: dict) -> dict:
     """
