@@ -21,5 +21,6 @@ def favicon():
 
 def not_implemented_error() -> Response:
     return jsonify({
-        'error': 'Not implemented.'
+        'success': False,
+        'message': 'Not implemented.'
     })

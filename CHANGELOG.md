@@ -1,8 +1,9 @@
 # 0.1.15
-- Updated to conform with CloudHarvestCoreTasks 0.6.2
-- Updated CloudHarvestCorePluginManager to 0.5.0
+- Updated to conform with CloudHarvestCoreTasks 0.6.3
 - Added the `platforms` configuration option
-- Added the `list_available_accounts` endpoint
+- Added `pstar` endpoints
+  - `list_accounts`
+  - `list_platform_regions/<platform>` 
 
 # 0.1.14
 - Updated to conform with CloudHarvestCoreTasks 0.6.0

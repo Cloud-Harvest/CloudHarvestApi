@@ -7,6 +7,7 @@ listing users or looking up a user by token.
 from CloudHarvestApi.blueprints.agents import agents_blueprint
 from CloudHarvestApi.blueprints.home import home_blueprint
 from CloudHarvestApi.blueprints.plugins import plugins_blueprint
+from CloudHarvestApi.blueprints.pstar import pstar_blueprint
 from CloudHarvestApi.blueprints.silos import silos_blueprint
 from CloudHarvestApi.blueprints.tasks import tasks_blueprint
 from CloudHarvestApi.blueprints.users import users_blueprint

@@ -21,14 +21,21 @@ def list_users() -> Response:
     from CloudHarvestCoreTasks.silos import get_silo
     silo = get_silo('harvest-users')
 
-    # Returns a MongoClient object
-    client = silo.connect()
+    reason = 'OK'
+    result = []
+    try:
+        # Returns a MongoClient object
+        client = silo.connect()
 
-    result = client[silo.database]['users'].find()
+        result = client[silo.database]['users'].find()
+
+    except Exception as ex:
+        logger.error(f'Failed to list users with error: {str(ex)}')
+        reason = str(ex)
 
     return safe_jsonify(
-        success=bool(result),
-        reason='OK' if result else 'No users found',
+        success=True if reason == 'OK' else False,
+        reason='OK',
         result=list(result)
     )
 

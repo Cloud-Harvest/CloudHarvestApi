@@ -2,7 +2,8 @@ from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
 from flask import Response, request
 from logging import getLogger
 
-from CloudHarvestApi.blueprints.base import CachedData, safe_jsonify, use_cache_if_valid
+from CloudHarvestCoreTasks.cache import CachedData
+from CloudHarvestApi.blueprints.base import safe_jsonify, safe_request_get_json, use_cache_if_valid
 from CloudHarvestApi.blueprints.home import not_implemented_error
 
 logger = getLogger('harvest')
@@ -13,6 +14,47 @@ tasks_blueprint = HarvestApiBlueprint(
 )
 
 CACHED_TEMPLATES = CachedData(data=[], valid_age=0)
+
+
+@tasks_blueprint.route(rule='/await/<task_chain_id>', methods=['GET'])
+def await_task(task_chain_id: str) -> Response:
+    """
+    Awaits a task.
+
+    Arguments
+    task_chain_id: (str) The task chain ID (uuid4)
+
+    Returns
+    A response with the task chain results.
+    """
+
+    from datetime import datetime
+    from time import sleep
+
+    request_json = safe_request_get_json(request)
+
+    start_time = datetime.now()
+    timeout = request_json.get('timeout') or 120
+
+    while (datetime.now() - start_time).total_seconds() < timeout:
+        output = get_task_results(task_chain_id=task_chain_id).get_json()
+        reason = output.get('reason')
+
+        match reason:
+            case 'OK':
+                break
+
+            case _:
+                sleep(1)
+
+    else:
+        return safe_jsonify(
+            success=False,
+            reason='TIMEOUT',
+            result=None
+        )
+
+    return get_task_results(task_chain_id=task_chain_id)
 
 
 @tasks_blueprint.route(rule='/get_task_results/<task_chain_id>', methods=['GET'])
@@ -55,87 +97,6 @@ def get_task_results(task_chain_id: str) -> Response:
             success=reason == 'OK',
             reason=reason,
             result=results
-        )
-
-
-# @tasks_blueprint.route(rule='/list_available_tasks/<task_type>', methods=['GET'])
-# def list_available_tasks(task_type: Literal['reports', 'services']) -> Response:
-#     """
-#     List the tasks available in the system.
-#
-#     Returns: A list of task models.
-#     """
-#
-#     if task_type not in ('reports', 'services'):
-#         return safe_jsonify(success=False, reason=f'Invalid task type: {task_type}', result=[])
-#
-#     from CloudHarvestCorePluginManager import Registry
-#
-#     task_models = Registry.find(category=f'template_{task_type}', result_key='*', limit=None)
-#
-#     result = {
-#             'data': [
-#                 {
-#                     'Name': model['name'],
-#                     'Description': model['cls'][list(model['cls'].keys())[0]].get('description', 'Description not provided.'),
-#                     'Tags': ', '.join(model.get('tags', []))
-#                 } for model in task_models
-#             ],
-#             'meta': {
-#                 'headers': ['Name', 'Tags', 'Description'],
-#             },
-#         }
-#
-#     return safe_jsonify(
-#         success=True,
-#         reason='OK',
-#         result=result
-#     )
-
-
-@tasks_blueprint.route(rule='/list_available_accounts', methods=['GET'])
-def list_available_accounts() -> Response:
-    """
-    List the available platforms and accounts by retrieving them from the agent configurations.
-    :return: A response.
-    """
-
-    from CloudHarvestCoreTasks.silos import get_silo
-    from json import loads
-
-    silo = get_silo('harvest-nodes')
-    client = silo.connect()
-    agents = client.keys('agent*')
-
-    result = []
-    message = 'OK'
-
-    try:
-        accounts = []
-        [
-            accounts.extend(loads(client.get(agent)).get('accounts') or [])
-            for agent in agents
-        ]
-
-        # Remove duplicates
-        accounts = sorted(list(set(accounts)))
-
-        result = [
-            {
-                'platform': account.split(':')[0], 'account': account.split(':')[1]
-            }
-            for account in accounts
-            if account is not None and ':' in account
-        ]
-
-    except Exception as ex:
-        message = f'Failed to list available accounts with error: {str(ex)}'
-
-    finally:
-        return safe_jsonify(
-            success=True if message == 'OK' else False,
-            reason=message,
-            result=result
         )
 
 
@@ -235,6 +196,7 @@ def list_task_queue() -> Response:
         result=results
     )
 
+
 @tasks_blueprint.route(rule='/escalate/<task_id>', methods=['GET'])
 def escalate_task(task_id: str) -> Response:
     """
@@ -247,7 +209,7 @@ def escalate_task(task_id: str) -> Response:
 
 
 @tasks_blueprint.route(rule='/queue/<priority>/<task_category>/<task_name>', methods=['POST'])
-def queue_task(priority: int, task_category: str, task_name: str) -> Response:
+def queue_task(priority: int, task_category: str, task_name: str, *args, **kwargs) -> Response:
     """
     Queues a task.
 
@@ -290,7 +252,7 @@ def queue_task(priority: int, task_category: str, task_name: str) -> Response:
         'priority': priority,
         'name': task_name,
         'category': f'template_{task_category}',
-        'config': dict(request.json),
+        'config': (dict(safe_request_get_json(request)) or {}) | kwargs,
         'created': datetime.now(timezone.utc)
     }
 
