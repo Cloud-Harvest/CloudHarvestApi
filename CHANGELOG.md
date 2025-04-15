@@ -1,3 +1,8 @@
+# 0.2.0
+- Added endpoints
+  - `pstar/list_platforms`
+  - `pstar/list_services`
+
 # 0.1.15
 - Updated to conform with CloudHarvestCoreTasks 0.6.3
 - Added the `platforms` configuration option
