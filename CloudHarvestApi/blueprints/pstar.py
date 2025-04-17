@@ -1,8 +1,10 @@
+from re import fullmatch
+
 from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
-from flask import Response
+from flask import Response, request
 from logging import getLogger
 
-from CloudHarvestApi.blueprints.base import CachedData, safe_jsonify, use_cache_if_valid
+from CloudHarvestApi.blueprints.base import CachedData, safe_jsonify, use_cache_if_valid, safe_request_get_json
 
 logger = getLogger('harvest')
 
@@ -127,6 +129,7 @@ def list_platform_regions(platform: str) -> Response:
 
     return safe_jsonify(**task_result)
 
+
 @pstar_blueprint.route(rule='/list_platforms', methods=['GET'])
 def list_platforms() -> Response:
     """
@@ -172,6 +175,7 @@ def list_platforms() -> Response:
             result=result
         )
 
+
 @pstar_blueprint.route(rule='/list_services', methods=['GET'])
 def list_services() -> Response:
     """
@@ -202,4 +206,134 @@ def list_services() -> Response:
         success=True if message == 'OK' else False,
         reason=message,
         result=sorted(list(set(services)))
+    )
+
+
+@pstar_blueprint.route(rule='/list_pstar', methods=['GET'])
+def list_pstar(platform=None, service=None, type=None, account=None, region=None, **kwargs) -> Response:
+    """
+    Get the PStar data for a given platform, service, type, account, and region.
+
+    Arguments:
+        platform (str): The platform to filter by.
+        service (str): The service to filter by.
+        type (str): The type to filter by.
+        account (str): The account to filter by.
+        region (str): The region to filter by.
+
+    Returns:
+        Response: A JSON response containing the PStar data.
+    """
+
+    results = []
+    message = 'OK'
+
+    request_json = safe_request_get_json(request)
+
+    pstar = {
+        'platform': platform or request_json.get('platform') or '.*',
+        'service': service or request_json.get('service') or '.*',
+        'type': type or request_json.get('type') or '.*',
+        'account': account or request_json.get('account') or '.*',
+        'region': region or request_json.get('region') or '.*'
+    }
+
+    from re import findall
+
+    try:
+        # Get the list of available templates
+        services = list_services().json.get('result') or []
+
+        # Return matching platforms
+        platforms = [
+            p['platform']
+            for p in list_platforms().json.get('result') or []
+            if findall(pstar['platform'], p['platform'])
+        ]
+
+        # Iterate over the PSTAR fields, creating a list of results
+        for p in platforms:
+            # Get the list of available accounts by platform
+            accounts = [
+                a['account']
+                for a in list_accounts().json.get('result') or []
+                if a['platform'] == p and findall(pstar['account'], a['account'])
+            ]
+
+            # Get the list of available regions by platform
+            regions = [
+                r['Region']
+                for r in list_platform_regions(p).json.get('result') or []
+                if findall(pstar['region'], r['Region'])
+            ]
+
+            for a in accounts:
+                for r in regions:
+                    for s in services:
+                        service_platform, s_name, s_type = s.split('.')
+                        if service_platform == p:
+                            # Check if the service matches the pstar fields
+                            if findall(pstar['service'], s_name):
+                                # Check if the type matches the pstar fields
+                                if findall(pstar['type'], s_type):
+                                    # If all PSTAR fields match, append to results
+                                    results.append({
+                                        'platform': p,
+                                        'service': s_name,
+                                        'type': s_type,
+                                        'account': a,
+                                        'region': r,
+                                        'template': s
+                                    })
+
+    except Exception as ex:
+        message = f'Failed to list available services with error: {str(ex)}'
+
+    finally:
+        return safe_jsonify(
+            success=True if message == 'OK' else False,
+            reason=message,
+            result=results
+        )
+
+@pstar_blueprint.route(rule='/queue_pstar/<priority>/<platform>/<service>/<type>/<account>/<region>', methods=['POST'])
+def queue_pstar(priority: int, platform: str, service: str, type: str, account: str, region: str) -> Response:
+    """
+    Arguments
+        priority (int): The priority of the task. Lower numbers indicate higher priority, with 0 being the highest.
+        platform (str): The platform to filter by.
+        service (str): The service to filter by.
+        type (str): The type to filter by.
+        account (str): The account to filter by.
+        region (str): The region to filter by.
+
+    Returns:
+        A response object containing a list of tasks which were queued.
+    """
+
+    pstar = list_pstar(platform=platform,
+                       service=service,
+                       type=type,
+                       account=account,
+                       region=region).json.get('result') or []
+
+    from CloudHarvestApi.blueprints.tasks import queue_task
+    result = [
+        queue_task(
+            priority=priority,
+            task_category='template_service',
+            task_name=task['template'],
+            platform=task['platform'],
+            service=task['service'],
+            type=task['type'],
+            account=task['account'],
+            region=task['region']
+        )
+        for task in pstar
+    ]
+
+    return safe_jsonify(
+        success=True,
+        reason='OK',
+        result=[task.json for task in result]
     )
