@@ -2,6 +2,8 @@
 - Added endpoints
   - `pstar/list_platforms`
   - `pstar/list_services`
+  - `pstar/list_pstar`
+  - `pstar/queue_pstar`
 
 # 0.1.15
 - Updated to conform with CloudHarvestCoreTasks 0.6.3
