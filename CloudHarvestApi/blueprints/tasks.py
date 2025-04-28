@@ -224,14 +224,17 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
 
     templates = list_available_templates().get_json().get('result')
 
+    template_exists = False
     for template in templates:
         category, name = template.split('/')
         category = category.replace('template_', '')
 
         if category == task_category and name == task_name:
+            template_exists = True
             break
 
-    else:
+
+    if not template_exists:
         return safe_jsonify(
             success=False,
             reason=f'TEMPLATE NOT FOUND',

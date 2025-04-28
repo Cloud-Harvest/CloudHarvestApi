@@ -104,6 +104,8 @@ def list_platform_regions(platform: str) -> Response:
         task_category='reports',
         task_name=f'{platform}.regions',
         variables={
+            'service': 'account',
+            'type': 'regions',
             'account': account,
         }
     )
@@ -296,32 +298,38 @@ def list_pstar(platform=None, service=None, type=None, account=None, region=None
             result=results
         )
 
-@pstar_blueprint.route(rule='/queue_pstar/<priority>/<platform>/<service>/<type>/<account>/<region>', methods=['POST'])
-def queue_pstar(priority: int, platform: str, service: str, type: str, account: str, region: str) -> Response:
+@pstar_blueprint.route(rule='/queue_pstar/<priority>', methods=['POST'])
+def queue_pstar(priority: int, platform: str = None, service: str = None, type: str = None, account: str = None, region: str = None) -> Response:
     """
     Arguments
         priority (int): The priority of the task. Lower numbers indicate higher priority, with 0 being the highest.
-        platform (str): The platform to filter by.
-        service (str): The service to filter by.
-        type (str): The type to filter by.
-        account (str): The account to filter by.
-        region (str): The region to filter by.
+        platform (str, optional): The platform to filter by.
+        service (str, optional): The service to filter by.
+        type (str, optional): The type to filter by.
+        account (str, optional): The account to filter by.
+        region (str, optional): The region to filter by.
 
     Returns:
         A response object containing a list of tasks which were queued.
     """
 
-    pstar = list_pstar(platform=platform,
-                       service=service,
-                       type=type,
-                       account=account,
-                       region=region).json.get('result') or []
+    request_json = safe_request_get_json(request)
+
+    pstar = {
+        'platform': platform or request_json.get('platform') or '.*',
+        'service': service or request_json.get('service') or '.*',
+        'type': type or request_json.get('type') or '.*',
+        'account': account or request_json.get('account') or '.*',
+        'region': region or request_json.get('region') or '.*'
+    }
+
+    pstar = list_pstar(**pstar).json.get('result') or []
 
     from CloudHarvestApi.blueprints.tasks import queue_task
     result = [
         queue_task(
             priority=priority,
-            task_category='template_service',
+            task_category='services',
             task_name=task['template'],
             platform=task['platform'],
             service=task['service'],
