@@ -28,4 +28,5 @@ source "$base_path/venv/bin/activate" \
 && "$base_path/docker/make_plugins.txt.py" \
 && touch -a "$base_path/app/plugins.txt" \
 && pip install -r "$base_path/app/plugins.txt" \
+&& export PYTHONPATH="$base_path" \
 && python "$base_path/CloudHarvestApi"
