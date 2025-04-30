@@ -4,7 +4,6 @@ JobQueue instance, and configuration for the api. The run method is used to star
 """
 
 from logging import Logger
-from os.path import expanduser
 
 
 class CloudHarvestNode:
@@ -16,7 +15,6 @@ class CloudHarvestNode:
     from flask import Flask
     flask: Flask = None
     config = {}
-
 
 
     @staticmethod
@@ -51,6 +49,8 @@ class CloudHarvestNode:
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ssl_context.load_cert_chain(pemfile)
 
+        CloudHarvestNode.config = kwargs
+
         # Start the Flask application
         CloudHarvestNode.flask.run(host=flat_kwargs.get('api.connection.host', 'localhost'),
                                    port=flat_kwargs.get('api.connection.port', 8000),
@@ -81,6 +81,7 @@ def flatten_dict_preserve_lists(d, parent_key='', sep='.') -> dict:
             items.append((new_key, v))
 
     return dict(items)
+
 
 def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: float = 1):
     """
@@ -205,6 +206,7 @@ def load_configuration_from_file() -> dict:
         if not k.startswith('.')
     }
 
+
 def load_logging(log_destination: str = './app/logs/', log_level: str = 'info', quiet: bool = False, **kwargs) -> Logger:
     """
     This method configures logging for the api.
@@ -265,6 +267,7 @@ def load_logging(log_destination: str = './app/logs/', log_level: str = 'info', 
 
     return new_logger
 
+
 def load_silos(silo_config: dict) -> dict:
     """
     This method loads the silos from the configuration.
@@ -284,21 +287,26 @@ def load_silos(silo_config: dict) -> dict:
 
     # Create the silo objects
     for silo_name, silo_configuration in silo_config.items():
-        new_silo_indexes = silo_configuration.pop('indexes', None)
+        try:
+            new_silo_indexes = silo_configuration.pop('indexes', None)
 
-        new_silo = add_silo(name=silo_name, **silo_configuration)
+            new_silo = add_silo(name=silo_name, **silo_configuration)
 
-        if new_silo.is_connected:
-            logger.info(f'{silo_name}: Connected successfully.')
+            if new_silo.is_connected:
+                logger.info(f'{silo_name}: Connected successfully.')
 
-            if new_silo_indexes:
-                logger.info(f'{silo_name}: Adding indexes.')
-                new_silo.add_indexes(new_silo_indexes)
+                if new_silo_indexes:
+                    logger.info(f'{silo_name}: Adding indexes.')
+                    new_silo.add_indexes(new_silo_indexes)
 
-            results[silo_name] = 'success'
+                results[silo_name] = 'success'
 
-        else:
-            logger.error(f'Silo {silo_name} failed to connect.')
+            else:
+                logger.error(f'Silo {silo_name} failed to connect.')
+                results[silo_name] = 'failure'
+
+        except Exception as ex:
+            logger.error(f'Could not load silo {silo_name}: {ex.args[0]}')
             results[silo_name] = 'failure'
 
     return results

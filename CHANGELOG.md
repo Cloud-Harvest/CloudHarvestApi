@@ -1,5 +1,29 @@
+# 0.2.0
+- Added endpoints
+  - `pstar/list_platforms`
+  - `pstar/list_services`
+  - `pstar/list_pstar`
+  - `pstar/queue_pstar`
+
+# 0.1.15
+- Updated to conform with CloudHarvestCoreTasks 0.6.3
+- Added the `platforms` configuration option
+- Added `pstar` endpoints
+  - `list_accounts`
+  - `list_platform_regions/<platform>` 
+
 # 0.1.14
 - Updated to conform with CloudHarvestCoreTasks 0.6.0
+- Added error messages when failing to acquire silos
+- Added `tasks/list_available_templates` endpoint
+- Added `CachedData` class
+  - Stores any data time in the `data` attribute
+  - Stores when the data was recorded in the `recorded` attributes
+  - Offers a `is_valid()` method which returns `True` if the data was recorded before the `age` property exceeds the `valid_age` property
+- Added a `@use_cache_if_valid(cached_data: CachedData)` decorator which bypasses the method when the `CachedData.is_valid()` method returns `True`
+- The Api no longer validates tasks from its own registry
+  - Available tasks are now determined from `agent` node `available_templates` provided by the `agent` heartbeat
+  - If the task does not exist, the Api will return a `NOT FOUND` error
 
 # 0.1.13
 - Updated to conform with CloudHarvestCoreTasks 0.4.1

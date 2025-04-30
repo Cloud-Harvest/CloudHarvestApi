@@ -1,6 +1,12 @@
+from CloudHarvestCoreTasks.cache import CachedData
+
 from flask import Request, Response, jsonify
 from typing import Any
 
+
+########################################################################################################################
+# FUNCTIONS
+########################################################################################################################
 def safe_request_get_json(request: Request) -> dict:
     """
     Safely retrieves the JSON data from a request.
@@ -30,3 +36,30 @@ def safe_jsonify(success: bool, reason: str, result: Any, default: Any = None) -
         })
 
     return try_result
+
+
+########################################################################################################################
+# DECORATORS
+########################################################################################################################
+def use_cache_if_valid(cached_data: CachedData):
+    """
+    A decorator to use cached data if it is still valid.
+    :param cached_data: The CachedData object to use.
+    :return: The cached data if it is still valid.
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            if cached_data.is_valid:
+                return safe_jsonify(
+                    success=True,
+                    reason='OK',
+                    result=cached_data.data
+                )
+
+            else:
+                return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
