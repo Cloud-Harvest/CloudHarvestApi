@@ -1,4 +1,5 @@
 from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
+from CloudHarvestCoreTasks.environment import Environment
 from flask import Response, jsonify
 
 
@@ -17,9 +18,7 @@ def get_silo(silo_name: str) -> Response:
     Returns:
         The configuration of the retrieved silo.
     """
-    from app import CloudHarvestNode
-
-    result = CloudHarvestNode.config.get('silos', {}).get(silo_name, {})
+    result = Environment.get('silos', {}).get(silo_name, {})
 
     return jsonify({
         'success': bool(result),
@@ -35,9 +34,7 @@ def get_all_silo() -> Response:
         A dictionary containing the configuration of all silos where the key is the silo name.
     """
 
-    from app import CloudHarvestNode
-
-    result = CloudHarvestNode.config.get('silos', {})
+    result = Environment.get('silos', {})
 
     return jsonify({
         'success': bool(result),
@@ -47,9 +44,8 @@ def get_all_silo() -> Response:
 
 @silos_blueprint.route(rule='/list', methods=['GET'])
 def list_silos() -> Response:
-    from app import CloudHarvestNode
 
-    result = list(CloudHarvestNode.config.get('silos', {}).keys())
+    result = list(Environment.get('silos', {}).keys())
 
     return jsonify({
         'success': bool(result),

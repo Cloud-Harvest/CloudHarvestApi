@@ -24,11 +24,9 @@ def list_all_plugins() -> Response:
     >>> }
     """
 
-    from app import CloudHarvestNode
-
-
+    from CloudHarvestCoreTasks.environment import Environment
     return safe_jsonify(
         success=True,
         reason='OK',
-        result=CloudHarvestNode.config.get('plugins') or []
+        result=Environment.get('plugins') or []
     )

@@ -6,4 +6,4 @@ Tasks and Blueprints for the Flask application.
 """
 
 # Register Blueprints
-from blueprints import *
+from CloudHarvestApi.blueprints import *
