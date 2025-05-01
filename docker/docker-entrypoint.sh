@@ -32,7 +32,7 @@
                 echo "  --host <host>        Host to bind to (default: $host)"
                 echo "  --port <port>        Port to bind to (default: $port)"
                 echo "  --pemfile <file>     Path to the PEM file (default: $pemfile)"
-                echo "  --debug              Enable debug mode"
+                echo "  --debug              Launches the application using the python interpreter instead of gunicorn"
                 echo "  --workers <num>      Number of gunicorn workers (default: $workers)"
                 echo "  --help               Show this help message"
 
@@ -42,6 +42,9 @@
         esac
         shift
     done
+
+    # Remove command arguments so they are not passed to the application
+    set --
 
     # Make the configuration directory for the app
     subdirs=("logs")
@@ -58,11 +61,13 @@
         # Debug mode: Pass all parameters to the Python script
         source "$base_path/venv/bin/activate" \
         && export PYTHONPATH="$base_path" \
+        && echo "Starting in python debug mode..." \
         && python "$base_path/$app_name" --host "$host" --port "$port" --pemfile "$pemfile" --debug
     else
         # Production mode: Use Gunicorn
         source "$base_path/venv/bin/activate" \
-        && export PYTHONPATH="$base_path" \
-        && gunicorn -w "$workers" -b "$host:$port" --certfile "$pemfile" --keyfile "$pemfile" "$base_path/$app_name/__main__:app"
+        && echo "Starting Gunicorn with $workers workers..." \
+        && gunicorn -w "$workers" -b "$host:$port" --certfile "$pemfile" --keyfile "$pemfile" --pythonpath "$base_path" "$app_name.__main__:app"
     fi
 
+    echo "$app_name has stopped."

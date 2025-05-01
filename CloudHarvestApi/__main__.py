@@ -11,7 +11,7 @@ from CloudHarvestCorePluginManager import Registry, register_all
 from CloudHarvestCorePluginManager.plugins import generate_plugins_file, install_plugins
 from CloudHarvestCoreTasks.dataset import WalkableDict
 from CloudHarvestCoreTasks.environment import Environment
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from flask import Flask
 
 # Imports objects which need to be registered by the CloudHarvestCorePluginManager
@@ -21,17 +21,22 @@ from CloudHarvestApi.__register__ import *
 app = Flask('CloudHarvestApi')
 
 
-parser = ArgumentParser(description='CloudHarvestApi')
-debug_group = parser.add_argument_group('DEBUG OPTIONS', description='Options when running the application in '
-                                                                     'debug mode. None of the options presented here '
-                                                                     'are required if the application is running using '
-                                                                     'a WSGI server, such as gunicorn.')
-debug_group.add_argument('--host', type=str, default='127.0.0.1', help='Host address')
-debug_group.add_argument('--port', type=int, default=8000, help='Port number')
-debug_group.add_argument('--pemfile', type=str, default='./app/harvest-self-signed.pem', help='Use PEM file for SSL')
-debug_group.add_argument('--debug', action='store_true', help='Enable debug mode')
+if __name__ == '__main__':
+    parser = ArgumentParser(description='CloudHarvestApi')
+    debug_group = parser.add_argument_group('DEBUG OPTIONS', description='Options when running the application in '
+                                                                         'debug mode. None of the options presented here '
+                                                                         'are required if the application is running using '
+                                                                         'a WSGI server, such as gunicorn.')
+    debug_group.add_argument('--host', type=str, default='127.0.0.1', help='Host address')
+    debug_group.add_argument('--port', type=int, default=8000, help='Port number')
+    debug_group.add_argument('--pemfile', type=str, default='./app/harvest-self-signed.pem', help='Use PEM file for SSL')
+    debug_group.add_argument('--debug', action='store_true', help='Enable debug mode')
 
-args = parser.parse_args()
+    args = parser.parse_args()
+
+else:
+    # If the script is not run as the main module, use default arguments
+    args = Namespace(host='127.0.0.1', port=8000, pemfile='./app/harvest-self-signed.pem', debug=False)
 
 # Load the configuration
 config = WalkableDict(**load_configuration_from_file())
