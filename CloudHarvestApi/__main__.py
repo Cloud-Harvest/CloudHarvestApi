@@ -15,7 +15,7 @@ from argparse import ArgumentParser
 from flask import Flask
 
 # Imports objects which need to be registered by the CloudHarvestCorePluginManager
-from __register__ import *
+from CloudHarvestApi.__register__ import *
 
 # The flask server object
 app = Flask('CloudHarvestApi')
