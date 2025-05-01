@@ -20,7 +20,6 @@ from CloudHarvestApi.__register__ import *
 # The flask server object
 app = Flask('CloudHarvestApi')
 
-
 if __name__ == '__main__':
     parser = ArgumentParser(description='CloudHarvestApi')
     debug_group = parser.add_argument_group('DEBUG OPTIONS', description='Options when running the application in '
@@ -35,11 +34,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
 else:
-    # If the script is not run as the main module, use default arguments
-    args = Namespace(host='127.0.0.1', port=8000, pemfile='./app/harvest-self-signed.pem', debug=False)
+    # If the script is not run as the main module, collect the variables from the environment
+    from os import environ
+    args = Namespace(host=environ.get('CLOUDHARVESTAPI_HOST'),
+                     port=int(environ.get('CLOUDHARVESTAPI_PORT')),
+                     pemfile=environ.get('CLOUDHARVESTAPI_PEMFILE'),
+                     debug=False)
 
 # Load the configuration
 config = WalkableDict(**load_configuration_from_file())
+config['api']['connection'] = vars(args)
 
 # Makes the configuration available throughout the app
 Environment.merge(config)

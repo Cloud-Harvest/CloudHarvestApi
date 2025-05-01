@@ -48,8 +48,9 @@ def start_node_heartbeat(config: WalkableDict):
     Returns: The thread object that is running the heartbeat process.
     """
 
-    heartbeat_check_rate = config.walk('api.heartbeat.expiration_multiplier') or 5
-    expiration_multiplier = config.walk('api.heartbeat.check_rate') or 1
+    heartbeat_check_rate = config.walk('api.heartbeat.check_rate') or 1
+    expiration_multiplier = config.walk('api.heartbeat.expiration_multiplier') or 5
+
     import platform
 
     from CloudHarvestCoreTasks.silos import get_silo
@@ -83,7 +84,7 @@ def start_node_heartbeat(config: WalkableDict):
                 "name": node_name,
                 "os": platform.freedesktop_os_release().get('PRETTY_NAME'),
                 "plugins": config.get('plugins', []),
-                "port": config.get('agent', {}).get('connection', {}).get('port') or 8000,
+                "port": config.walk('api.connection.port'),
                 "python": platform.python_version(),
                 "role": node_role,
                 "start": start_datetime.isoformat(),
