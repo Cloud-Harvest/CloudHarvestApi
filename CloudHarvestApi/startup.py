@@ -1,61 +1,6 @@
-"""
-This file contains the main static application class, CloudHarvestApi. This class contains the Flask application,
-JobQueue instance, and configuration for the api. The run method is used to start.
-"""
+from CloudHarvestCoreTasks.dataset import WalkableDict
 
 from logging import Logger
-
-
-class CloudHarvestNode:
-    """
-    A static class which contains the Flask application, JobQueue instance, and configuration for the api.
-    """
-    ROLE = 'api'
-
-    from flask import Flask
-    flask: Flask = None
-    config = {}
-
-
-    @staticmethod
-    def run(**kwargs):
-        """
-        This method is used to start the api. It configures logging, creates the JobQueue, and starts the Flask
-        application. It accepts all keyword arguments provided by the configuration file.
-        """
-
-        flat_kwargs = flatten_dict_preserve_lists(kwargs)
-
-        # Configure logging
-        logger = load_logging(log_destination=flat_kwargs.get('api.logging.location'),
-                              log_level=flat_kwargs.get('api.logging.level'),
-                              quiet=flat_kwargs.get('api.logging.quiet'))
-
-        logger.info('Api configuration loaded successfully.')
-
-        load_silos(kwargs.get('silos', {}))
-        start_node_heartbeat(expiration_multiplier=flat_kwargs.get('api.heartbeat.expiration_multiplier', 5),
-                             heartbeat_check_rate=flat_kwargs.get('api.heartbeat.check_rate', 1))
-
-        logger.info('Api starting')
-
-        logger.info(f'Api startup complete. Will serve requests on {flat_kwargs.get("api.connection.host")}:{flat_kwargs["api.connection.port"]}.')
-
-        logger.debug(CloudHarvestNode.flask.url_map)
-
-        import ssl
-        # Create SSL context using the PEM file
-        pemfile = flat_kwargs.get('api.connection.pem')
-        ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        ssl_context.load_cert_chain(pemfile)
-
-        CloudHarvestNode.config = kwargs
-
-        # Start the Flask application
-        CloudHarvestNode.flask.run(host=flat_kwargs.get('api.connection.host', 'localhost'),
-                                   port=flat_kwargs.get('api.connection.port', 8000),
-                                   ssl_context=ssl_context)
-
 
 def flatten_dict_preserve_lists(d, parent_key='', sep='.') -> dict:
     """
@@ -83,15 +28,13 @@ def flatten_dict_preserve_lists(d, parent_key='', sep='.') -> dict:
     return dict(items)
 
 
-def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: float = 1):
+def start_node_heartbeat(config: WalkableDict):
     """
     Start the heartbeat process on the harvest-nodes silo. This process will update the node status in the Redis
     cache at regular intervals.
 
     Args:
-    expiration_multiplier (int): The multiplier to use when setting the expiration time for the node status in the
-                                 Redis cache, rounded up to the nearest integer.
-    heartbeat_check_rate (float): The rate at which the heartbeat process should check the node status.
+    config (WalkableDict): The configuration for the node heartbeat process.
 
     Example:
         >>> # Start the heartbeat process with a 5x expiration multiplier and a check rate of 1 second. The API will be
@@ -105,6 +48,8 @@ def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: f
     Returns: The thread object that is running the heartbeat process.
     """
 
+    heartbeat_check_rate = config.walk('api.heartbeat.expiration_multiplier') or 5
+    expiration_multiplier = config.walk('api.heartbeat.check_rate') or 1
     import platform
 
     from CloudHarvestCoreTasks.silos import get_silo
@@ -129,7 +74,7 @@ def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: f
             app_metadata = json.load(meta_file)
 
             node_name = platform.node()
-            node_role = CloudHarvestNode.ROLE
+            node_role = 'api'
 
             node_info = {
                 "architecture": f'{platform.machine()}',
@@ -137,8 +82,8 @@ def start_node_heartbeat(expiration_multiplier: int = 5, heartbeat_check_rate: f
                 "heartbeat_seconds": heartbeat_check_rate,
                 "name": node_name,
                 "os": platform.freedesktop_os_release().get('PRETTY_NAME'),
-                "plugins": CloudHarvestNode.config.get('plugins', []),
-                "port": CloudHarvestNode.config.get('agent', {}).get('connection', {}).get('port') or 8000,
+                "plugins": config.get('plugins', []),
+                "port": config.get('agent', {}).get('connection', {}).get('port') or 8000,
                 "python": platform.python_version(),
                 "role": node_role,
                 "start": start_datetime.isoformat(),

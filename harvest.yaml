@@ -31,16 +31,6 @@
 # API Configuration
 ########################################################################################################################
 api:
-  connection:
-    # Hostname or IP address the api should bind to
-    host: 127.0.0.1
-
-    # Port the api should bind to
-    port: 8000
-
-    # SSL configuration for the api
-    pem: ./app/harvest-self-signed.pem
-
   heartbeat:
     # The interval in seconds at which the node will report its status to the harvest-nodes silo.
     check_rate: 1
