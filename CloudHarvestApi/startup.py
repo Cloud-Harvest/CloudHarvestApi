@@ -92,7 +92,7 @@ def start_node_heartbeat(config: WalkableDict):
                 "version": app_metadata.get('version')
             }
 
-        node_record_identifier = f'{node_role}:{node_name}:{node_info["port"]}:{node_info["pid"]}'
+        node_record_identifier = config.walk('api.name')
 
         def format_for_redis(dictionary: dict) -> dict:
             """
