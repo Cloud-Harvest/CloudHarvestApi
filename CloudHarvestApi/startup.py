@@ -83,6 +83,7 @@ def start_node_heartbeat(config: WalkableDict):
                 "heartbeat_seconds": heartbeat_check_rate,
                 "name": node_name,
                 "os": platform.freedesktop_os_release().get('PRETTY_NAME'),
+                "pid": config.walk('api.pid'),
                 "plugins": config.get('plugins', []),
                 "port": config.walk('api.connection.port'),
                 "python": platform.python_version(),
@@ -182,7 +183,7 @@ def load_logging(log_destination: str = './app/logs/', log_level: str = 'info', 
     log_level_attribute = getattr(lm, level.upper())
 
     # formatting
-    log_format = Formatter(fmt='[%(asctime)s][%(levelname)s][%(filename)s] %(message)s')
+    log_format = Formatter(fmt='[%(asctime)s][%(process)d][%(levelname)s][%(filename)s] %(message)s')
 
     # file handler
     from pathlib import Path
