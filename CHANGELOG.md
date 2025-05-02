@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.3.1
+- Added `tasks/get_task_status`
+
 ## 0.3.0
 - Refactor of the startup routine to be compatible with `gunicorn`
 - Plugins are now handled by the CloudHarvestCorePluginManager
