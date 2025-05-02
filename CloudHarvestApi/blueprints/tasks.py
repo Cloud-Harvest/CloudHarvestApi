@@ -69,7 +69,7 @@ def get_task_results(task_chain_id: str) -> Response:
     """
 
     from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-task-results')
+    silo = get_silo('harvest-tasks')
 
     reason = 'OK'
     results = {}
@@ -181,15 +181,15 @@ def list_available_templates() -> Response:
         )
 
 
-@tasks_blueprint.route(rule='/list_task_results', methods=['GET'])
-def list_task_results() -> Response:
+@tasks_blueprint.route(rule='/list_tasks', methods=['GET'])
+def list_tasks() -> Response:
     """
     Lists all task results.
     :return: A response.
     """
 
     from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-task-results')
+    silo = get_silo('harvest-tasks')
 
     reason = 'OK'
     results = []
@@ -204,7 +204,9 @@ def list_task_results() -> Response:
         logger.error(reason)
 
     finally:
-        return safe_jsonify(success=reason == 'OK', reason=reason, result=results)
+        return safe_jsonify(success=reason == 'OK',
+                            reason=reason,
+                            result=results)
 
 
 @tasks_blueprint.route(rule='/list_task_queue', methods=['GET'])
@@ -280,18 +282,21 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
     # The task is known to exist on some agent, therefore it can be queued
 
     from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-task-queue')
+    silo = get_silo('harvest-tasks')
     client = silo.connect()
 
     from datetime import datetime, timezone
     from uuid import uuid4
 
+    incoming_kwargs = (dict(safe_request_get_json(request)) or {}) | kwargs
+
     task = {
         'id': str(uuid4()),
         'priority': priority,
         'name': task_name,
+        'parent': incoming_kwargs.get('parent') or '',
         'category': f'template_{task_category}',
-        'config': (dict(safe_request_get_json(request)) or {}) | kwargs,
+        'config': incoming_kwargs,
         'created': datetime.now(timezone.utc)
     }
 
@@ -299,7 +304,7 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
     payload = dumps(task, default=str)
 
     # Create a unique name for the task
-    task_redis_name = f"task::{task['id']}"
+    task_redis_name = f"task:{task['parent']}:{task['id']}"
 
     try:
         # Create the task queue item
@@ -322,7 +327,9 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
         'success': reason == 'OK',
         'reason': reason,
         'result': {
+            'redis_name': task_redis_name,
             'id': task['id'],
+            'parent': task['parent'],
             'priority': task['priority'],
             'created': task['created'],
         }
