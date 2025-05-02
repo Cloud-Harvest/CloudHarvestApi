@@ -92,19 +92,44 @@ def start_node_heartbeat(config: WalkableDict):
                 "version": app_metadata.get('version')
             }
 
+        node_record_identifier = f'{node_role}:{node_name}:{node_info["port"]}:{node_info["pid"]}'
+
+        def format_for_redis(dictionary: dict) -> dict:
+            """
+            Format the dictionary for Redis HSET. This method converts all non-string, non-integer, and non-float
+            values to JSON strings. This is necessary because Redis supports a limited array of data types.
+            Args:
+                dictionary (dict): The dictionary to format.
+
+            Returns:
+                dict: The formatted dictionary.
+            """
+
+            # Format the records
+            for key, value in dictionary.items():
+                if not isinstance(value, (str, int, float)):
+                    dictionary[key] = json.dumps(value, default=str)
+
+            return dictionary
+
+        # Record the information to Redis
+        client.hset(node_record_identifier, mapping=format_for_redis(node_info))
+
         while True:
             # Update the last heartbeat time
             last_datetime = datetime.now(tz=timezone.utc)
-            node_info['last'] = last_datetime.isoformat()
-            node_info['duration'] = (last_datetime - start_datetime).total_seconds()
+            updated_node_info = {
+                'last': last_datetime.isoformat(),
+                'duration': (last_datetime - start_datetime).total_seconds()
+            }
 
             # Update the node status in the Redis cache
             try:
-                node_record_identifier = f'{node_role}::{node_name}::{node_info["port"]}'
+                # Record the information to Redis
+                client.hset(node_record_identifier, mapping=format_for_redis(updated_node_info))
 
-                client.setex(name=node_record_identifier,
-                             value=json.dumps(node_info, default=str),
-                             time=int(expiration_multiplier * heartbeat_check_rate))
+                # Set the expiration time for the node record
+                client.expire(node_record_identifier, int(expiration_multiplier * heartbeat_check_rate))
 
                 logger.debug(f'heartbeat: OK')
 
