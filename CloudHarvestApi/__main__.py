@@ -47,7 +47,7 @@ config = WalkableDict(**load_configuration_from_file())
 config['api']['connection'] = vars(args)
 config['api']['pid'] = getpid()
 config['api']['name'] = ':'.join([
-    'agent',
+    'api',
     args.host,
     str(args.port),
     str(getpid())

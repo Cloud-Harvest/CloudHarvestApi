@@ -3,6 +3,7 @@ from flask import Response, request
 from logging import getLogger
 
 from CloudHarvestCoreTasks.cache import CachedData
+from CloudHarvestCoreTasks.redis import format_hset, unformat_hset
 from CloudHarvestApi.blueprints.base import safe_jsonify, safe_request_get_json, use_cache_if_valid
 from CloudHarvestApi.blueprints.home import not_implemented_error
 
@@ -77,16 +78,16 @@ def get_task_results(task_chain_id: str) -> Response:
     try:
         client = silo.connect()
 
-        if client.exists(task_chain_id):
-            results = client.hgetall(name=task_chain_id)
+        redis_name = get_first_task_id(task_chain_id=task_chain_id)
+
+        if redis_name:
+            results = client.hget(name=redis_name, key='result') or {}
 
         else:
             reason = 'NOT FOUND'
 
         # Deserialize the results
-        from json import loads
-        for key, value in results.items():
-            results[key] = loads(value)
+        results = unformat_hset(results)
 
     except Exception as ex:
         reason = f'Failed to get task results with error: {str(ex)}'
@@ -99,12 +100,12 @@ def get_task_results(task_chain_id: str) -> Response:
             result=results
         )
 
-@tasks_blueprint.route(rule='/list_available_templates/<task_chain_id>', methods=['GET'])
+@tasks_blueprint.route(rule='/get_task_status/<task_chain_id>', methods=['GET'])
 def get_task_status(task_chain_id: str) -> Response:
     """
     Returns the status of a task chain.
     Args:
-        task_chain_id: A task chain ID (uuid4)
+        task_chain_id (str): A task chain ID (uuid4)
 
     Returns:
         A response with the task chain status.
@@ -114,15 +115,28 @@ def get_task_status(task_chain_id: str) -> Response:
     reason = 'OK'
 
     try:
+        redis_name = get_first_task_id(task_chain_id=task_chain_id)
+
         from CloudHarvestCoreTasks.silos import get_silo
         silo = get_silo('harvest-tasks')
         client = silo.connect()
 
-        results = client.get(name=task_chain_id)
+        # for status checks, we do not want to return the result as it may be large
+        fields = (
+            'redis_name',
+            'id',
+            'parent',
+            'name',
+            'type',
+            'status',
+            'agent',
+            'position',
+            'total',
+            'start',
+            'end'
+        )
 
-        if isinstance(results, str):
-            from json import loads
-            results = loads(results)
+        results = unformat_hset(client.hmget(redis_name, fields) or {})
 
     except Exception as ex:
         reason = f'Failed to get task status with error: {str(ex)}'
@@ -136,8 +150,8 @@ def get_task_status(task_chain_id: str) -> Response:
         )
 
 
+# @use_cache_if_valid(CACHED_TEMPLATES)
 @tasks_blueprint.route(rule='/list_available_templates', methods=['GET'])
-@use_cache_if_valid(CACHED_TEMPLATES)
 def list_available_templates() -> Response:
     """
     List the available task templates.
@@ -157,12 +171,8 @@ def list_available_templates() -> Response:
 
     try:
         for agent in agents:
-
-            agent_data = loads(client.get(name=agent))
-            agent_templates = agent_data.get('available_templates') or []
-
-            if isinstance(agent_templates, list):
-                results.extend(agent_templates)
+            agent_templates = unformat_hset(client.hget(name=agent, key='available_templates')) or []
+            results.extend(agent_templates)
 
     except Exception as ex:
         reason = f'Failed to list task results with error: {str(ex)}'
@@ -197,7 +207,13 @@ def list_tasks() -> Response:
     try:
         client = silo.connect()
 
-        results = client.keys() or []
+        results = []
+        cursor = '0'
+
+        # Use SCAN to fetch keys in batches of 100
+        while cursor != '0':
+            cursor, batch = client.scan(cursor=cursor, count=100)
+            results.extend(batch)
 
     except Exception as ex:
         reason = f'Failed to list task results with error: {str(ex)}'
@@ -207,32 +223,6 @@ def list_tasks() -> Response:
         return safe_jsonify(success=reason == 'OK',
                             reason=reason,
                             result=results)
-
-
-@tasks_blueprint.route(rule='/list_task_queue', methods=['GET'])
-def list_task_queue() -> Response:
-    """
-    Lists all tasks.
-    :return: A response.
-    """
-
-    silo_names = ('harvest-task-queue', 'harvest-tasks', 'harvest-task-results')
-
-    from CloudHarvestCoreTasks.silos import get_silo
-
-    results = []
-    for silo_name in silo_names:
-        client = get_silo(silo_name).connect()
-        keys = client.keys()
-
-        for key in keys:
-            results.append({'silo': silo_name, 'task_chain_id': key})
-
-    return safe_jsonify(
-        success=True,
-        reason='OK',
-        result=results
-    )
 
 
 @tasks_blueprint.route(rule='/escalate/<task_id>', methods=['GET'])
@@ -294,31 +284,40 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
         'id': str(uuid4()),
         'priority': priority,
         'name': task_name,
+        'status': 'enqueued',
         'parent': incoming_kwargs.get('parent') or '',
         'category': f'template_{task_category}',
         'config': incoming_kwargs,
         'created': datetime.now(timezone.utc)
     }
 
-    from json import dumps
-    payload = dumps(task, default=str)
-
     # Create a unique name for the task
-    task_redis_name = f"task:{task['parent']}:{task['id']}"
+    redis_name = f"task:{task['parent']}:{task['id']}"
+    task['redis_name'] = redis_name
 
     try:
         # Create the task queue item
-        client.setex(name=task_redis_name, value=payload, time=3600)
+        client.hset(name=redis_name, mapping=format_hset(task))
+        client.expire(name=redis_name, time=3600)
 
         # Now add the task to the queue
-        client.rpush(f"queue::{priority}", task_redis_name)
+        client.rpush(f"queue::{priority}", redis_name)
 
     except Exception as ex:
         reason = f'Failed to queue task {task_name} with error: {str(ex)}'
 
         # ROlLBACK
-        client.delete(name=task_redis_name)
-        client.lrem(name=f"queue::{priority}", value=task_redis_name)
+        try:
+            client.lrem(name=f"queue::{priority}", value=redis_name)
+
+        except Exception:
+            pass
+
+        try:
+            client.delete(name=redis_name)
+
+        except Exception:
+            pass
 
     else:
         reason = 'OK'
@@ -327,7 +326,7 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
         'success': reason == 'OK',
         'reason': reason,
         'result': {
-            'redis_name': task_redis_name,
+            'redis_name': redis_name,
             'id': task['id'],
             'parent': task['parent'],
             'priority': task['priority'],
@@ -341,3 +340,23 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
         result=result['result'],
         default={}
     )
+
+def get_first_task_id(task_chain_id: str) -> str or None:
+    """
+    Returns the first task ID in a task chain.
+    :param task_chain_id: The task chain ID.
+    :return: The first task ID.
+    """
+
+    from CloudHarvestCoreTasks.silos import get_silo
+    silo = get_silo('harvest-tasks')
+
+    client = silo.connect()
+
+    # Get the first task ID
+    _, batch = client.scan(cursor=0, match=f'task:*:{task_chain_id}', count=1)
+
+    if batch:
+        return batch[0]
+
+    return None

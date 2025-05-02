@@ -230,15 +230,8 @@ def list_pstar(platform=None, service=None, type=None, account=None, region=None
     results = []
     message = 'OK'
 
-    request_json = safe_request_get_json(request)
-
-    pstar = {
-        'platform': platform or request_json.get('platform') or '.*',
-        'service': service or request_json.get('service') or '.*',
-        'type': type or request_json.get('type') or '.*',
-        'account': account or request_json.get('account') or '.*',
-        'region': region or request_json.get('region') or '.*'
-    }
+    pstar = format_pstar(safe_request_get_json(request), platform=platform, service=service, type=type, account=account,
+                         region=region)
 
     from re import findall
 
@@ -313,15 +306,15 @@ def queue_pstar(priority: int, platform: str = None, service: str = None, type: 
         A response object containing a list of tasks which were queued.
     """
 
-    request_json = safe_request_get_json(request)
+    from uuid import uuid4
+    parent_id = str(uuid4())
 
-    pstar = {
-        'platform': platform or request_json.get('platform') or '.*',
-        'service': service or request_json.get('service') or '.*',
-        'type': type or request_json.get('type') or '.*',
-        'account': account or request_json.get('account') or '.*',
-        'region': region or request_json.get('region') or '.*'
-    }
+    pstar = format_pstar(safe_request_get_json(request),
+                         platform=platform,
+                         service=service,
+                         type=type,
+                         account=account,
+                         region=region)
 
     pstar = list_pstar(**pstar).json.get('result') or []
 
@@ -329,6 +322,7 @@ def queue_pstar(priority: int, platform: str = None, service: str = None, type: 
     result = [
         queue_task(
             priority=priority,
+            parent_id=parent_id,
             task_category='services',
             task_name=task['template'],
             platform=task['platform'],
@@ -345,3 +339,29 @@ def queue_pstar(priority: int, platform: str = None, service: str = None, type: 
         reason='OK',
         result=[task.json for task in result]
     )
+
+def format_pstar(request_kwargs: dict,
+                   platform: str = None,
+                   service: str = None,
+                   type: str = None,
+                   account: str = None,
+                   region: str = None) -> dict:
+    """
+    Abstract function to handle PStar requests.
+
+    Arguments
+        request_kwargs (dict): The request arguments.
+
+    Returns
+        dict: A properly formatted PSTAR.
+    """
+
+    return {
+        'platform': platform or request_kwargs.get('platform') or '.*',
+        'service': service or request_kwargs.get('service') or '.*',
+        'type': type or request_kwargs.get('type') or '.*',
+        'account': account or request_kwargs.get('account') or '.*',
+        'region': region or request_kwargs.get('region') or '.*'
+    }
+
+
