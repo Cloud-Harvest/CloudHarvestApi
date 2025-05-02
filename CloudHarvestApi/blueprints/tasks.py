@@ -99,6 +99,42 @@ def get_task_results(task_chain_id: str) -> Response:
             result=results
         )
 
+@tasks_blueprint.route(rule='/list_available_templates/<task_chain_id>', methods=['GET'])
+def get_task_status(task_chain_id: str) -> Response:
+    """
+    Returns the status of a task chain.
+    Args:
+        task_chain_id: A task chain ID (uuid4)
+
+    Returns:
+        A response with the task chain status.
+    """
+
+    results = {}
+    reason = 'OK'
+
+    try:
+        from CloudHarvestCoreTasks.silos import get_silo
+        silo = get_silo('harvest-tasks')
+        client = silo.connect()
+
+        results = client.get(name=task_chain_id)
+
+        if isinstance(results, str):
+            from json import loads
+            results = loads(results)
+
+    except Exception as ex:
+        reason = f'Failed to get task status with error: {str(ex)}'
+        logger.error(reason)
+
+    finally:
+        return safe_jsonify(
+            success=reason == 'OK',
+            reason=reason,
+            result=results
+        )
+
 
 @tasks_blueprint.route(rule='/list_available_templates', methods=['GET'])
 @use_cache_if_valid(CACHED_TEMPLATES)
