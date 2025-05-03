@@ -353,10 +353,13 @@ def get_first_task_id(task_chain_id: str) -> str or None:
 
     client = silo.connect()
 
-    # Get the first task ID
-    _, batch = client.scan(cursor=0, match=f'task:*:{task_chain_id}', count=1)
+    cursor = False
 
-    if batch:
-        return batch[0]
+    # Get the first task ID
+    while cursor != 0:
+        cursor, batch = client.scan(cursor=0, match=f'task:*{task_chain_id}', count=100)
+
+        if batch:
+            return batch[0]
 
     return None
