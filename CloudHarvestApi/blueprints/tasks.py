@@ -3,7 +3,7 @@ from flask import Response, request
 from logging import getLogger
 
 from CloudHarvestCoreTasks.cache import CachedData
-from CloudHarvestCoreTasks.redis import format_hset, unformat_hset
+from CloudHarvestCoreTasks.tasks.redis import format_hset, unformat_hset
 from CloudHarvestApi.blueprints.base import safe_jsonify, safe_request_get_json, use_cache_if_valid
 from CloudHarvestApi.blueprints.home import not_implemented_error
 
@@ -55,11 +55,11 @@ def await_task(task_chain_id: str) -> Response:
             result=None
         )
 
-    return get_task_results(task_chain_id=task_chain_id)
+    return get_task_result(task_chain_id=task_chain_id)
 
 
-@tasks_blueprint.route(rule='/get_task_results/<task_chain_id>', methods=['GET'])
-def get_task_results(task_chain_id: str) -> Response:
+@tasks_blueprint.route(rule='/get_task_result/<task_chain_id>', methods=['GET'])
+def get_task_result(task_chain_id: str) -> Response:
     """
     Returns the results of a task chain.
     Args:
@@ -81,13 +81,19 @@ def get_task_results(task_chain_id: str) -> Response:
         redis_name = get_first_task_id(task_chain_id=task_chain_id)
 
         if redis_name:
-            results = client.hget(name=redis_name, key='result') or {}
+            status, result = client.hmget(name=redis_name, keys=['status', 'result'])
+
+            # if the task is not complete, we don't want to return the result
+            if status not in ('complete', 'error'):
+                results = {
+                    'status': status
+                }
+
+            else:
+                results = unformat_hset(result)
 
         else:
             reason = 'NOT FOUND'
-
-        # Deserialize the results
-        results = unformat_hset(results)
 
     except Exception as ex:
         reason = f'Failed to get task results with error: {str(ex)}'
@@ -111,7 +117,7 @@ def get_task_status(task_chain_id: str) -> Response:
         A response with the task chain status.
     """
 
-    results = {}
+    result = {}
     reason = 'OK'
 
     try:
@@ -136,7 +142,14 @@ def get_task_status(task_chain_id: str) -> Response:
             'end'
         )
 
-        results = unformat_hset(client.hmget(redis_name, fields) or {})
+        result = unformat_hset(client.hmget(redis_name, fields) or [])
+
+        # Rekey the result
+        if result:
+            result = {
+                key: result[fields.index(key)]
+                for key in fields
+            }
 
     except Exception as ex:
         reason = f'Failed to get task status with error: {str(ex)}'
@@ -146,7 +159,7 @@ def get_task_status(task_chain_id: str) -> Response:
         return safe_jsonify(
             success=reason == 'OK',
             reason=reason,
-            result=results
+            result=result
         )
 
 
@@ -353,7 +366,7 @@ def get_first_task_id(task_chain_id: str) -> str or None:
 
     client = silo.connect()
 
-    cursor = False
+    cursor = 'original-cursor-value'
 
     # Get the first task ID
     while cursor != 0:
