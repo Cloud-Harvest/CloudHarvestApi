@@ -38,11 +38,11 @@ def await_task(task_chain_id: str) -> Response:
     timeout = request_json.get('timeout') or 120
 
     while (datetime.now() - start_time).total_seconds() < timeout:
-        output = get_task_results(task_chain_id=task_chain_id).get_json()
-        reason = output.get('reason')
+        output = get_task_status(task_chain_id=task_chain_id).get_json()
+        status = output.get('result', {}).get('status')
 
-        match reason:
-            case 'OK':
+        match status:
+            case 'complete' | 'error':
                 break
 
             case _:

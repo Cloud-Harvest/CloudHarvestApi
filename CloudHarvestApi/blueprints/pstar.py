@@ -37,7 +37,7 @@ def list_accounts() -> Response:
     try:
         accounts = []
         [
-            accounts.extend(loads(client.get(agent)).get('accounts') or [])
+            accounts.extend(loads(client.hget(agent, key='accounts')) or [])
             for agent in agents
         ]
 
@@ -75,18 +75,14 @@ def list_platform_regions(platform: str) -> Response:
 
     # Scan through the agents until we find one operating on the requested platform
     for agent in agents:
-        agent_data = loads(client.get(name=agent))
-        agent_accounts = agent_data.get('accounts') or []
-
-        # Get the account name
         accounts = [
-            account
-            for account in agent_accounts
+            account.split(':')[1]
+            for account in loads(client.hget(name=agent, key='accounts')) or []
             if account.startswith(platform)
         ]
 
         if accounts:
-            account = accounts[0].split(':')[1]
+            account = accounts[0]
             break
 
     # If no agent with that platform is found, we return an empty list
@@ -151,20 +147,22 @@ def list_platforms() -> Response:
 
     try:
         platforms = []
-        [
-            platforms.extend(loads(client.get(agent)).get('accounts') or [])
-            for agent in agents
-        ]
+        for agent in agents:
+            for platform in loads(client.hget(name=agent, key='accounts')) or []:
+                try:
+                    p = platform.split(':')[0]
+                    if p not in platforms and p is not None:
+                        platforms.append(p)
 
-        # Remove duplicates
-        platforms = sorted(list(set(platforms)))
+                except Exception as ex:
+                    continue
 
+        # Format as a dictionary
         result = [
             {
-                'platform': platform.split(':')[0]
+                'platform': platform
             }
             for platform in platforms
-            if platform is not None and ':' in platform
         ]
 
     except Exception as ex:
