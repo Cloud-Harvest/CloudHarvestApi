@@ -120,35 +120,91 @@ def get_task_status(task_chain_id: str) -> Response:
     result = {}
     reason = 'OK'
 
+    # for status checks, we do not want to return the result as it may be large
+    fields = (
+        'redis_name',
+        'id',
+        'parent',
+        'name',
+        'type',
+        'status',
+        'agent',
+        'position',
+        'total',
+        'start',
+        'end'
+    )
+
+    def rekey_dict(redis_response: list):
+        """
+        Rekeys the redis response to a dictionary.
+        :param redis_response: The redis response.
+        :return: A dictionary with the rekeyed values.
+        """
+        return {
+            key: redis_response[fields.index(key)]
+            for key in fields
+        }
+
+
     try:
-        redis_name = get_first_task_id(task_chain_id=task_chain_id)
-
         from CloudHarvestCoreTasks.silos import get_silo
-        silo = get_silo('harvest-tasks')
-        client = silo.connect()
+        client = get_silo('harvest-tasks').connect()
 
-        # for status checks, we do not want to return the result as it may be large
-        fields = (
-            'redis_name',
-            'id',
-            'parent',
-            'name',
-            'type',
-            'status',
-            'agent',
-            'position',
-            'total',
-            'start',
-            'end'
-        )
+        names = []
+        cursor = '0'
+        while cursor != 0:
+            cursor, batch = client.scan(cursor=int(cursor), match=f'task:*{task_chain_id}*', count=100)
 
-        result = unformat_hset(client.hmget(redis_name, fields) or [])
+            names.extend(batch)
 
-        # Rekey the result
-        if result:
+        if len(names) == 0:
+            reason = 'NOT FOUND'
+            return safe_jsonify(
+                success=False,
+                reason=reason,
+                result=result
+            )
+
+        elif len(names) == 1:
+            result = rekey_dict(unformat_hset(client.hmget(names[0], keys=fields)))
+
+        else:
+            # Redis scans yielding multiple results typically happen when a task chain is created from a parent request,
+            # such as a `harvest` / `pstar` request. In this case, we need to get the status of each task in the chain.
+
+            all_results = []
+            # if there are multiple tasks (as from a parent task), we need to get the status of each task
+            for name in names:
+                all_results.append(unformat_hset(rekey_dict(client.hmget(name, fields))))
+
+            parent_id = list(set(task['parent'] for task in all_results if task.get('parent')))
+            if len(parent_id) == 0:
+                parent_id = None
+                redis_name = None
+
+            elif len(parent_id) == 1:
+                parent_id = parent_id[0]
+                redis_name = f'task:{parent_id}'
+
+            else:
+                # This should not happen, but we will return a list of parent ids just in case
+                redis_name = 'task:' + '/'.join(parent_id)
+
             result = {
-                key: result[fields.index(key)]
-                for key in fields
+                'redis_name': redis_name,
+                'id': [task['id'] for task in all_results if task.get('id')],
+                'parent': parent_id,
+                'name': None,
+                'type': None,
+                'status': 'running' if any(task.get('status') != 'complete' for task in all_results) else 'complete',
+                'agent': list(set(task['agent'] for task in all_results if task.get('agent'))),
+                'position': len([task.get('status') for task in all_results if task.get('status') == 'complete']),
+                'total': len(all_results),
+                # 'position': sum(task.get('position') or 0  for task in all_results),
+                # 'total': sum(task.get('total') or 0 for task in all_results),
+                'start': min(task['start'] for task in all_results if task.get('start')),
+                'end': max(task['end'] for task in all_results if task.get('end'))
             }
 
     except Exception as ex:
@@ -293,14 +349,16 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
 
     incoming_kwargs = (dict(safe_request_get_json(request)) or {}) | kwargs
 
+    task_id = str(uuid4())
+
     task = {
-        'id': str(uuid4()),
+        'id': task_id,
         'priority': priority,
         'name': task_name,
         'status': 'enqueued',
         'parent': incoming_kwargs.get('parent') or '',
         'category': f'template_{task_category}',
-        'config': incoming_kwargs,
+        'config': incoming_kwargs | {'id': task_id},        # must include the task ID in the config otherwise it will not be passed
         'created': datetime.now(timezone.utc)
     }
 

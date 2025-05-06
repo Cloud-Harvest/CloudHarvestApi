@@ -320,7 +320,7 @@ def queue_pstar(priority: int, platform: str = None, service: str = None, type: 
     result = [
         queue_task(
             priority=priority,
-            parent_id=parent_id,
+            parent=parent_id,
             task_category='services',
             task_name=task['template'],
             platform=task['platform'],
@@ -335,7 +335,10 @@ def queue_pstar(priority: int, platform: str = None, service: str = None, type: 
     return safe_jsonify(
         success=True,
         reason='OK',
-        result=[task.json for task in result]
+        result={
+            'parent': parent_id,
+            'tasks': [task.json for task in result]
+        }
     )
 
 def format_pstar(request_kwargs: dict,
