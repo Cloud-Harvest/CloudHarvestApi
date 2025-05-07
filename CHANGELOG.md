@@ -6,6 +6,7 @@
 - [Part of the Redis Task Standardization Effort](https://github.com/Cloud-Harvest/CloudHarvestAgent/issues/8)
 - Improved heartbeat by reducing the size of the upload payload
 - Heartbeat will now send all datapoints per cycle to prevent scenarios where some fields are present and others are not
+- Implemented 'pop' operation for `tasks/get_task_results`
 
 ## 0.3.0
 - Refactor of the startup routine to be compatible with `gunicorn`
