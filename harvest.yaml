@@ -97,25 +97,15 @@ silos:
     <<: *default_redis_database
     database: 0
 
-  harvest-task-queue:
-    # Stores TaskChains that are waiting to be processed.
-    <<: *default_redis_database
-    database: 1
-
-  harvest-task-results:
-    # Stores the results of TaskChains that have been processed and awaiting retrieval by an API.
-    <<: *default_redis_database
-    database: 2
-
   harvest-tasks:
     # Stores the progress reports of ongoing and recently completed TaskChains.
     <<: *default_redis_database
-    database: 3
+    database: 1
 
   harvest-tokens:
     # Stores ephemeral tokens for API authentication.
     <<: *default_redis_database
-    database: 4
+    database: 2
 
   harvest-users:
     # Stores user information for authentication and authorization.
