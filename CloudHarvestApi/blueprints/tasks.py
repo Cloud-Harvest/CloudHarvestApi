@@ -59,7 +59,7 @@ def await_task(task_chain_id: str) -> Response:
 
 
 @tasks_blueprint.route(rule='/get_task_result/<task_chain_id>', methods=['GET'])
-def get_task_result(task_chain_id: str) -> Response:
+def get_task_result(task_chain_id: str, **kwargs) -> Response:
     """
     Returns the results of a task chain.
     Args:
@@ -74,6 +74,8 @@ def get_task_result(task_chain_id: str) -> Response:
 
     reason = 'OK'
     results = {}
+
+    request_json = safe_request_get_json(request)
 
     try:
         client = silo.connect()
@@ -91,6 +93,10 @@ def get_task_result(task_chain_id: str) -> Response:
 
             else:
                 results = unformat_hset(result)
+
+                if request_json.get('pop'):
+                    # if the task is complete, we want to remove it from the queue
+                    client.delete(redis_name)
 
         else:
             reason = 'NOT FOUND'
@@ -199,10 +205,10 @@ def get_task_status(task_chain_id: str) -> Response:
                 'type': None,
                 'status': 'running' if any(task.get('status') != 'complete' for task in all_results) else 'complete',
                 'agent': list(set(task['agent'] for task in all_results if task.get('agent'))),
-                'position': len([task.get('status') for task in all_results if task.get('status') == 'complete']),
-                'total': len(all_results),
-                # 'position': sum(task.get('position') or 0  for task in all_results),
-                # 'total': sum(task.get('total') or 0 for task in all_results),
+                # 'position': len([task.get('status') for task in all_results if task.get('status') == 'complete']),
+                # 'total': len(all_results),
+                'position': sum(task.get('position') or 0  for task in all_results),
+                'total': sum(task.get('total') or 0 for task in all_results),
                 'start': min(task['start'] for task in all_results if task.get('start')),
                 'end': max(task['end'] for task in all_results if task.get('end'))
             }
