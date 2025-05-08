@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.3.2
+- Updated to conform with CloudHarvestCoreTasks 0.6.5
+
 ## 0.3.1
 - Added `tasks/get_task_status`
 - CloudHarvestCoreTasks 0.6.4

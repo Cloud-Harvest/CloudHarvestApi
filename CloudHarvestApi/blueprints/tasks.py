@@ -83,15 +83,16 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
         redis_name = get_first_task_id(task_chain_id=task_chain_id)
 
         if redis_name:
-            status, result = client.hmget(name=redis_name, keys=['status', 'result'])
+            status = client.hget(name=redis_name, key='status')
 
             # if the task is not complete, we don't want to return the result
-            if status not in ('complete', 'error'):
+            if status != 'complete':
                 results = {
                     'status': status
                 }
 
             else:
+                result = client.hgetall(name=redis_name)
                 results = unformat_hset(result)
 
                 if request_json.get('pop'):
