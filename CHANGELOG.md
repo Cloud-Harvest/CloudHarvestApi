@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.3.3
+- Updated to conform with CloudHarvestCoreTasks 0.6.6
+
 ## 0.3.2
 - Updated to conform with CloudHarvestCoreTasks 0.6.5
 
