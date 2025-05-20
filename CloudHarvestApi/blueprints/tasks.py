@@ -298,10 +298,13 @@ def list_tasks() -> Response:
         client = silo.connect()
 
         results = []
-        cursor = '0'
+        cursor = None
 
         # Use SCAN to fetch keys in batches of 100
-        while cursor != '0':
+        while cursor != 0:
+            if cursor is None:
+                cursor = 0
+
             cursor, batch = client.scan(cursor=cursor, count=100)
             results.extend(batch)
 

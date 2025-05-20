@@ -2,6 +2,8 @@
 
 ## 0.3.4
 - Added try when aggregating results in `tasks/get_task_status()` which prevented the status from being returned
+- Fixed an issue with `tasks/list_tasks()` where the result was always an empty list
+
 
 ## 0.3.3
 - Updated to conform with CloudHarvestCoreTasks 0.6.6
