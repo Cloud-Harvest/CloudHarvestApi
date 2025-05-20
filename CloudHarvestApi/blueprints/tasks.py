@@ -198,6 +198,20 @@ def get_task_status(task_chain_id: str) -> Response:
                 # This should not happen, but we will return a list of parent ids just in case
                 redis_name = 'task:' + '/'.join(parent_id)
 
+            def try_aggregate(method, key: str, default=None):
+                """
+                Tries to aggregate a value from the task results.
+                :param method: The aggregation method (min, max, sum).
+                :param key: The key to aggregate.
+                :param default: The default value if the key is not found.
+                :return: The aggregated value.
+                """
+                try:
+                    return method(task.get(key) or default for task in all_results if task.get(key))
+
+                except Exception as ex:
+                    return default
+
             result = {
                 'redis_name': redis_name,
                 'id': [task['id'] for task in all_results if task.get('id')],
@@ -208,10 +222,10 @@ def get_task_status(task_chain_id: str) -> Response:
                 'agent': list(set(task['agent'] for task in all_results if task.get('agent'))),
                 # 'position': len([task.get('status') for task in all_results if task.get('status') == 'complete']),
                 # 'total': len(all_results),
-                'position': sum(task.get('position') or 0  for task in all_results),
-                'total': sum(task.get('total') or 0 for task in all_results),
-                'start': min(task['start'] for task in all_results if task.get('start')),
-                'end': max(task['end'] for task in all_results if task.get('end'))
+                'position': try_aggregate(sum, 'position', 0),
+                'total': try_aggregate(sum, 'total', 0),
+                'start': try_aggregate(min, 'start'),
+                'end': try_aggregate(max, 'end')
             }
 
     except Exception as ex:
