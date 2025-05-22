@@ -220,10 +220,10 @@ def get_task_status(task_chain_id: str) -> Response:
                 'type': None,
                 'status': 'running' if any(task.get('status') != 'complete' for task in all_results) else 'complete',
                 'agent': list(set(task['agent'] for task in all_results if task.get('agent'))),
-                # 'position': len([task.get('status') for task in all_results if task.get('status') == 'complete']),
-                # 'total': len(all_results),
-                'position': try_aggregate(sum, 'position', 0),
-                'total': try_aggregate(sum, 'total', 0),
+                'position': len([task.get('status') for task in all_results if task.get('status') == 'complete']),
+                'total': len(all_results),
+                # 'position': try_aggregate(sum, 'position', 0),
+                # 'total': try_aggregate(sum, 'total', 0),
                 'start': try_aggregate(min, 'start'),
                 'end': try_aggregate(max, 'end')
             }
