@@ -85,6 +85,11 @@ silos:
             - Account
             - Region
       meta:   # Collection name
+        - keys: Platform
+        - keys: Service
+        - keys: Type
+        - keys: Account
+        - keys: Region
         - keys:
             - Collection
             - CollectionId
