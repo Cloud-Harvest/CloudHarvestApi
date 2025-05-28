@@ -15,7 +15,7 @@ host="0.0.0.0"
 port="8000"
 pemfile="$base_path/app/harvest-self-signed.pem"
 debug=0
-workers=1
+workers="${HARVEST_API_WORKERS:-5}"
 
 # Parse command-line arguments
 while [[ "$#" -gt 0 ]]; do
