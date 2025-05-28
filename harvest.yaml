@@ -68,29 +68,30 @@ silos:
     database: harvest
     indexes:
       pstar: # Collection name
-        - Platform    # A simple index on the `Platform` field
-        - Service     # A simple index on the `Service` field
-        - Type
-        - Account
-        - Region
-        - Records
-        - Errors
-        - keys:       # A compound index on multiple fields
-            - field: Platform
-            - field: Service
-            - field: Type
-            - field: Account
-            - field: Region
-          options:                                          # Additional options for the compound index
-            name: unique_pstar_idx                          # The name of the index
-            comment: unique identifier for pstar records    # A comment describing the index
-            unique: true                                    # The index enforces uniqueness
-      meta:
-        - [ Collection, CollectionId ]          # A compound index on the `Collection` and `CollectionId` fields
-        - keys:                                 # A single field index with complex options
-            - field: Harvest.UniqueIdentifier   # A simple index on the `Harvest.UniqueIdentifier` field
-          options:                              # Additional options for the compound index
-            unique: true                        # The index enforces uniqueness
+        - keys: Platform
+        - keys: Service
+        - keys: Type
+        - keys: Account
+        - keys: Region
+        - keys: Records
+        - keys: Errors
+        - name: unique_pstar_idx
+          comment: unique identifier for pstar records
+          unique: true
+          keys:
+            - Platform
+            - Service
+            - Type
+            - Account
+            - Region
+      meta:   # Collection name
+        - keys:
+            - Collection
+            - CollectionId
+        - name: unique_meta_idx
+          unique: true
+          keys:
+            - Harvest.UniqueIdentifier
 
   harvest-nodes:
     # Stores information about Agent and API nodes.
