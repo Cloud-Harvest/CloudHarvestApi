@@ -95,7 +95,7 @@ silos:
             - CollectionId
         - name: unique_meta_idx
           unique: true
-          keys: Harvest.UniqueIdentifier
+          keys: UniqueIdentifier
 
   harvest-nodes:
     # Stores information about Agent and API nodes.
