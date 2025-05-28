@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.5
+- Updated to conform with CloudHarvestCoreTasks 0.7.0
+- Updated the index definitions in the `harvest.yaml` file
+
 ## 0.3.4
 - Added try when aggregating results in `tasks/get_task_status()` which prevented the status from being returned
 - Fixed an issue with `tasks/list_tasks()` where the result was always an empty list
