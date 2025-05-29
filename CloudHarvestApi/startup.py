@@ -193,6 +193,10 @@ def load_logging(log_destination: str = './app/logs/', log_level: str = 'info', 
     from logging import getLogger, Formatter, StreamHandler, DEBUG
     from logging.handlers import RotatingFileHandler
 
+    # Redirect Flask's HTTP console output
+    werkzeug_logger = getLogger('werkzeug')
+    werkzeug_logger.setLevel(DEBUG)
+
     # startup
     new_logger = getLogger(name='harvest')
 
@@ -225,6 +229,7 @@ def load_logging(log_destination: str = './app/logs/', log_level: str = 'info', 
     fh.setLevel(DEBUG)
 
     new_logger.addHandler(fh)
+    werkzeug_logger.addHandler(fh)
 
     if not quiet:
         # stream handler
@@ -232,6 +237,7 @@ def load_logging(log_destination: str = './app/logs/', log_level: str = 'info', 
         sh.setFormatter(fmt=log_format)
         sh.setLevel(log_level_attribute)
         new_logger.addHandler(sh)
+        werkzeug_logger.addHandler(sh)
 
     new_logger.setLevel(log_level_attribute)
 
