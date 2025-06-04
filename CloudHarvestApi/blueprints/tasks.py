@@ -106,12 +106,11 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
         reason = f'Failed to get task results with error: {str(ex)}'
         logger.error(reason)
 
-    finally:
-        return safe_jsonify(
-            success=reason == 'OK',
-            reason=reason,
-            result=results
-        )
+    return safe_jsonify(
+        success=reason == 'OK',
+        reason=reason,
+        result=results
+    )
 
 @tasks_blueprint.route(rule='/get_task_status/<task_chain_id>', methods=['GET'])
 def get_task_status(task_chain_id: str) -> Response:
@@ -232,15 +231,14 @@ def get_task_status(task_chain_id: str) -> Response:
         reason = f'Failed to get task status with error: {str(ex)}'
         logger.error(reason)
 
-    finally:
-        return safe_jsonify(
-            success=reason == 'OK',
-            reason=reason,
-            result=result
-        )
+    return safe_jsonify(
+        success=reason == 'OK',
+        reason=reason,
+        result=result
+    )
 
 
-# @use_cache_if_valid(CACHED_TEMPLATES)
+@use_cache_if_valid(CACHED_TEMPLATES)
 @tasks_blueprint.route(rule='/list_available_templates', methods=['GET'])
 def list_available_templates() -> Response:
     """
@@ -248,7 +246,6 @@ def list_available_templates() -> Response:
     :return: A response.
     """
 
-    from json import loads
     from CloudHarvestCoreTasks.silos import get_silo
     silo = get_silo('harvest-nodes')
 
@@ -268,17 +265,18 @@ def list_available_templates() -> Response:
         reason = f'Failed to list task results with error: {str(ex)}'
         logger.error(reason)
 
-    finally:
-        results = sorted(list(set(results)))
+    results = sorted(list(set(results)))
 
+    # We only cache the templates if we have results
+    if results:
         # Update the CACHED_TEMPLATES so subsequent calls will be faster
         CACHED_TEMPLATES.update(data=results, valid_age=300)
 
-        return safe_jsonify(
-            success=True,
-            reason=reason,
-            result=results
-        )
+    return safe_jsonify(
+        success=True,
+        reason=reason,
+        result=results
+    )
 
 
 @tasks_blueprint.route(rule='/list_tasks', methods=['GET'])
@@ -312,10 +310,9 @@ def list_tasks() -> Response:
         reason = f'Failed to list task results with error: {str(ex)}'
         logger.error(reason)
 
-    finally:
-        return safe_jsonify(success=reason == 'OK',
-                            reason=reason,
-                            result=results)
+    return safe_jsonify(success=reason == 'OK',
+                        reason=reason,
+                        result=results)
 
 
 @tasks_blueprint.route(rule='/escalate/<task_id>', methods=['GET'])
