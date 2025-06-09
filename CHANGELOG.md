@@ -3,6 +3,7 @@
 ## 0.3.6
 - Code cleanup
 - Will only update local cache if the results are not empty
+- Added more logging outputs
 
 ## 0.3.5
 - Updated to conform with CloudHarvestCoreTasks 0.7.0
