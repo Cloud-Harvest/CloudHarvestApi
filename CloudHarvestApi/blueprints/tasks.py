@@ -81,9 +81,12 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
         client = silo.connect()
 
         redis_name = get_first_task_id(task_chain_id=task_chain_id)
+        logger.debug(f'[{task_chain_id}] redis name: {redis_name}')
 
         if redis_name:
             status = client.hget(name=redis_name, key='status')
+
+            logger.debug(f'[{task_chain_id}] task status: {status}')
 
             # if the task is not complete, we don't want to return the result
             if status != 'complete':
@@ -92,17 +95,21 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
                 }
 
             else:
+                logger.debug(f'[{task_chain_id}] task is complete, fetching results')
                 result = client.hgetall(name=redis_name)
+
+                logger.debug(f'[{task_chain_id}] formatting results')
                 results = unformat_hset(result)
 
                 if request_json.get('pop'):
+                    logger.debug(f'[{task_chain_id}] fetch complete, removing results from cache')
                     # if the task is complete, we want to remove it from the queue
                     client.delete(redis_name)
 
         else:
             reason = 'NOT FOUND'
 
-    except Exception as ex:
+    except BaseException as ex:
         reason = f'Failed to get task results with error: {str(ex)}'
         logger.error(reason)
 
