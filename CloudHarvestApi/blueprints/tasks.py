@@ -81,9 +81,12 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
         client = silo.connect()
 
         redis_name = get_first_task_id(task_chain_id=task_chain_id)
+        logger.debug(f'[{task_chain_id}] redis name: {redis_name}')
 
         if redis_name:
             status = client.hget(name=redis_name, key='status')
+
+            logger.debug(f'[{task_chain_id}] task status: {status}')
 
             # if the task is not complete, we don't want to return the result
             if status != 'complete':
@@ -92,26 +95,29 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
                 }
 
             else:
+                logger.debug(f'[{task_chain_id}] task is complete, fetching results')
                 result = client.hgetall(name=redis_name)
+
+                logger.debug(f'[{task_chain_id}] formatting results')
                 results = unformat_hset(result)
 
                 if request_json.get('pop'):
+                    logger.debug(f'[{task_chain_id}] fetch complete, removing results from cache')
                     # if the task is complete, we want to remove it from the queue
                     client.delete(redis_name)
 
         else:
             reason = 'NOT FOUND'
 
-    except Exception as ex:
+    except BaseException as ex:
         reason = f'Failed to get task results with error: {str(ex)}'
         logger.error(reason)
 
-    finally:
-        return safe_jsonify(
-            success=reason == 'OK',
-            reason=reason,
-            result=results
-        )
+    return safe_jsonify(
+        success=reason == 'OK',
+        reason=reason,
+        result=results
+    )
 
 @tasks_blueprint.route(rule='/get_task_status/<task_chain_id>', methods=['GET'])
 def get_task_status(task_chain_id: str) -> Response:
@@ -232,15 +238,14 @@ def get_task_status(task_chain_id: str) -> Response:
         reason = f'Failed to get task status with error: {str(ex)}'
         logger.error(reason)
 
-    finally:
-        return safe_jsonify(
-            success=reason == 'OK',
-            reason=reason,
-            result=result
-        )
+    return safe_jsonify(
+        success=reason == 'OK',
+        reason=reason,
+        result=result
+    )
 
 
-# @use_cache_if_valid(CACHED_TEMPLATES)
+@use_cache_if_valid(CACHED_TEMPLATES)
 @tasks_blueprint.route(rule='/list_available_templates', methods=['GET'])
 def list_available_templates() -> Response:
     """
@@ -248,7 +253,6 @@ def list_available_templates() -> Response:
     :return: A response.
     """
 
-    from json import loads
     from CloudHarvestCoreTasks.silos import get_silo
     silo = get_silo('harvest-nodes')
 
@@ -268,17 +272,18 @@ def list_available_templates() -> Response:
         reason = f'Failed to list task results with error: {str(ex)}'
         logger.error(reason)
 
-    finally:
-        results = sorted(list(set(results)))
+    results = sorted(list(set(results)))
 
+    # We only cache the templates if we have results
+    if results:
         # Update the CACHED_TEMPLATES so subsequent calls will be faster
         CACHED_TEMPLATES.update(data=results, valid_age=300)
 
-        return safe_jsonify(
-            success=True,
-            reason=reason,
-            result=results
-        )
+    return safe_jsonify(
+        success=True,
+        reason=reason,
+        result=results
+    )
 
 
 @tasks_blueprint.route(rule='/list_tasks', methods=['GET'])
@@ -312,10 +317,9 @@ def list_tasks() -> Response:
         reason = f'Failed to list task results with error: {str(ex)}'
         logger.error(reason)
 
-    finally:
-        return safe_jsonify(success=reason == 'OK',
-                            reason=reason,
-                            result=results)
+    return safe_jsonify(success=reason == 'OK',
+                        reason=reason,
+                        result=results)
 
 
 @tasks_blueprint.route(rule='/escalate/<task_id>', methods=['GET'])

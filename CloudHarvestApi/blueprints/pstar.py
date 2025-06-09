@@ -55,12 +55,11 @@ def list_accounts() -> Response:
     except Exception as ex:
         message = f'Failed to list available accounts with error: {str(ex)}'
 
-    finally:
-        return safe_jsonify(
-            success=True if message == 'OK' else False,
-            reason=message,
-            result=result
-        )
+    return safe_jsonify(
+        success=True if message == 'OK' else False,
+        reason=message,
+        result=result
+    )
 
 
 @pstar_blueprint.route(rule='/list_platform_regions/<platform>', methods=['GET'])
@@ -168,12 +167,11 @@ def list_platforms() -> Response:
     except Exception as ex:
         message = f'Failed to list available accounts with error: {str(ex)}'
 
-    finally:
-        return safe_jsonify(
-            success=True if message == 'OK' else False,
-            reason=message,
-            result=result
-        )
+    return safe_jsonify(
+        success=True if message == 'OK' else False,
+        reason=message,
+        result=result
+    )
 
 
 @pstar_blueprint.route(rule='/list_services', methods=['GET'])
@@ -282,12 +280,11 @@ def list_pstar(platform=None, service=None, type=None, account=None, region=None
     except Exception as ex:
         message = f'Failed to list available services with error: {str(ex)}'
 
-    finally:
-        return safe_jsonify(
-            success=True if message == 'OK' else False,
-            reason=message,
-            result=results
-        )
+    return safe_jsonify(
+        success=True if message == 'OK' else False,
+        reason=message,
+        result=results
+    )
 
 @pstar_blueprint.route(rule='/queue_pstar/<priority>', methods=['POST'])
 def queue_pstar(priority: int, platform: str = None, service: str = None, type: str = None, account: str = None, region: str = None) -> Response:
