@@ -2,10 +2,10 @@ from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
 from flask import Response, request
 from logging import getLogger
 
+from CloudHarvestApi.blueprints.base import RedisRequest, safe_jsonify, safe_request_get_json, use_cache_if_valid
+from CloudHarvestApi.blueprints.home import not_implemented_error
 from CloudHarvestCoreTasks.cache import CachedData
 from CloudHarvestCoreTasks.tasks.redis import format_hset, unformat_hset
-from CloudHarvestApi.blueprints.base import safe_jsonify, safe_request_get_json, use_cache_if_valid
-from CloudHarvestApi.blueprints.home import not_implemented_error
 
 logger = getLogger('harvest')
 
@@ -68,9 +68,7 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
     Returns:
         A response with the task chain results.
     """
-
-    from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-tasks')
+    redis_request = RedisRequest(silo='harvest-tasks')
 
     reason = 'OK'
     results = {}
@@ -78,13 +76,21 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
     request_json = safe_request_get_json(request)
 
     try:
-        client = silo.connect()
+        while True:
+            cursor, batch = redis_request.scan(cursor=0, match=f'task:*{task_chain_id}*', count=100)
 
-        redis_name = get_first_task_id(task_chain_id=task_chain_id)
+            if batch:
+                redis_name = batch[0]
+                break
+
+            if cursor == 0:
+                redis_name = None
+                break
+
         logger.debug(f'[{task_chain_id}] redis name: {redis_name}')
 
         if redis_name:
-            status = client.hget(name=redis_name, key='status')
+            status = redis_request.hget(name=redis_name, key='status')
 
             logger.debug(f'[{task_chain_id}] task status: {status}')
 
@@ -96,7 +102,7 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
 
             else:
                 logger.debug(f'[{task_chain_id}] task is complete, fetching results')
-                result = client.hgetall(name=redis_name)
+                result = redis_request.hgetall(name=redis_name)
 
                 logger.debug(f'[{task_chain_id}] formatting results')
                 results = unformat_hset(result)
@@ -104,7 +110,7 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
                 if request_json.get('pop'):
                     logger.debug(f'[{task_chain_id}] fetch complete, removing results from cache')
                     # if the task is complete, we want to remove it from the queue
-                    client.delete(redis_name)
+                    redis_request.delete(redis_name)
 
         else:
             reason = 'NOT FOUND'
@@ -160,17 +166,18 @@ def get_task_status(task_chain_id: str) -> Response:
             for key in fields
         }
 
-
     try:
-        from CloudHarvestCoreTasks.silos import get_silo
-        client = get_silo('harvest-tasks').connect()
+        redis_request = RedisRequest(silo='harvest-tasks')
 
         names = []
-        cursor = '0'
-        while cursor != 0:
-            cursor, batch = client.scan(cursor=int(cursor), match=f'task:*{task_chain_id}*', count=100)
+        cursor = 0
+        while True:
+            cursor, batch = redis_request.scan(cursor=int(cursor), match=f'task:*{task_chain_id}*', count=100)
 
             names.extend(batch)
+
+            if cursor == 0:
+                break
 
         if len(names) == 0:
             reason = 'NOT FOUND'
@@ -181,7 +188,7 @@ def get_task_status(task_chain_id: str) -> Response:
             )
 
         elif len(names) == 1:
-            result = rekey_dict(unformat_hset(client.hmget(names[0], keys=fields)))
+            result = rekey_dict(unformat_hset(redis_request.hmget(names[0], keys=fields)))
 
         else:
             # Redis scans yielding multiple results typically happen when a task chain is created from a parent request,
@@ -190,7 +197,7 @@ def get_task_status(task_chain_id: str) -> Response:
             all_results = []
             # if there are multiple tasks (as from a parent task), we need to get the status of each task
             for name in names:
-                all_results.append(unformat_hset(rekey_dict(client.hmget(name, fields))))
+                all_results.append(unformat_hset(rekey_dict(redis_request.hmget(name, fields))))
 
             parent_id = list(set(task['parent'] for task in all_results if task.get('parent')))
             if len(parent_id) == 0:
@@ -254,19 +261,15 @@ def list_available_templates() -> Response:
     :return: A response.
     """
 
-    from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-nodes')
-
-    client = silo.connect()
-
-    agents = client.keys('agent*')
+    redis_request = RedisRequest(silo='harvest-nodes')
 
     reason = 'OK'
     results = []
 
     try:
+        agents = redis_request.keys(pattern='agent*')
         for agent in agents:
-            agent_templates = unformat_hset(client.hget(name=agent, key='available_templates')) or []
+            agent_templates = unformat_hset(redis_request.hget(name=agent, key='available_templates')) or []
             results.extend(agent_templates)
 
     except Exception as ex:
@@ -294,25 +297,24 @@ def list_tasks() -> Response:
     :return: A response.
     """
 
-    from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-tasks')
-
     reason = 'OK'
     results = []
 
     try:
-        client = silo.connect()
+        redis_request = RedisRequest(silo='harvest-tasks')
 
         results = []
-        cursor = None
+        cursor = 0
 
         # Use SCAN to fetch keys in batches of 100
-        while cursor != 0:
-            if cursor is None:
-                cursor = 0
+        while True:
+            cursor, batch = redis_request.scan(cursor=cursor, match='task:*', count=100)
 
-            cursor, batch = client.scan(cursor=cursor, count=100)
-            results.extend(batch)
+            if batch:
+                results.extend(batch)
+
+            if cursor == 0:
+                break
 
     except Exception as ex:
         reason = f'Failed to list task results with error: {str(ex)}'
@@ -368,11 +370,6 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
         )
 
     # The task is known to exist on some agent, therefore it can be queued
-
-    from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-tasks')
-    client = silo.connect()
-
     from datetime import datetime, timezone
     from uuid import uuid4
 
@@ -395,26 +392,29 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
     redis_name = f"task:{task['parent']}:{task['id']}"
     task['redis_name'] = redis_name
 
+    redis_request = RedisRequest(silo='harvest-tasks')
+
     try:
+
         # Create the task queue item
-        client.hset(name=redis_name, mapping=format_hset(task))
-        client.expire(name=redis_name, time=3600)
+        redis_request.hset(name=redis_name, mapping=format_hset(task))
+        redis_request.expire(name=redis_name, time=3600)
 
         # Now add the task to the queue
-        client.rpush(f"queue::{priority}", redis_name)
+        redis_request.rpush(f"queue::{priority}", redis_name)
 
     except Exception as ex:
         reason = f'Failed to queue task {task_name} with error: {str(ex)}'
 
         # ROlLBACK
         try:
-            client.lrem(name=f"queue::{priority}", value=redis_name)
+            redis_request.lrem(name=f"queue::{priority}", value=redis_name)
 
         except Exception:
             pass
 
         try:
-            client.delete(name=redis_name)
+            redis_request.delete(name=redis_name)
 
         except Exception:
             pass
@@ -440,26 +440,3 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
         result=result['result'],
         default={}
     )
-
-def get_first_task_id(task_chain_id: str) -> str or None:
-    """
-    Returns the first task ID in a task chain.
-    :param task_chain_id: The task chain ID.
-    :return: The first task ID.
-    """
-
-    from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-tasks')
-
-    client = silo.connect()
-
-    cursor = 'original-cursor-value'
-
-    # Get the first task ID
-    while cursor != 0:
-        cursor, batch = client.scan(cursor=0, match=f'task:*{task_chain_id}', count=100)
-
-        if batch:
-            return batch[0]
-
-    return None

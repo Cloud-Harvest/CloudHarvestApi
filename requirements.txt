@@ -9,6 +9,7 @@ pandas
 pymongo
 python-dateutil
 pytest
+redis
 rich
 rich_argparse
 setuptools

@@ -1,10 +1,14 @@
-from re import fullmatch
-
 from CloudHarvestCoreTasks.blueprints import HarvestApiBlueprint
 from flask import Response, request
 from logging import getLogger
 
-from CloudHarvestApi.blueprints.base import CachedData, safe_jsonify, use_cache_if_valid, safe_request_get_json
+from CloudHarvestApi.blueprints.base import (
+    CachedData,
+    RedisRequest,
+    safe_jsonify,
+    use_cache_if_valid,
+    safe_request_get_json
+)
 
 logger = getLogger('harvest')
 
@@ -24,12 +28,10 @@ def list_accounts() -> Response:
     :return: A response.
     """
 
-    from CloudHarvestCoreTasks.silos import get_silo
     from json import loads
 
-    silo = get_silo('harvest-nodes')
-    client = silo.connect()
-    agents = client.keys('agent*')
+    redis_request = RedisRequest('harvest-nodes')
+    agents = redis_request.keys('agent*')
 
     result = []
     message = 'OK'
@@ -37,7 +39,7 @@ def list_accounts() -> Response:
     try:
         accounts = []
         [
-            accounts.extend(loads(client.hget(agent, key='accounts')) or [])
+            accounts.extend(loads(redis_request.hget(agent, key='accounts')) or [])
             for agent in agents
         ]
 
@@ -67,16 +69,15 @@ def list_accounts() -> Response:
 def list_platform_regions(platform: str) -> Response:
     from json import loads
     from CloudHarvestApi.blueprints.tasks import await_task, queue_task
-    from CloudHarvestCoreTasks.silos import get_silo
-    silo = get_silo('harvest-nodes')
-    client = silo.connect()
-    agents = client.keys('agent*') or []
+
+    redis_request = RedisRequest('harvest-nodes')
+    agents = redis_request.keys('agent*') or []
 
     # Scan through the agents until we find one operating on the requested platform
     for agent in agents:
         accounts = [
             account.split(':')[1]
-            for account in loads(client.hget(name=agent, key='accounts')) or []
+            for account in loads(redis_request.hget(name=agent, key='accounts')) or []
             if account.startswith(platform)
         ]
 
@@ -134,12 +135,10 @@ def list_platforms() -> Response:
     :return: A response.
     """
 
-    from CloudHarvestCoreTasks.silos import get_silo
     from json import loads
 
-    silo = get_silo('harvest-nodes')
-    client = silo.connect()
-    agents = client.keys('agent*')
+    redis_request = RedisRequest('harvest-nodes')
+    agents = redis_request.keys('agent*')
 
     result = []
     message = 'OK'
@@ -147,7 +146,7 @@ def list_platforms() -> Response:
     try:
         platforms = []
         for agent in agents:
-            for platform in loads(client.hget(name=agent, key='accounts')) or []:
+            for platform in loads(redis_request.hget(name=agent, key='accounts')) or []:
                 try:
                     p = platform.split(':')[0]
                     if p not in platforms and p is not None:
