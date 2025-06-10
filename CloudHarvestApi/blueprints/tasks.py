@@ -110,8 +110,9 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
             reason = 'NOT FOUND'
 
     except BaseException as ex:
-        reason = f'Failed to get task results with error: {str(ex)}'
-        logger.error(reason)
+        from traceback import format_exc
+        reason = f'Failed to get task results with error: {str(ex.args)}'
+        logger.error(f'{reason}\n{format_exc()}')
 
     return safe_jsonify(
         success=reason == 'OK',
