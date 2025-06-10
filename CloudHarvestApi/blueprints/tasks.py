@@ -76,8 +76,9 @@ def get_task_result(task_chain_id: str, **kwargs) -> Response:
     request_json = safe_request_get_json(request)
 
     try:
+        cursor = 0
         while True:
-            cursor, batch = redis_request.scan(cursor=0, match=f'task:*{task_chain_id}*', count=100)
+            cursor, batch = redis_request.scan(cursor=cursor, match=f'task:*{task_chain_id}*', count=100)
 
             if batch:
                 redis_name = batch[0]
@@ -172,7 +173,7 @@ def get_task_status(task_chain_id: str) -> Response:
         names = []
         cursor = 0
         while True:
-            cursor, batch = redis_request.scan(cursor=int(cursor), match=f'task:*{task_chain_id}*', count=100)
+            cursor, batch = redis_request.scan(cursor=cursor, match=f'task:*{task_chain_id}*', count=100)
 
             names.extend(batch)
 

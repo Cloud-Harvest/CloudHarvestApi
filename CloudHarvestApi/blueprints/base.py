@@ -79,6 +79,8 @@ class RedisRequest:
                 try:
                     self.client = self.silo.connect()
 
+                    logger.debug(f'{self.silo.name}: {name}')
+
                     result = getattr(self.client, name)(*args, **kwargs)
                     return result
 
