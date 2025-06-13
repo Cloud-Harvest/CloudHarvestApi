@@ -73,20 +73,23 @@ def list_platform_regions(platform: str) -> Response:
     redis_request = RedisRequest('harvest-nodes')
     agents = redis_request.keys('agent*') or []
 
+    accounts = []
+
     # Scan through the agents until we find one operating on the requested platform
     for agent in agents:
-        accounts = [
+        agent_accounts = [
             account.split(':')[1]
             for account in loads(redis_request.hget(name=agent, key='accounts')) or []
             if account.startswith(platform)
         ]
 
-        if accounts:
-            account = accounts[0]
-            break
+        if agent_accounts:
+            accounts.extend(agent_accounts)
 
-    # If no agent with that platform is found, we return an empty list
-    else:
+    accounts = sorted(list(set(accounts)))
+
+    # If no agent with an account in that platform is found, we return an empty list
+    if not accounts:
         return safe_jsonify(
             success=False,
             reason=f'Platform `{platform}` not found in agent configurations.',
@@ -94,39 +97,50 @@ def list_platform_regions(platform: str) -> Response:
         )
 
     # With an account number retrieved from an agent, we can now queue a task to get the regions
+    for account in accounts:
+        queue_result = queue_task(
+            priority=0,
+            task_category='reports',
+            task_name=f'{platform}.regions',
+            variables={
+                'service': 'account',
+                'type': 'regions',
+                'account': account,
+            }
+        )
 
-    queue_result = queue_task(
-        priority=0,
-        task_category='reports',
-        task_name=f'{platform}.regions',
-        variables={
-            'service': 'account',
-            'type': 'regions',
-            'account': account,
-        }
+        try:
+            chain_id = queue_result.json['result']['id']
+
+        except Exception as ex:
+            chain_id = None
+
+        if chain_id:
+            # If the task was queued successfully, we wait for it to complete
+            task_result = await_task(chain_id).json
+
+            task_result = {
+                'success': task_result.get('success'),
+                'reason': task_result.get('reason'),
+                'result': task_result['result']['data']
+            }
+
+        else:
+            task_result = queue_result.json
+
+        if task_result['result']:
+            return safe_jsonify(**task_result)
+
+        else:
+            logger.debug(f'No regions found for {platform} {account}')
+            continue
+
+    # If we reach this point, it means no regions were found for the platform
+    return safe_jsonify(
+        success=False,
+        reason=f'No regions found for platform `{platform}`.',
+        result={}
     )
-
-    try:
-        chain_id = queue_result.json['result']['id']
-
-    except Exception as ex:
-        chain_id = None
-
-    if chain_id:
-        # If the task was queued successfully, we wait for it to complete
-        task_result = await_task(chain_id).json
-
-        task_result = {
-            'success': task_result.get('success'),
-            'reason': task_result.get('reason'),
-            'result': task_result['result']['data']
-        }
-
-    else:
-        task_result = queue_result.json
-
-    return safe_jsonify(**task_result)
-
 
 @pstar_blueprint.route(rule='/list_platforms', methods=['GET'])
 def list_platforms() -> Response:
