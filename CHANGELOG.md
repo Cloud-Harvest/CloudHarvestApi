@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.3.7
+- Updated to conform with CloudHarvestCoreTasks 0.8.0
+
 ## 0.3.6
 - Code cleanup
 - Will only update local cache if the results are not empty
