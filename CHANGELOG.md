@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.8
+- Changed build model to use `pyproject.toml`
+- Updated to conform with CloudHarvestCoreTasks 0.8.1
+
 ## 0.3.7
 - Updated to conform with CloudHarvestCoreTasks 0.8.0
 
