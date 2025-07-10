@@ -1,0 +1,41 @@
+[build-system]
+requires = ["flit-core>=3.7"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.sdist]
+include = [
+    "templates/**/*.yaml",
+    "pyproject.toml",
+]
+
+[project]
+authors = [ { name = "Cloud Harvest" } ]
+classifiers = [ "Programming Language :: Python :: 3.13" ]
+dependencies = [
+    "CloudHarvestCoreTasks @ git+https://github.com/Cloud-Harvest/CloudHarvestCoreTasks.git@0.8.1",
+    "Authlib",
+    "Flask",
+    "Jinja2",
+    "PyYAML",
+    "flatten-json",
+    "gunicorn",
+    "pandas",
+    "pymongo",
+    "python-dateutil",
+    "pytest",
+    "redis",
+    "rich",
+    "rich_argparse",
+    "setuptools"
+]
+description = "This is the Api for CloudHarvest, responsible for handling HTTP requests from the frontend and enqueuing tasks for the agent workers to process."
+name = "CloudHarvestApi"
+readme = "README.md"
+requires-python = ">=3.13"
+version = "0.3.8"
+
+[project.license]
+file = "LICENSE"
+
+[project.urls]
+homepage = "https://github.com/Cloud-Harvest/CloudHarvestApi"
