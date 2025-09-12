@@ -12,7 +12,7 @@ include = [
 authors = [ { name = "Cloud Harvest" } ]
 classifiers = [ "Programming Language :: Python :: 3.13" ]
 dependencies = [
-    "CloudHarvestCoreTasks @ git+https://github.com/Cloud-Harvest/CloudHarvestCoreTasks.git@0.8.1",
+    "CloudHarvestCoreTasks @ git+https://github.com/Cloud-Harvest/CloudHarvestCoreTasks.git@0.8.2",
     "Authlib",
     "Flask",
     "Jinja2",
@@ -32,7 +32,7 @@ description = "This is the Api for CloudHarvest, responsible for handling HTTP r
 name = "CloudHarvestApi"
 readme = "README.md"
 requires-python = ">=3.13"
-version = "0.3.8"
+version = "0.3.9"
 
 [project.license]
 file = "LICENSE"

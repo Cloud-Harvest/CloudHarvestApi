@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.3.9
+- Updated to conform with CloudHarvestCoreTasks 0.8.2
+- Include line numbers in log outputs
+
 ## 0.3.8
 - Changed build model to use `pyproject.toml`
 - Updated to conform with CloudHarvestCoreTasks 0.8.1
