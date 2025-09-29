@@ -19,7 +19,7 @@ pstar_blueprint = HarvestApiBlueprint(
 
 
 CACHED_PLATFORM_REGIONS = CachedData(data=[], valid_age=0)
-
+CACHED_SERVICES = CachedData(data={}, valid_age=300)  # 5 minutes
 
 @pstar_blueprint.route(rule='/list_accounts', methods=['GET'])
 def list_accounts() -> Response:
