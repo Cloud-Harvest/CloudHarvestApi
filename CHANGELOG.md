@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.4.0
+- Switched to using the `gunicorn_conf.py` file for `gunicorn` configuration.
+- Change how binding information is transferred to the application.
+- Implemented many `gunicorn` configurations for managing sessions and timeouts.
+- Updated publication script to better tag docker images.
+- Updated the dockerfile to use `python:3.14-trixie` as the base image.
+
 ## 0.3.9
 - Updated to conform with CloudHarvestCoreTasks 0.8.2
 - Include line numbers in log outputs
