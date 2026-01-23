@@ -63,7 +63,7 @@ else
     # Production mode: Use Gunicorn
     source "$base_path/venv/bin/activate" \
     && echo "Starting Gunicorn..." \
-    && gunicorn -c "$conf" --certfile "$pemfile" --keyfile "$pemfile" "$app_name.__main__:app"
+    && gunicorn -c "$conf" "$app_name.__main__:app"
 fi
 
 echo "$app_name has stopped."
