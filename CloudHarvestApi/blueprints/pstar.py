@@ -299,6 +299,7 @@ def list_pstar(platform=None, service=None, type=None, account=None, region=None
         result=results
     )
 
+
 @pstar_blueprint.route(rule='/queue_pstar/<priority>', methods=['POST'])
 def queue_pstar(priority: int, platform: str = None, service: str = None, type: str = None, account: str = None, region: str = None) -> Response:
     """
@@ -350,6 +351,70 @@ def queue_pstar(priority: int, platform: str = None, service: str = None, type: 
             'tasks': [task.json for task in result]
         }
     )
+
+@pstar_blueprint.route(rule='/queue_unique_identifiers/<priority>', methods=['POST'])
+def queue_unique_identifiers(priority: int, unique_identifiers: list[str], full_refresh: bool = False) -> Response:
+    """
+    Queues tasks based on a list of unique identifiers instead of PSTAR fields.
+    Arguments:
+        priority (int): The priority of the task. Lower numbers indicate higher priority, with 0 being the highest.
+        unique_identifiers: From the Harvest.UniqueIdentifier metadata field.
+        full_refresh: Indicates the unique identifier's entire PSTAR should be refreshed.
+
+    Returns:
+        Response: A response object containing a list of tasks which were queued.
+    """
+    # Sets the parent ID for the queued tasks
+    from uuid import uuid4
+    parent_id = str(uuid4())
+
+    # Connect to the Mongo backend to retrieve the metadata for each unique identifier
+    from CloudHarvestCoreTasks.silos import get_silo
+    metadata_silo = get_silo('harvest-core').connect()
+    unique_documents = metadata_silo['harvest']['metadata'].find({'Harvest.UniqueIdentifier': {'$in': unique_identifiers}})
+
+    # If full_refresh is True, build the PSTAR from the unique identifier metadata careful not to duplicate tasks
+    if full_refresh:
+        pstars = []
+        for document in unique_documents:
+            pstar = (document['Platform'], document['Service'], document['Type'], document['Account'], document['Region'])
+            pstars.append(pstar)
+
+        # Remove duplicates
+        pstars = list(set(pstars))
+
+        # Queue the tasks based on the PSTAR fields
+        from CloudHarvestApi.blueprints.tasks import queue_task
+        result = [
+            queue_task(
+                priority=priority,
+                parent=parent_id,
+                task_category='services',
+                task_name=task['template'],
+                platform=pstar['platform'],
+                service=pstar['service'],
+                type=pstar['type'],
+                account=pstar['account'],
+                region=pstar['region']
+            )
+            for pstar in pstars
+        ]
+
+        return safe_jsonify(
+            success=True,
+            reason='OK',
+            result={
+                'queued_tasks': [qp.json for qp in result]
+            }
+        )
+
+    # If full_refresh is False, simply queue the task based on the unique identifier. PSTAR fields are still required
+    # to properly queue the task.
+    else:
+        pass
+
+    # Return the queued tasks
+
 
 def format_pstar(request_kwargs: dict,
                    platform: str = None,
