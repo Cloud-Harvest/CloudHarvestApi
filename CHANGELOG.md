@@ -6,6 +6,7 @@
 - Implemented many `gunicorn` configurations for managing sessions and timeouts.
 - Updated publication script to better tag docker images.
 - Updated the dockerfile to use `python:3.14-trixie` as the base image.
+- Updated to conform with CloudHarvestCoreTasks 0.9.0 
 
 ## 0.3.9
 - Updated to conform with CloudHarvestCoreTasks 0.8.2
