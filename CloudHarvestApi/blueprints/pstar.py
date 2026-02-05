@@ -353,7 +353,7 @@ def queue_pstar(priority: int, platform: str = None, service: str = None, type: 
     )
 
 @pstar_blueprint.route(rule='/queue_unique_identifiers/<priority>', methods=['POST'])
-def queue_unique_identifiers(priority: int, unique_identifiers: list[str], full_refresh: bool = False) -> Response:
+def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None, full_refresh: bool = False) -> Response:
     """
     Queues tasks based on a list of unique identifiers instead of PSTAR fields.
     Arguments:
@@ -367,61 +367,103 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str], full_
     # Sets the parent ID for the queued tasks
     from uuid import uuid4
     parent_id = str(uuid4())
+    tasks_to_queue = []
+    not_queued = []
+
+    # Get the unique identifiers and full refresh flag from the request body if not provided as arguments
+    data = safe_request_get_json(request)
+    unique_identifiers = unique_identifiers or data.get('unique_identifiers') or []
+    full_refresh = full_refresh or data.get('full_refresh')
 
     # Connect to the Mongo backend to retrieve the metadata for each unique identifier
     from CloudHarvestCoreTasks.silos import get_silo
     metadata_silo = get_silo('harvest-core').connect()
-    unique_documents = metadata_silo['harvest']['metadata'].find({'Harvest.UniqueIdentifier': {'$in': unique_identifiers}})
+    unique_documents = [
+        record for record in
+        metadata_silo['harvest']['metadata'].find({'UniqueIdentifier': {'$in': unique_identifiers}})
+    ]
 
-    # If full_refresh is True, build the PSTAR from the unique identifier metadata careful not to duplicate tasks
-    if full_refresh:
-        pstars = []
-        for document in unique_documents:
-            pstar = (document['Platform'], document['Service'], document['Type'], document['Account'], document['Region'])
-            pstars.append(pstar)
+    returned_identifiers = [doc.get('UniqueIdentifier') for doc in unique_documents]
 
-        # Remove duplicates
-        pstars = list(set(pstars))
-
-        # Queue the tasks based on the PSTAR fields
-        from CloudHarvestApi.blueprints.tasks import queue_task
-        result = [
-            queue_task(
-                priority=priority,
-                parent=parent_id,
-                task_category='services',
-                task_name=task['template'],
-                platform=pstar['platform'],
-                service=pstar['service'],
-                type=pstar['type'],
-                account=pstar['account'],
-                region=pstar['region']
-            )
-            for pstar in pstars
-        ]
-
-        return safe_jsonify(
-            success=True,
-            reason='OK',
-            result={
-                'queued_tasks': [qp.json for qp in result]
+    # Identify any unique identifiers which did not return metadata
+    [
+        not_queued.append(
+            {
+                'unique_identifier': identifier,
+                'reason': 'No metadata found for the provided UniqueIdentifier.'
             }
         )
+        for identifier in unique_identifiers
+        if identifier not in returned_identifiers
+    ]
 
-    # If full_refresh is False, simply queue the task based on the unique identifier. PSTAR fields are still required
-    # to properly queue the task.
-    else:
-        pass
+    for document in unique_documents:
+        # Backwards compatibility: If the document does not have a TemplateIdentifier field, we cannot reliably identify
+        # how it was collected, therefore we skip it.
+        if not document.get('TemplateIdentifier'):
+            not_queued.append(
+                {
+                    'unique_identifier': document.get('Harvest.UniqueIdentifier'),
+                    'reason': 'Document does not have a TemplateIdentifier field; identify how it was collected.'
+                }
+            )
+
+        # We create a tuple here because it allows us to perform a set() operation later to remove duplicates. This
+        # is necessary to prevent saturation of the agent system and database backend.
+        pstar = [
+            document['Platform'],                   # 0
+            document['Service'],                    # 1
+            document['Type'],                       # 2
+            document['Account'],                    # 3
+            document['Region'],                     # 4
+            document['TemplateIdentifier']          # 5
+        ]
+
+        if not full_refresh:
+            pstar.append(document['Singleton'])     # 6 - Only included to refresh specific resources
+
+        tasks_to_queue.append(pstar)
+
+    # Remove duplicates
+    tasks_to_queue = list(set(tuple([tuple(task) for task in tasks_to_queue])))
+
+    # Queue the tasks for each unique combination of PSTAR, template, and singleton (if not a full refresh).
+    from CloudHarvestApi.blueprints.tasks import queue_task
+    result = []
+    for task in tasks_to_queue:
+        task_result = queue_task(
+            priority=priority,
+            parent=parent_id,
+            task_category='services',
+            task_name=task[5].split('/')[-1],  # "template_services/s3.buckets" -> "s3.buckets"
+            platform=task[0],
+            service=task[1],
+            type=task[2],
+            account=task[3],
+            region=task[4],
+            variables=task[6] if not full_refresh else {}  # The singleton values are passed a dictionary to be converted into individual variables
+        )
+
+        result.append(task_result.json)
 
     # Return the queued tasks
+    return safe_jsonify(
+        success=True,
+        reason='OK',
+        result={
+            'parent_id': parent_id,
+            'queued_tasks': [qp.json for qp in result],
+            'not_queued': not_queued
+        }
+    )
 
 
 def format_pstar(request_kwargs: dict,
-                   platform: str = None,
-                   service: str = None,
-                   type: str = None,
-                   account: str = None,
-                   region: str = None) -> dict:
+                 platform: str = None,
+                 service: str = None,
+                 type: str = None,
+                 account: str = None,
+                 region: str = None) -> dict:
     """
     Abstract function to handle PStar requests.
 
