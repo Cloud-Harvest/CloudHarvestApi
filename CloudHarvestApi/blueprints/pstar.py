@@ -407,17 +407,18 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
         # is necessary to prevent saturation of the agent system and database backend.
         try:
             pstar = [
-                document['Platform'],                   # 0
-                document['Service'],                    # 1
-                document['Type'],                       # 2
-                document['AccountId'],                  # 3 - must use account id otherwise profiles cannot be found
-                document['Region'],                     # 4
-                document.get('TemplateIdentifier')      # 5
+                document['UniqueIdentifier'],           # 0
+                document['Platform'],                   # 1
+                document['Service'],                    # 2
+                document['Type'],                       # 3
+                document['AccountId'],                  # 4 - must use account id otherwise profiles cannot be found
+                document['Region'],                     # 5
+                document.get('TemplateIdentifier')      # 6
             ]
 
             if not full_refresh:
                 # Convert the Singleton field to a JSON string to ensure it's hashable for the set() operation later
-                singleton = dumps(document.get('Singleton' or {}))  # ^ 6 - Used to identify the resource to be collected
+                singleton = dumps(document.get('Singleton' or {}))  # 7 - Used to identify the resource to be collected
 
                 pstar.append(singleton)
 
@@ -464,13 +465,13 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
                 priority=priority,
                 parent=parent_id,
                 task_category='services',
-                task_name=task[5].split('/')[-1],  # "template_services/s3.buckets" -> "s3.buckets"
-                platform=task[0],
-                service=task[1],
-                type=task[2],
-                account=task[3],
-                region=task[4],
-                variables=loads(task[6]) if not full_refresh else {}  # The singleton values are passed a dictionary to be converted into individual variables
+                task_name=task[6].split('/')[-1],  # "template_services/s3.buckets" -> "s3.buckets"
+                platform=task[1],
+                service=task[2],
+                type=task[3],
+                account=task[4],
+                region=task[5],
+                variables=loads(task[7]) | {'InputUniqueIdentifier': task[0]} if not full_refresh else {}  # The singleton values are passed a dictionary to be converted into individual variables
             )
 
             result.append(task_result.json)
@@ -479,7 +480,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
         except Exception as e:
             not_queued.append(
                 {
-                    'unique_identifier': f'{":".join(task[:5])}' if full_refresh else task[6],  # If it's a full refresh, we won't have the singleton value to identify the resource, so we use the PSTAR fields instead.
+                    'unique_identifier': f'{":".join(task[:5])}' if full_refresh else task[7],  # If it's a full refresh, the task is based on the PSTAR fields, otherwise it's based on the unique identifier
                     'reason': f'Failed to queue task with error: {str(e)}'
                 }
             )
