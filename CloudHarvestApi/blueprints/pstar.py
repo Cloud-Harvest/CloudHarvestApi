@@ -430,7 +430,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
                     'reason': 'Document does not have a TemplateIdentifier field; identify how it was collected.'
                 }
             )
-
+            logger.debug(f'{parent_id}: missing template identifier {document.get("UniqueIdentifier")}')
             continue
 
         elif not document.get('Singleton') and not full_refresh:
@@ -440,10 +440,11 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
                     'reason': 'Document does not have a Singleton field; cannot perform a targeted refresh.'
                 }
             )
-
+            logger.debug(f'{parent_id}: missing singleton {document.get("UniqueIdentifier")}')
             continue
 
         tasks_to_queue.append(pstar)
+        logger.debug(f'{parent_id}: queued tasks for unique identifier: {document.get("UniqueIdentifier")}')
 
     # Remove duplicates
     tasks_to_queue = list(set(tuple([tuple(task) for task in tasks_to_queue])))
@@ -468,6 +469,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
         )
 
         result.append(task_result.json)
+        logger.debug(f'task:{parent_id}:{task_result.json.get("id")} queued task')
 
     logger.debug(f'{parent_id}: queued tasks: {len(result)}, not queued: {len(not_queued)}')
 
