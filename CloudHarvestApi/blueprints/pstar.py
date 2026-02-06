@@ -404,17 +404,22 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
     for document in unique_documents:
         # We create a tuple here because it allows us to perform a set() operation later to remove duplicates. This
         # is necessary to prevent saturation of the agent system and database backend.
-        pstar = [
-            document['Platform'],                   # 0
-            document['Service'],                    # 1
-            document['Type'],                       # 2
-            document['AccountId'],                  # 3 - must use account id otherwise profiles cannot be found
-            document['Region'],                     # 4
-            document.get('TemplateIdentifier')      # 5
-        ]
+        try:
+            pstar = [
+                document['Platform'],                   # 0
+                document['Service'],                    # 1
+                document['Type'],                       # 2
+                document['AccountId'],                  # 3 - must use account id otherwise profiles cannot be found
+                document['Region'],                     # 4
+                document.get('TemplateIdentifier')      # 5
+            ]
 
-        if not full_refresh:
-            pstar.append(document.get('Singleton')) # 6 - Only included to refresh specific resources
+            if not full_refresh:
+                pstar.append(document.get('Singleton')) # 6 - Only included to refresh specific resources
+
+        except KeyError as e:
+            logger.warning(f'{parent_id}: missing expected metadata field {str(e)} for UniqueIdentifier {document.get("UniqueIdentifier")}')
+            continue
 
         # Backwards compatibility: If the document does not have a TemplateIdentifier field, we cannot reliably identify
         # how it was collected, therefore we skip it.
