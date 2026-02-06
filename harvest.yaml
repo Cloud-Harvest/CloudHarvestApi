@@ -84,18 +84,21 @@ silos:
             - Type
             - Account
             - Region
-      meta:   # Collection name
-        - keys: Platform
-        - keys: Service
-        - keys: Type
-        - keys: Account
-        - keys: Region
-        - keys:
-            - Collection
-            - CollectionId
+      metadata:   # Collection name
         - name: unique_meta_idx
           unique: true
           keys: UniqueIdentifier
+        - name: metadata_active_partial_idx
+          keys: Active
+          partialFilterExpression:
+            Active: true
+        - name: metadata_update_idx
+          keys:
+            - Silo
+            - Collection
+            - AccountId
+            - Region
+            - UniqueIdentifier
 
   harvest-nodes:
     # Stores information about Agent and API nodes.
