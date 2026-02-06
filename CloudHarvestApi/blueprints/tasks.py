@@ -396,7 +396,6 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
     redis_request = RedisRequest(silo='harvest-tasks')
 
     try:
-
         # Create the task queue item
         redis_request.hset(name=redis_name, mapping=format_hset(task))
         redis_request.expire(name=redis_name, time=3600)
@@ -434,6 +433,8 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
             'created': task['created'],
         }
     }
+
+    logger.info(f'task:{incoming_kwargs.get('parent')}:{task_id} ({task_category}/{task_name}) queued with: {reason}')
 
     return safe_jsonify(
         success=result['success'],

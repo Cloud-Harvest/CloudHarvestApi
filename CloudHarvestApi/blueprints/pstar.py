@@ -375,6 +375,8 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
     unique_identifiers = unique_identifiers or data.get('unique_identifiers') or []
     full_refresh = full_refresh or data.get('full_refresh')
 
+    logger.debug(f'{parent_id}: queueing tasks for unique identifiers: {len(unique_identifiers)}')
+
     # Connect to the Mongo backend to retrieve the metadata for each unique identifier
     from CloudHarvestCoreTasks.silos import get_silo
     metadata_silo = get_silo('harvest-core').connect()
@@ -382,6 +384,8 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
         record for record in
         metadata_silo['harvest']['metadata'].find({'UniqueIdentifier': {'$in': unique_identifiers}})
     ]
+
+    logger.debug(f'{parent_id}: retrieved metadata for unique identifiers: {len(unique_documents)}')
 
     returned_identifiers = [doc.get('UniqueIdentifier') for doc in unique_documents]
 
@@ -439,6 +443,8 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
     # Remove duplicates
     tasks_to_queue = list(set(tuple([tuple(task) for task in tasks_to_queue])))
 
+    logger.debug(f'{parent_id}: deduplicated tasks to queue: {len(tasks_to_queue)}')
+
     # Queue the tasks for each unique combination of PSTAR, template, and singleton (if not a full refresh).
     from CloudHarvestApi.blueprints.tasks import queue_task
     result = []
@@ -457,6 +463,8 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
         )
 
         result.append(task_result.json)
+
+    logger.debug(f'{parent_id}: queued tasks: {len(result)}, not queued: {len(not_queued)}')
 
     # Return the queued tasks
     return safe_jsonify(
