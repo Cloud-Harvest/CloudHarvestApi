@@ -452,7 +452,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
         reason='OK',
         result={
             'parent_id': parent_id,
-            'queued_tasks': [qp.json for qp in result],
+            'queued_tasks': result,
             'not_queued': not_queued
         }
     )
