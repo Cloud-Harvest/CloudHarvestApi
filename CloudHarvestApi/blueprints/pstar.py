@@ -398,16 +398,6 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
     ]
 
     for document in unique_documents:
-        # Backwards compatibility: If the document does not have a TemplateIdentifier field, we cannot reliably identify
-        # how it was collected, therefore we skip it.
-        if not document.get('TemplateIdentifier'):
-            not_queued.append(
-                {
-                    'unique_identifier': document.get('Harvest.UniqueIdentifier'),
-                    'reason': 'Document does not have a TemplateIdentifier field; identify how it was collected.'
-                }
-            )
-
         # We create a tuple here because it allows us to perform a set() operation later to remove duplicates. This
         # is necessary to prevent saturation of the agent system and database backend.
         pstar = [
@@ -416,11 +406,33 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
             document['Type'],                       # 2
             document['Account'],                    # 3
             document['Region'],                     # 4
-            document['TemplateIdentifier']          # 5
+            document.get('TemplateIdentifier')      # 5
         ]
 
         if not full_refresh:
-            pstar.append(document['Singleton'])     # 6 - Only included to refresh specific resources
+            pstar.append(document.get('Singleton')) # 6 - Only included to refresh specific resources
+
+        # Backwards compatibility: If the document does not have a TemplateIdentifier field, we cannot reliably identify
+        # how it was collected, therefore we skip it.
+        if not document.get('TemplateIdentifier'):
+            not_queued.append(
+                {
+                    'unique_identifier': document.get('UniqueIdentifier'),
+                    'reason': 'Document does not have a TemplateIdentifier field; identify how it was collected.'
+                }
+            )
+
+            continue
+
+        elif not document.get('Singleton') and not full_refresh:
+            not_queued.append(
+                {
+                    'unique_identifier': document.get('UniqueIdentifier'),
+                    'reason': 'Document does not have a Singleton field; cannot perform a targeted refresh.'
+                }
+            )
+
+            continue
 
         tasks_to_queue.append(pstar)
 
