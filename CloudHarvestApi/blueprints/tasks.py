@@ -434,7 +434,7 @@ def queue_task(priority: int, task_category: str, task_name: str, *args, **kwarg
         }
     }
 
-    logger.info(f'task:{incoming_kwargs.get('parent')}:{task_id} ({task_category}/{task_name}) queued with: {reason}')
+    logger.info(f'{redis_name} ({task_category}/{task_name}) queued with: {reason}')
 
     return safe_jsonify(
         success=result['success'],

@@ -444,7 +444,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
             continue
 
         tasks_to_queue.append(pstar)
-        logger.debug(f'{parent_id}: queued tasks for unique identifier: {document.get("UniqueIdentifier")}')
+        logger.debug(f'{parent_id}: generate task for: {document.get("UniqueIdentifier")}')
 
     # Remove duplicates
     tasks_to_queue = list(set(tuple([tuple(task) for task in tasks_to_queue])))
@@ -455,21 +455,31 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
     from CloudHarvestApi.blueprints.tasks import queue_task
     result = []
     for task in tasks_to_queue:
-        task_result = queue_task(
-            priority=priority,
-            parent=parent_id,
-            task_category='services',
-            task_name=task[5].split('/')[-1],  # "template_services/s3.buckets" -> "s3.buckets"
-            platform=task[0],
-            service=task[1],
-            type=task[2],
-            account=task[3],
-            region=task[4],
-            variables=task[6] if not full_refresh else {}  # The singleton values are passed a dictionary to be converted into individual variables
-        )
+        try:
+            task_result = queue_task(
+                priority=priority,
+                parent=parent_id,
+                task_category='services',
+                task_name=task[5].split('/')[-1],  # "template_services/s3.buckets" -> "s3.buckets"
+                platform=task[0],
+                service=task[1],
+                type=task[2],
+                account=task[3],
+                region=task[4],
+                variables=task[6] if not full_refresh else {}  # The singleton values are passed a dictionary to be converted into individual variables
+            )
 
-        result.append(task_result.json)
-        logger.debug(f'task:{parent_id}:{task_result.json.get("id")} queued task')
+            result.append(task_result.json)
+            logger.debug(f'task:{parent_id}:{task_result.json.get("id")} queued task')
+
+        except Exception as e:
+            not_queued.append(
+                {
+                    'unique_identifier': f'{":".join(task[:5])}' if full_refresh else task[6],  # If it's a full refresh, we won't have the singleton value to identify the resource, so we use the PSTAR fields instead.
+                    'reason': f'Failed to queue task with error: {str(e)}'
+                }
+            )
+            logger.warning(f'{parent_id}: failed to queue task for {task[3]} with error: {str(e)}')
 
     logger.debug(f'{parent_id}: queued tasks: {len(result)}, not queued: {len(not_queued)}')
 
