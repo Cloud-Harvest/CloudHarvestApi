@@ -365,6 +365,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
         Response: A response object containing a list of tasks which were queued.
     """
     # Sets the parent ID for the queued tasks
+    from json import loads, dumps
     from uuid import uuid4
     parent_id = str(uuid4())
     tasks_to_queue = []
@@ -375,7 +376,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
     unique_identifiers = unique_identifiers or data.get('unique_identifiers') or []
     full_refresh = full_refresh or data.get('full_refresh')
 
-    logger.debug(f'{parent_id}: queueing tasks for unique identifiers: {len(unique_identifiers)}')
+    logger.debug(f'task:{parent_id}: queueing tasks for unique identifiers: {len(unique_identifiers)}')
 
     # Connect to the Mongo backend to retrieve the metadata for each unique identifier
     from CloudHarvestCoreTasks.silos import get_silo
@@ -385,7 +386,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
         metadata_silo['harvest']['metadata'].find({'UniqueIdentifier': {'$in': unique_identifiers}})
     ]
 
-    logger.debug(f'{parent_id}: retrieved metadata for unique identifiers: {len(unique_documents)}')
+    logger.debug(f'task:{parent_id}: retrieved metadata for unique identifiers: {len(unique_documents)}')
 
     returned_identifiers = [doc.get('UniqueIdentifier') for doc in unique_documents]
 
@@ -415,10 +416,13 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
             ]
 
             if not full_refresh:
-                pstar.append(document.get('Singleton')) # 6 - Only included to refresh specific resources
+                # Convert the Singleton field to a JSON string to ensure it's hashable for the set() operation later
+                singleton = dumps(document.get('Singleton' or {}))  # ^ 6 - Used to identify the resource to be collected
+
+                pstar.append(singleton)
 
         except KeyError as e:
-            logger.warning(f'{parent_id}: missing expected metadata field {str(e)} for UniqueIdentifier {document.get("UniqueIdentifier")}')
+            logger.warning(f'task:{parent_id}: missing expected metadata field {str(e)} for UniqueIdentifier {document.get("UniqueIdentifier")}')
             continue
 
         # Backwards compatibility: If the document does not have a TemplateIdentifier field, we cannot reliably identify
@@ -430,7 +434,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
                     'reason': 'Document does not have a TemplateIdentifier field; identify how it was collected.'
                 }
             )
-            logger.debug(f'{parent_id}: missing template identifier {document.get("UniqueIdentifier")}')
+            logger.debug(f'task:{parent_id}: missing template identifier {document.get("UniqueIdentifier")}')
             continue
 
         elif not document.get('Singleton') and not full_refresh:
@@ -440,16 +444,16 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
                     'reason': 'Document does not have a Singleton field; cannot perform a targeted refresh.'
                 }
             )
-            logger.debug(f'{parent_id}: missing singleton {document.get("UniqueIdentifier")}')
+            logger.debug(f'task:{parent_id}: missing singleton {document.get("UniqueIdentifier")}')
             continue
 
-        tasks_to_queue.append(pstar)
-        logger.debug(f'{parent_id}: generate task for: {document.get("UniqueIdentifier")}')
+        tasks_to_queue.append(tuple(pstar))
+        logger.debug(f'task:{parent_id}: generate task for: {document.get("UniqueIdentifier")}')
 
     # Remove duplicates
-    tasks_to_queue = list(set(tuple([tuple(task) for task in tasks_to_queue])))
+    tasks_to_queue = list(set(tasks_to_queue))
 
-    logger.debug(f'{parent_id}: deduplicated tasks to queue: {len(tasks_to_queue)}')
+    logger.debug(f'task:{parent_id}: deduplicated tasks to queue: {len(tasks_to_queue)}')
 
     # Queue the tasks for each unique combination of PSTAR, template, and singleton (if not a full refresh).
     from CloudHarvestApi.blueprints.tasks import queue_task
@@ -466,7 +470,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
                 type=task[2],
                 account=task[3],
                 region=task[4],
-                variables=task[6] if not full_refresh else {}  # The singleton values are passed a dictionary to be converted into individual variables
+                variables=loads(task[6]) if not full_refresh else {}  # The singleton values are passed a dictionary to be converted into individual variables
             )
 
             result.append(task_result.json)
@@ -479,9 +483,9 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
                     'reason': f'Failed to queue task with error: {str(e)}'
                 }
             )
-            logger.warning(f'{parent_id}: failed to queue task for {task[3]} with error: {str(e)}')
+            logger.warning(f'task:{parent_id}: failed to queue task for {task[3]} with error: {str(e)}')
 
-    logger.debug(f'{parent_id}: queued tasks: {len(result)}, not queued: {len(not_queued)}')
+    logger.debug(f'task:{parent_id}: queued tasks: {len(result)}, not queued: {len(not_queued)}')
 
     # Return the queued tasks
     return safe_jsonify(
