@@ -404,7 +404,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
             document['Platform'],                   # 0
             document['Service'],                    # 1
             document['Type'],                       # 2
-            document['Account'],                    # 3
+            document['AccountId'],                  # 3 - must use account id otherwise profiles cannot be found
             document['Region'],                     # 4
             document.get('TemplateIdentifier')      # 5
         ]
