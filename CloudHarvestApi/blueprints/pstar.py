@@ -418,7 +418,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
 
             if not full_refresh:
                 # Convert the Singleton field to a JSON string to ensure it's hashable for the set() operation later
-                singleton = dumps(document.get('Singleton' or {}))  # 7 - Used to identify the resource to be collected
+                singleton = dumps(document.get('Singleton') or {})  # 7 - Used to identify the resource to be collected
 
                 pstar.append(singleton)
 
