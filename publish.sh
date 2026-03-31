@@ -114,7 +114,6 @@ if [ $dry_run -eq 0 ]; then
     docker push "$name_version"
 
     # Then push the version-commit tag
-    docker tag "$name_version_commit" "$name_version_commit"
     docker push "$name_version_commit"
 
     echo "Pushed $name_version_commit"
