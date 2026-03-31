@@ -480,7 +480,7 @@ def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None
         except Exception as e:
             not_queued.append(
                 {
-                    'unique_identifier': f'{":".join(task[:5])}' if full_refresh else task[7],  # If it's a full refresh, the task is based on the PSTAR fields, otherwise it's based on the unique identifier
+                    'unique_identifier': f'{":".join(task[:5])}' if full_refresh else task[0],  # If it's a full refresh, the task is based on the PSTAR fields, otherwise it's based on the unique identifier
                     'reason': f'Failed to queue task with error: {str(e)}'
                 }
             )
