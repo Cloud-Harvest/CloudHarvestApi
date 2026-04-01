@@ -3,6 +3,7 @@ from flask import Response, request
 from logging import getLogger
 
 from CloudHarvestApi.blueprints.home import not_implemented_error
+from blueprints.base import safe_jsonify
 
 logger = getLogger('harvest')
 
@@ -14,7 +15,7 @@ agents_blueprint = HarvestApiBlueprint(
 CACHED_TEMPLATES = {}
 
 @agents_blueprint.route(rule='/get_agent_by_name/<agent_name>', methods=['GET'])
-def get_agent_by_name(agent_name: str) -> str | dict:
+def get_agent_by_name(agent_name: str) -> Response:
     """
     Get an agent by its name.
 
@@ -25,8 +26,8 @@ def get_agent_by_name(agent_name: str) -> str | dict:
     from CloudHarvestCoreTasks.silos import get_silo
     harvest_nodes = get_silo('harvest-nodes').connect()
 
+    cursor = 0
     while True:
-        cursor = 0
         cursor, batch = harvest_nodes.scan(cursor=cursor, match=f'agent:*', count=100)
 
         if batch:
@@ -34,17 +35,17 @@ def get_agent_by_name(agent_name: str) -> str | dict:
                 cursor_agent_name = harvest_nodes.hget(agent_key, 'name')
 
                 if cursor_agent_name == agent_name:
-                    return agent_key
+                    return Response({'result': agent_key}, 200)
 
         if cursor == 0:
-            return {'error': f'Agent with name `{agent_name}` not found.'}
+            return Response({'error': f'Agent with name `{agent_name}` not found.'}, 400)
 
 @agents_blueprint.route(rule='/get_agent_status', methods=['GET'])
 def get_agent_status():
     return not_implemented_error()
 
-@agents_blueprint.route(rule='/get_template/<template_category>/<template_name>', methods=['GET'])
-def get_agent_template(template_category: str, template_name: str) -> Response:
+@agents_blueprint.route(rule='/get_template/', methods=['GET'])
+def get_agent_template() -> Response:
     """
     Get a template from an agent.
 
@@ -54,14 +55,14 @@ def get_agent_template(template_category: str, template_name: str) -> Response:
 
     """
     from CloudHarvestApi.blueprints.base import safe_request_get_json
-
-    result = {}
     request_data = safe_request_get_json(request)
 
-    # Check for a valid template name
-    if not request_data.get('template_name'):
-        return Response({'error': '`template_name` must be provided.'}, 400)
+    template_category = request_data.get('template_category')
+    template_name = request_data.get('template_name')
 
+    # Check for a valid template name
+    if not template_category or not template_name:
+        return Response({'error': '`template_category` and `template_name` must be provided.'}, 400)
 
     # Find an agent with this template name
     from CloudHarvestCoreTasks.silos import get_silo
@@ -71,7 +72,6 @@ def get_agent_template(template_category: str, template_name: str) -> Response:
     agent_id = None
 
     while agent_id is None:
-        cursor = 0
         cursor, batch = harvest_nodes.scan(cursor=cursor, match=f'agent:*', count=100)
 
         if batch:
@@ -82,7 +82,12 @@ def get_agent_template(template_category: str, template_name: str) -> Response:
                 # Break if we find the template on this agent
                 if f'template_{template_category}/{template_name}' in available_templates:
                     agent_id = agent_key
+                    # Escape the for loop since we found an agent with the template
                     break
+
+        # Escape while loop if we found an agent with the template
+        if agent_id:
+            break
 
         # Break if we've scanned all agents
         if cursor == 0:
@@ -101,7 +106,7 @@ def get_agent_template(template_category: str, template_name: str) -> Response:
         attempts += 1
 
         try:
-            response = get(f'https://{agent_id}/templates/get_template/{request_data.get("template_type")}/{request_data.get("template_name")}',
+            response = get(f'https://{agent_id}/templates/get_template/{template_category}/{template_name}',
                            cert=Environment.get('api.connection.pemfile'),
                            timeout=1)
 
