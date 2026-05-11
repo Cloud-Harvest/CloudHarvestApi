@@ -19,7 +19,7 @@ pstar_blueprint = HarvestApiBlueprint(
 
 
 CACHED_PLATFORM_REGIONS = CachedData(data=[], valid_age=0)
-
+CACHED_SERVICES = CachedData(data={}, valid_age=300)  # 5 minutes
 
 @pstar_blueprint.route(rule='/list_accounts', methods=['GET'])
 def list_accounts() -> Response:
@@ -299,6 +299,7 @@ def list_pstar(platform=None, service=None, type=None, account=None, region=None
         result=results
     )
 
+
 @pstar_blueprint.route(rule='/queue_pstar/<priority>', methods=['POST'])
 def queue_pstar(priority: int, platform: str = None, service: str = None, type: str = None, account: str = None, region: str = None) -> Response:
     """
@@ -351,12 +352,160 @@ def queue_pstar(priority: int, platform: str = None, service: str = None, type: 
         }
     )
 
+@pstar_blueprint.route(rule='/queue_unique_identifiers/<priority>', methods=['POST'])
+def queue_unique_identifiers(priority: int, unique_identifiers: list[str] = None, full_refresh: bool = False) -> Response:
+    """
+    Queues tasks based on a list of unique identifiers instead of PSTAR fields.
+    Arguments:
+        priority (int): The priority of the task. Lower numbers indicate higher priority, with 0 being the highest.
+        unique_identifiers: From the Harvest.UniqueIdentifier metadata field.
+        full_refresh: Indicates the unique identifier's entire PSTAR should be refreshed.
+
+    Returns:
+        Response: A response object containing a list of tasks which were queued.
+    """
+    # Sets the parent ID for the queued tasks
+    from json import loads, dumps
+    from uuid import uuid4
+    parent_id = str(uuid4())
+    tasks_to_queue = []
+    not_queued = []
+
+    # Get the unique identifiers and full refresh flag from the request body if not provided as arguments
+    data = safe_request_get_json(request)
+    unique_identifiers = unique_identifiers or data.get('unique_identifiers') or []
+    full_refresh = full_refresh or data.get('full_refresh')
+
+    logger.debug(f'task:{parent_id}: queueing tasks for unique identifiers: {len(unique_identifiers)}')
+
+    # Connect to the Mongo backend to retrieve the metadata for each unique identifier
+    from CloudHarvestCoreTasks.silos import get_silo
+    metadata_silo = get_silo('harvest-core').connect()
+    unique_documents = [
+        record for record in
+        metadata_silo['harvest']['metadata'].find({'UniqueIdentifier': {'$in': unique_identifiers}})
+    ]
+
+    logger.debug(f'task:{parent_id}: retrieved metadata for unique identifiers: {len(unique_documents)}')
+
+    returned_identifiers = [doc.get('UniqueIdentifier') for doc in unique_documents]
+
+    # Identify any unique identifiers which did not return metadata
+    [
+        not_queued.append(
+            {
+                'unique_identifier': identifier,
+                'reason': 'No metadata found for the provided UniqueIdentifier.'
+            }
+        )
+        for identifier in unique_identifiers
+        if identifier not in returned_identifiers
+    ]
+
+    for document in unique_documents:
+        # We create a tuple here because it allows us to perform a set() operation later to remove duplicates. This
+        # is necessary to prevent saturation of the agent system and database backend.
+        try:
+            pstar = [
+                document['UniqueIdentifier'],           # 0
+                document['Platform'],                   # 1
+                document['Service'],                    # 2
+                document['Type'],                       # 3
+                document['AccountId'],                  # 4 - must use account id otherwise profiles cannot be found
+                document['Region'],                     # 5
+                document.get('TemplateIdentifier')      # 6
+            ]
+
+            if not full_refresh:
+                # Convert the Singleton field to a JSON string to ensure it's hashable for the set() operation later
+                singleton = dumps(document.get('Singleton') or {})  # 7 - Used to identify the resource to be collected
+
+                pstar.append(singleton)
+
+        except KeyError as e:
+            logger.warning(f'task:{parent_id}: missing expected metadata field {str(e)} for UniqueIdentifier {document.get("UniqueIdentifier")}')
+            continue
+
+        # Backwards compatibility: If the document does not have a TemplateIdentifier field, we cannot reliably identify
+        # how it was collected, therefore we skip it.
+        if not document.get('TemplateIdentifier'):
+            not_queued.append(
+                {
+                    'unique_identifier': document.get('UniqueIdentifier'),
+                    'reason': 'Document does not have a TemplateIdentifier field; identify how it was collected.'
+                }
+            )
+            logger.debug(f'task:{parent_id}: missing template identifier {document.get("UniqueIdentifier")}')
+            continue
+
+        elif not document.get('Singleton') and not full_refresh:
+            not_queued.append(
+                {
+                    'unique_identifier': document.get('UniqueIdentifier'),
+                    'reason': 'Document does not have a Singleton field; cannot perform a targeted refresh.'
+                }
+            )
+            logger.debug(f'task:{parent_id}: missing singleton {document.get("UniqueIdentifier")}')
+            continue
+
+        tasks_to_queue.append(tuple(pstar))
+        logger.debug(f'task:{parent_id}: generate task for: {document.get("UniqueIdentifier")}')
+
+    # Remove duplicates
+    tasks_to_queue = list(set(tasks_to_queue))
+
+    logger.debug(f'task:{parent_id}: deduplicated tasks to queue: {len(tasks_to_queue)}')
+
+    # Queue the tasks for each unique combination of PSTAR, template, and singleton (if not a full refresh).
+    from CloudHarvestApi.blueprints.tasks import queue_task
+    result = []
+    for task in tasks_to_queue:
+        try:
+            task_result = queue_task(
+                priority=priority,
+                parent=parent_id,
+                task_category='services',
+                task_name=task[6].split('/')[-1],  # "template_services/s3.buckets" -> "s3.buckets"
+                platform=task[1],
+                service=task[2],
+                type=task[3],
+                account=task[4],
+                region=task[5],
+                variables=loads(task[7]) | {'InputUniqueIdentifier': task[0]} if not full_refresh else {}  # The singleton values are passed a dictionary to be converted into individual variables
+            )
+
+            result.append(task_result.json)
+            logger.debug(f'task:{parent_id}:{task_result.json.get("id")} queued task')
+
+        except Exception as e:
+            not_queued.append(
+                {
+                    'unique_identifier': f'{":".join(task[:5])}' if full_refresh else task[0],  # If it's a full refresh, the task is based on the PSTAR fields, otherwise it's based on the unique identifier
+                    'reason': f'Failed to queue task with error: {str(e)}'
+                }
+            )
+            logger.warning(f'task:{parent_id}: failed to queue task for {task[3]} with error: {str(e)}')
+
+    logger.debug(f'task:{parent_id}: queued tasks: {len(result)}, not queued: {len(not_queued)}')
+
+    # Return the queued tasks
+    return safe_jsonify(
+        success=True,
+        reason='OK',
+        result={
+            'parent_id': parent_id,
+            'queued_tasks': result,
+            'not_queued': not_queued
+        }
+    )
+
+
 def format_pstar(request_kwargs: dict,
-                   platform: str = None,
-                   service: str = None,
-                   type: str = None,
-                   account: str = None,
-                   region: str = None) -> dict:
+                 platform: str = None,
+                 service: str = None,
+                 type: str = None,
+                 account: str = None,
+                 region: str = None) -> dict:
     """
     Abstract function to handle PStar requests.
 

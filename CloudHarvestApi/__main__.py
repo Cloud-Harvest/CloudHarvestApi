@@ -36,10 +36,10 @@ if __name__ == '__main__':
 
 else:
     # If the script is not run as the main module, collect the variables from the environment
-    from os import environ
-    args = Namespace(host=environ.get('CLOUDHARVESTAPI_HOST'),
-                     port=int(environ.get('CLOUDHARVESTAPI_PORT')),
-                     pemfile=environ.get('CLOUDHARVESTAPI_PEMFILE'),
+    from CloudHarvestApi import gunicorn_conf
+    args = Namespace(host=gunicorn_conf.bind.split(':')[0],
+                     port=int(gunicorn_conf.bind.split(':')[1]),
+                     pemfile=gunicorn_conf.certfile,
                      debug=False)
 
 # Load the configuration
